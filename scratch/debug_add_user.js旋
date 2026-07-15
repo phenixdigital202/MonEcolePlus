@@ -1,0 +1,53 @@
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+
+async function testAddUser() {
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: 'mysql://root@127.0.0.1:3306/monecole_lycee_abou',
+      },
+    },
+  });
+
+  try {
+    const nom = "Prof Test Script";
+    const email = `prof.test.${Date.now()}@ecole.fr`;
+    const password = "test123";
+    const role = "teacher";
+    const matiere = "Mathématiques";
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    console.log("Attempting to create user with Prisma...");
+    // If this fails, we'll see why
+    const user = await prisma.user.create({
+      data: {
+        nom,
+        email,
+        password: hashedPassword,
+        role,
+        matiere,
+        created_at: new Date()
+      }
+    });
+    console.log("User created successfully:", user.id);
+  } catch (error) {
+    console.error("Prisma create failed:", error);
+    
+    console.log("Attempting with Raw SQL...");
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO users (nom, email, password, role, matiere, created_at) VALUES (?, ?, ?, ?, ?, NOW())`,
+        "Prof Test Raw", `prof.raw.${Date.now()}@ecole.fr`, "hashed", "teacher", "Physique"
+      );
+      console.log("Raw SQL insertion successful");
+    } catch (rawError) {
+      console.error("Raw SQL failed too:", rawError);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+testAddUser();
