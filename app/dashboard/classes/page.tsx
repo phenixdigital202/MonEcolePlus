@@ -1,3 +1,5 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { 
@@ -10,9 +12,33 @@ import { ClassesList } from "@/components/dashboard/classes-list"
 import { ClassActionsHeader } from "@/components/dashboard/class-actions-header"
 
 export default async function ClassesPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
+
+  if (!userId) {
+    redirect("/login")
+  }
+
   const prisma = await getPrisma()
-  // Fetch real classes from the database with more counts
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(userId) }
+  })
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  const isTeacher = user.role === 'teacher'
+
+  // Fetch classes from the database, filtering if the user is a teacher
   const classes = await prisma.class.findMany({
+    where: isTeacher ? {
+      emplois_du_temps: {
+        some: {
+          id_enseignant: user.id
+        }
+      }
+    } : undefined,
     include: {
       _count: {
         select: { 
@@ -36,16 +62,41 @@ export default async function ClassesPage() {
     }
   })
 
-  // Aggregating global stats
-  const totalStudents = await prisma.user.count({ where: { role: 'student' } })
-  const totalTeachers = await prisma.user.count({ where: { role: 'teacher' } })
+  // Aggregating stats
   const allClasses = classes.length
+  
+  let totalStudents = 0
+  if (isTeacher) {
+    totalStudents = await prisma.inscription.count({
+      where: { id_classe: { in: classes.map(c => c.id) } }
+    })
+  } else {
+    totalStudents = await prisma.user.count({ where: { role: 'student' } })
+  }
 
-  // Calculate global average
-  const allNotes = await prisma.notes.aggregate({
-    _avg: { valeur: true }
-  })
-  const globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
+  const totalTeachers = await prisma.user.count({ where: { role: 'teacher' } })
+
+  // Calculate average
+  let globalAverage = "N/A"
+  if (isTeacher) {
+    const classIds = classes.map(c => c.id)
+    if (classIds.length > 0) {
+      const allNotes = await prisma.notes.aggregate({
+        where: {
+          evaluations: {
+            id_classe: { in: classIds }
+          }
+        },
+        _avg: { valeur: true }
+      })
+      globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
+    }
+  } else {
+    const allNotes = await prisma.notes.aggregate({
+      _avg: { valeur: true }
+    })
+    globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
+  }
 
   const formattedClasses = classes.map(c => {
     // Unique subjects count
@@ -70,7 +121,7 @@ export default async function ClassesPage() {
 
   return (
     <>
-      <ClassActionsHeader />
+      <ClassActionsHeader userRole={user.role} />
       
       <main className="p-6">
         {/* Stats */}
@@ -108,8 +159,12 @@ export default async function ClassesPage() {
                   <UserCircle className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{totalTeachers}</p>
-                  <p className="text-sm text-muted-foreground">Enseignants</p>
+                  <p className="text-xl font-bold text-foreground truncate max-w-[150px]">
+                    {isTeacher ? (user.matiere || "N/A") : totalTeachers}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isTeacher ? "Matière" : "Enseignants"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -122,7 +177,9 @@ export default async function ClassesPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{globalAverage}</p>
-                  <p className="text-sm text-muted-foreground">Moyenne Générale</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isTeacher ? "Moyenne Classes" : "Moyenne Générale"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -130,7 +187,7 @@ export default async function ClassesPage() {
         </div>
 
         {/* Classes List */}
-        <ClassesList initialClasses={formattedClasses} />
+        <ClassesList initialClasses={formattedClasses} userRole={user.role} />
       </main>
     </>
   )

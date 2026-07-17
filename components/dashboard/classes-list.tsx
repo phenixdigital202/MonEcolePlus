@@ -43,9 +43,10 @@ interface ClassesListProps {
     subjects: number
     average: number
   }[]
+  userRole?: string
 }
 
-export function ClassesList({ initialClasses }: ClassesListProps) {
+export function ClassesList({ initialClasses, userRole = "admin" }: ClassesListProps) {
   const [isPending, startTransition] = useTransition()
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [editClass, setEditClass] = useState<any | null>(null)
@@ -76,23 +77,25 @@ export function ClassesList({ initialClasses }: ClassesListProps) {
                 <p className="text-sm font-medium text-muted-foreground">{item.level}</p>
               </div>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem onClick={() => setEditClass(item)} className="cursor-pointer">
-                    <Edit3 className="h-4 w-4 mr-2 text-blue-500" />
-                    Modifier
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive cursor-pointer hover:bg-destructive/10">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {userRole === "admin" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => setEditClass(item)} className="cursor-pointer">
+                      <Edit3 className="h-4 w-4 mr-2 text-blue-500" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDeleteId(item.id)} className="text-destructive cursor-pointer hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             <div className="space-y-4 mb-6">

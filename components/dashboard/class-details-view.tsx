@@ -38,9 +38,10 @@ import { EnrollmentModal } from "./enrollment-modal"
 interface ClassDetailsViewProps {
   classe: any
   classId: number
+  userRole?: string
 }
 
-export function ClassDetailsView({ classe, classId }: ClassDetailsViewProps) {
+export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassDetailsViewProps) {
   const router = useRouter()
   const [isEnrollOpen, setIsEnrollOpen] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
@@ -83,10 +84,12 @@ export function ClassDetailsView({ classe, classId }: ClassDetailsViewProps) {
               <span className="hidden md:inline">Retour</span>
             </Button>
           </Link>
-          <Button size="sm" className="rounded-xl bg-primary shadow-sm hover:shadow-md h-9 px-2 md:px-3" onClick={() => setIsEnrollOpen(true)}>
-            <UserCheck className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Gérer les inscriptions</span>
-          </Button>
+          {userRole === "admin" && (
+            <Button size="sm" className="rounded-xl bg-primary shadow-sm hover:shadow-md h-9 px-2 md:px-3" onClick={() => setIsEnrollOpen(true)}>
+              <UserCheck className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Gérer les inscriptions</span>
+            </Button>
+          )}
         </div>
       </DashboardHeader>
 
@@ -163,28 +166,30 @@ export function ClassDetailsView({ classe, classId }: ClassDetailsViewProps) {
                                 </Button>
                             </Link>
                             
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl border-slate-100">
-                                <DropdownMenuLabel>Gestion Éleve</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer gap-2">
-                                  <Users className="h-4 w-4" /> Profil complet
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10"
-                                  onClick={() => unenrollStudent(ins.eleve.id)}
-                                  disabled={loadingAction === `unenroll-${ins.eleve.id}`}
-                                >
-                                  {loadingAction === `unenroll-${ins.eleve.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                  Désinscrire
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            {userRole === "admin" && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl border-slate-100">
+                                  <DropdownMenuLabel>Gestion Éleve</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer gap-2">
+                                    <Users className="h-4 w-4" /> Profil complet
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10"
+                                    onClick={() => unenrollStudent(ins.eleve.id)}
+                                    disabled={loadingAction === `unenroll-${ins.eleve.id}`}
+                                  >
+                                    {loadingAction === `unenroll-${ins.eleve.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    Désinscrire
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -255,19 +260,21 @@ export function ClassDetailsView({ classe, classId }: ClassDetailsViewProps) {
                     Contacter tous les parents
                   </Button>
                 </Link>
-                <Button 
-                    variant="ghost" 
-                    className="w-full justify-start bg-white/50 backdrop-blur-sm border-white border hover:bg-emerald-500 hover:text-white transition-all rounded-2xl h-12 shadow-sm"
-                    onClick={handleGenerateBulletins}
-                    disabled={loadingAction === "bulletins"}
-                >
-                  {loadingAction === "bulletins" ? (
-                      <Loader2 className="h-4 w-4 mr-3 animate-spin" />
-                  ) : (
-                      <BookOpen className="h-4 w-4 mr-3" />
-                  )}
-                  Générer les bulletins
-                </Button>
+                {userRole === "admin" && (
+                  <Button 
+                      variant="ghost" 
+                      className="w-full justify-start bg-white/50 backdrop-blur-sm border-white border hover:bg-emerald-500 hover:text-white transition-all rounded-2xl h-12 shadow-sm"
+                      onClick={handleGenerateBulletins}
+                      disabled={loadingAction === "bulletins"}
+                  >
+                    {loadingAction === "bulletins" ? (
+                        <Loader2 className="h-4 w-4 mr-3 animate-spin" />
+                    ) : (
+                        <BookOpen className="h-4 w-4 mr-3" />
+                    )}
+                    Générer les bulletins
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>

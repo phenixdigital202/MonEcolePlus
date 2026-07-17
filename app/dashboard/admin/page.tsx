@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
       
       <main className="p-4 md:p-8 space-y-4 md:space-y-8">
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {schoolStats.map((stat) => (
             <Card key={stat.label} className="border-none shadow-sm bg-card/50 backdrop-blur-md">
               <CardContent className="p-4 md:p-6">
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
           ))}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-7">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
           {/* Revenue Chart */}
           <Card className="md:col-span-4 border-none shadow-sm bg-card/50 backdrop-blur-md">
             <CardHeader>

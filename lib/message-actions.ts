@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 
 export async function getContacts(userId: number, role: string) {
   try {
+    const prisma = await getPrisma()
     const contacts: any = {
       profs: [],
       camarades: [],
@@ -79,6 +80,68 @@ export async function getContacts(userId: number, role: string) {
         avatar: a.nom.substring(0, 2).toUpperCase(),
         role: 'admin'
       }))
+    } else if (role === 'parent') {
+      // 1. Get parent's children
+      const parentLinks = await prisma.parent_eleve.findMany({
+        where: { id_parent: userId },
+        include: {
+          eleve: {
+            include: {
+              inscriptions: {
+                include: {
+                  classe: {
+                    include: {
+                      emplois_du_temps: {
+                        include: { users: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+
+      // 2. Children as "famille" contacts
+      contacts.famille = parentLinks.map(link => ({
+        id: link.eleve.id,
+        name: link.eleve.nom,
+        avatar: link.eleve.nom.substring(0, 2).toUpperCase(),
+        role: 'student'
+      }))
+
+      // 3. Teachers of children's classes as "profs" contacts
+      const teacherMap = new Map<number, any>()
+      for (const link of parentLinks) {
+        for (const inscription of link.eleve.inscriptions) {
+          if (inscription.classe) {
+            for (const edt of inscription.classe.emplois_du_temps) {
+              if (!teacherMap.has(edt.users.id)) {
+                teacherMap.set(edt.users.id, {
+                  id: edt.users.id,
+                  name: edt.users.nom,
+                  avatar: edt.users.nom.substring(0, 2).toUpperCase(),
+                  role: 'teacher'
+                })
+              }
+            }
+          }
+        }
+      }
+      contacts.profs = Array.from(teacherMap.values())
+
+      // 4. Admins
+      const admins = await prisma.user.findMany({
+        where: { role: 'admin' },
+        take: 5
+      })
+      contacts.administration = admins.map(a => ({
+        id: a.id,
+        name: a.nom,
+        avatar: a.nom.substring(0, 2).toUpperCase(),
+        role: 'admin'
+      }))
     } else if (role === 'admin') {
       // 1. All Teachers
       const teachers = await prisma.user.findMany({
@@ -123,6 +186,80 @@ export async function getContacts(userId: number, role: string) {
         select: { id: true, nom: true }
       })
       contacts.administration = otherAdmins.map(a => ({
+        id: a.id,
+        name: a.nom,
+        avatar: a.nom.substring(0, 2).toUpperCase(),
+        role: 'admin'
+      }))
+    } else if (role === 'teacher') {
+      // 1. Get classes assigned to this teacher via schedule
+      const schedules = await prisma.emplois_du_temps.findMany({
+        where: { id_enseignant: userId },
+        include: {
+          classes: {
+            include: {
+              inscriptions: {
+                include: { eleve: true }
+              }
+            }
+          }
+        },
+        distinct: ['id_classe']
+      })
+
+      // 2. Collect all students in teacher's classes
+      const studentMap = new Map<number, any>()
+      for (const schedule of schedules) {
+        for (const inscription of schedule.classes?.inscriptions || []) {
+          if (inscription.eleve && !studentMap.has(inscription.eleve.id)) {
+            studentMap.set(inscription.eleve.id, {
+              id: inscription.eleve.id,
+              name: inscription.eleve.nom,
+              avatar: inscription.eleve.nom.substring(0, 2).toUpperCase(),
+              role: 'student'
+            })
+          }
+        }
+      }
+      contacts.camarades = Array.from(studentMap.values()) // reuse 'camarades' key for students
+
+      // 3. Parents of those students
+      const studentIds = Array.from(studentMap.keys())
+      const parentLinks = await prisma.parent_eleve.findMany({
+        where: { id_eleve: { in: studentIds } },
+        include: { parent: true }
+      })
+      const parentMap = new Map<number, any>()
+      for (const link of parentLinks) {
+        if (link.parent && !parentMap.has(link.parent.id)) {
+          parentMap.set(link.parent.id, {
+            id: link.parent.id,
+            name: link.parent.nom,
+            avatar: link.parent.nom.substring(0, 2).toUpperCase(),
+            role: 'parent'
+          })
+        }
+      }
+      contacts.famille = Array.from(parentMap.values()) // reuse 'famille' key for parents
+
+      // 4. Other teachers
+      const otherTeachers = await prisma.user.findMany({
+        where: { role: 'teacher', id: { not: userId } },
+        select: { id: true, nom: true }
+      })
+      contacts.profs = otherTeachers.map(t => ({
+        id: t.id,
+        name: t.nom,
+        avatar: t.nom.substring(0, 2).toUpperCase(),
+        role: 'teacher'
+      }))
+
+      // 5. Admins
+      const admins = await prisma.user.findMany({
+        where: { role: 'admin' },
+        take: 5
+      })
+      contacts.administration = admins.map(a => ({
         id: a.id,
         name: a.nom,
         avatar: a.nom.substring(0, 2).toUpperCase(),
@@ -186,6 +323,7 @@ export async function sendMessage(senderId: number, receiverId: number, content:
 
 export async function linkParentToStudent(parentId: number, studentId: number) {
   try {
+    const prisma = await getPrisma()
     // Using raw SQL to bypass model check
     await prisma.$executeRawUnsafe(
       `INSERT IGNORE INTO parent_eleve (id_parent, id_eleve) VALUES (?, ?)`,

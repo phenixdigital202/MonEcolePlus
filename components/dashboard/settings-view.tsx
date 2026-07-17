@@ -51,7 +51,7 @@ export function SettingsView({ user }: SettingsViewProps) {
   const currentClass = user.inscriptions?.[0]?.classe?.nom || "N/A"
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
@@ -63,25 +63,27 @@ export function SettingsView({ user }: SettingsViewProps) {
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="profile" className="gap-2">
-            <User className="h-4 w-4" />
-            Profil
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
-            <Shield className="h-4 w-4" />
-            Sécurité
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-2">
-            <Palette className="h-4 w-4" />
-            Apparence
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profile" className="space-y-6 w-full">
+        <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+          <TabsList className="bg-muted/50 w-full justify-start md:justify-center flex h-auto p-1 flex-wrap md:flex-nowrap gap-1">
+            <TabsTrigger value="profile" className="gap-2 flex-1 md:flex-initial shrink-0">
+              <User className="h-4 w-4" />
+              Profil
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2 flex-1 md:flex-initial shrink-0">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2 flex-1 md:flex-initial shrink-0">
+              <Shield className="h-4 w-4" />
+              Sécurité
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="gap-2 flex-1 md:flex-initial shrink-0">
+              <Palette className="h-4 w-4" />
+              Apparence
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile" className="space-y-6">
           <Card className="border-border/50">
@@ -90,13 +92,13 @@ export function SettingsView({ user }: SettingsViewProps) {
               <CardDescription>Mettez à jour vos informations de profil</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
                 <Avatar className="h-20 w-20">
                   <AvatarFallback className="bg-primary/10 text-primary text-xl">
                     {user.nom.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="w-full sm:w-auto gap-2">
                   <Camera className="h-4 w-4" />
                   Changer la photo
                 </Button>
@@ -124,7 +126,7 @@ export function SettingsView({ user }: SettingsViewProps) {
               </div>
 
               <div className="flex justify-end">
-                <Button className="gap-2">
+                <Button className="w-full sm:w-auto gap-2">
                   <Save className="h-4 w-4" />
                   Enregistrer les modifications
                 </Button>

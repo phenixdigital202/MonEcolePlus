@@ -35,10 +35,18 @@ export default async function MessagesPage() {
 
   return (
     <div className="flex flex-col h-full bg-slate-50/20">
-      <div className="p-6 pb-0">
-        <h1 className="text-2xl font-bold text-foreground">Messagerie Directe</h1>
+      <div className="p-4 md:p-6 pb-0">
+        <h1 className="text-2xl font-bold text-foreground">
+          {user.role === 'parent' ? "Messages École" : user.role === 'teacher' ? "Messagerie" : "Messagerie Directe"}
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Échangez avec vos professeurs, camarades et parents en temps réel.
+          {user.role === 'parent' 
+            ? "Échangez avec les professeurs de vos enfants et l'administration de l'école."
+            : user.role === 'teacher'
+            ? "Échangez avec vos élèves, leurs parents et vos collègues enseignants."
+            : user.role === 'admin'
+            ? "Échangez avec les professeurs, élèves et parents."
+            : "Échangez avec vos professeurs, camarades et parents en temps réel."}
         </p>
       </div>
       

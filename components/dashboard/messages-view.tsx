@@ -107,7 +107,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
         <p className="font-bold text-foreground text-sm truncate">{contact.name}</p>
         <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">
           {contact.role === 'teacher' ? 'Professeur' : 
-           contact.role === 'student' ? 'Camarade' :
+           contact.role === 'student' ? (currentUserRole === 'teacher' ? 'Élève' : 'Camarade') :
            contact.role === 'parent' ? 'Parent' : 'Administration'}
         </p>
       </div>
@@ -132,12 +132,17 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
            <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid grid-cols-4 h-9 bg-muted/50 p-1">
                  <TabsTrigger value="all" className="text-[10px] font-bold uppercase"><MessageSquare className="h-3 w-3 mr-1" /> Tous</TabsTrigger>
-                 <TabsTrigger value="profs" className="text-[10px] font-bold uppercase"><GraduationCap className="h-3 w-3 mr-1" /> Profs</TabsTrigger>
+                 <TabsTrigger value="profs" className="text-[10px] font-bold uppercase">
+                   <GraduationCap className="h-3 w-3 mr-1" />
+                   {currentUserRole === 'teacher' ? 'Collègues' : 'Profs'}
+                 </TabsTrigger>
                  <TabsTrigger value="class" className="text-[10px] font-bold uppercase">
-                    <UsersIcon className="h-3 w-3 mr-1" /> {currentUserRole === 'admin' ? 'Élèves' : 'Classe'}
+                    <UsersIcon className="h-3 w-3 mr-1" />
+                    {currentUserRole === 'admin' ? 'Élèves' : currentUserRole === 'parent' ? 'Enfants' : currentUserRole === 'teacher' ? 'Élèves' : 'Classe'}
                  </TabsTrigger>
                  <TabsTrigger value="family" className="text-[10px] font-bold uppercase">
-                    <Heart className="h-3 w-3 mr-1" /> {currentUserRole === 'admin' ? 'Parents' : 'Famille'}
+                    <Heart className="h-3 w-3 mr-1" />
+                    {currentUserRole === 'admin' ? 'Parents' : currentUserRole === 'parent' ? 'École' : currentUserRole === 'teacher' ? 'Parents' : 'Famille'}
                  </TabsTrigger>
               </TabsList>
 
@@ -151,10 +156,14 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
                     {initialContacts.profs.map(renderContactButton)}
                  </TabsContent>
                  <TabsContent value="class" className="m-0">
-                    {initialContacts.camarades.map(renderContactButton)}
+                    {(currentUserRole === 'parent')
+                       ? initialContacts.famille.map(renderContactButton)
+                       : initialContacts.camarades.map(renderContactButton)}
                  </TabsContent>
                  <TabsContent value="family" className="m-0">
-                    {initialContacts.famille.map(renderContactButton)}
+                    {currentUserRole === 'parent'
+                       ? initialContacts.administration.map(renderContactButton)
+                       : initialContacts.famille.map(renderContactButton)}
                  </TabsContent>
               </div>
            </Tabs>
@@ -275,6 +284,10 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
                 <CardDescription>
                    {currentUserRole === 'admin' 
                     ? "Choisissez un professeur, un élève ou un parent pour discuter." 
+                    : currentUserRole === 'parent'
+                    ? "Choisissez un enseignant de vos enfants ou l'administration pour discuter."
+                    : currentUserRole === 'teacher'
+                    ? "Choisissez un élève, un collègue ou un parent pour discuter."
                     : "Choisissez un professeur, un camarade ou un parent pour discuter."}
                 </CardDescription>
              </div>

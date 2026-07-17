@@ -29,12 +29,14 @@ interface AddAbsenceModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  filteredClasses?: { id: number; nom: string }[]
 }
 
 export function AddAbsenceModal({ 
   isOpen, 
   onClose, 
-  onSuccess 
+  onSuccess,
+  filteredClasses
 }: AddAbsenceModalProps) {
   const [loading, setLoading] = useState(false)
   const [classes, setClasses] = useState<any[]>([])
@@ -50,9 +52,15 @@ export function AddAbsenceModal({
 
   useEffect(() => {
     if (isOpen) {
-      getClasses().then(setClasses)
+      if (filteredClasses && filteredClasses.length > 0) {
+        // Use teacher's filtered classes directly without calling getClasses()
+        setClasses(filteredClasses)
+      } else if (!filteredClasses) {
+        // Admin: load all classes
+        getClasses().then(setClasses)
+      }
     }
-  }, [isOpen])
+  }, [isOpen, filteredClasses])
 
   useEffect(() => {
     if (selectedClass) {

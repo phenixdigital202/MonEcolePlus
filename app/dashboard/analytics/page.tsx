@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Charts Grid */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Performance Evolution */}
           <Card>
             <CardHeader>
@@ -163,31 +163,29 @@ export default function AnalyticsPage() {
                   average: { label: "Moyenne", color: "hsl(var(--chart-1))" },
                   target: { label: "Objectif", color: "hsl(var(--chart-2))" },
                 }}
-                className="h-[300px]"
+                className="h-[300px] w-full"
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis domain={[0, 20]} className="text-xs" />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area
-                      type="monotone"
-                      dataKey="average"
-                      stroke="var(--color-average)"
-                      fill="var(--color-average)"
-                      fillOpacity={0.2}
-                      name="Moyenne"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="target"
-                      stroke="var(--color-target)"
-                      strokeDasharray="5 5"
-                      name="Objectif"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <AreaChart data={performanceData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis domain={[0, 20]} className="text-xs" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area
+                    type="monotone"
+                    dataKey="average"
+                    stroke="var(--color-average)"
+                    fill="var(--color-average)"
+                    fillOpacity={0.2}
+                    name="Moyenne"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="target"
+                    stroke="var(--color-target)"
+                    strokeDasharray="5 5"
+                    name="Objectif"
+                  />
+                </AreaChart>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -204,18 +202,16 @@ export default function AnalyticsPage() {
                   justified: { label: "Justifiées", color: "hsl(var(--chart-3))" },
                   unjustified: { label: "Non justifiées", color: "hsl(var(--destructive))" },
                 }}
-                className="h-[300px]"
+                className="h-[300px] w-full"
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data?.absenceData || []}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="justified" fill="var(--color-justified)" name="Justifiées" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="unjustified" fill="var(--color-unjustified)" name="Non justifiées" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart data={data?.absenceData || []}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="justified" fill="var(--color-justified)" name="Justifiées" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="unjustified" fill="var(--color-unjustified)" name="Non justifiées" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -231,17 +227,15 @@ export default function AnalyticsPage() {
                 config={{
                   average: { label: "Moyenne", color: "hsl(var(--chart-1))" },
                 }}
-                className="h-[300px]"
+                className="h-[300px] w-full"
               >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data?.subjectAverages || []} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" domain={[0, 20]} className="text-xs" />
-                    <YAxis dataKey="subject" type="category" className="text-xs" width={100} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="average" fill="var(--color-average)" name="Moyenne" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <BarChart data={data?.subjectAverages || []} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" domain={[0, 20]} className="text-xs" />
+                  <YAxis dataKey="subject" type="category" className="text-xs" width={100} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="average" fill="var(--color-average)" name="Moyenne" radius={[0, 4, 4, 0]} />
+                </BarChart>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -253,15 +247,15 @@ export default function AnalyticsPage() {
               <CardDescription>Indicateurs clés de performance</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
-               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
+               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50">
                   <span className="font-medium">Total Élèves</span>
                   <span className="font-bold text-xl">{data?.totalStudents || 0}</span>
                </div>
-               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
+               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50">
                   <span className="font-medium">Moyenne Établissement</span>
                   <span className="font-bold text-xl text-primary">{data?.globalAverage || 0}/20</span>
                </div>
-               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
+               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-100 dark:bg-slate-800/50">
                   <span className="font-medium">Taux de Réussite</span>
                   <span className="font-bold text-xl text-emerald-600">{data?.successRate || 0}%</span>
                </div>

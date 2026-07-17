@@ -1,3 +1,5 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,7 +29,35 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
     notFound()
   }
 
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
+
+  if (!userId) {
+    redirect("/login")
+  }
+
   const prisma = await getPrisma()
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(userId) }
+  })
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  // Security check: if teacher, ensure they teach this class
+  if (user.role === 'teacher') {
+    const isTeaching = await prisma.emplois_du_temps.findFirst({
+      where: {
+        id_classe: classId,
+        id_enseignant: user.id
+      }
+    })
+    if (!isTeaching) {
+      redirect("/dashboard/classes")
+    }
+  }
+
   const classe = await prisma.class.findUnique({
     where: { id: classId },
     include: {
@@ -103,5 +133,5 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
     attendanceRate: attendanceRate
   }
 
-  return <ClassDetailsView classe={enrichedClasse} classId={classId} />
+  return <ClassDetailsView classe={enrichedClasse} classId={classId} userRole={user.role} />
 }

@@ -2,6 +2,7 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 
 export async function saveGrades(evaluationId: number, grades: { studentId: number, value: number, comment?: string }[]) {
   const prisma = await getPrisma()
@@ -114,6 +115,44 @@ export async function deleteEvaluationAction(id: number) {
 
 export async function getEvaluationsByClass(classId: number) {
   const prisma = await getPrisma()
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
+  
+  if (!userId) {
+    return []
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(userId) }
+  })
+
+  if (!user) {
+    return []
+  }
+
+  if (user.role === 'teacher') {
+    // Get all distinct subjects taught by this teacher
+    const dbSubjects = await prisma.emplois_du_temps.findMany({
+      where: { id_enseignant: user.id },
+      select: { matiere: true },
+      distinct: ['matiere']
+    })
+    
+    const subjects = new Set<string>()
+    if (user.matiere) subjects.add(user.matiere)
+    dbSubjects.forEach(s => {
+      if (s.matiere) subjects.add(s.matiere)
+    })
+
+    return await prisma.evaluations.findMany({
+      where: {
+        id_classe: classId,
+        matiere: { in: Array.from(subjects) }
+      },
+      orderBy: { date_eval: 'desc' }
+    })
+  }
+
   return await prisma.evaluations.findMany({
     where: { id_classe: classId },
     orderBy: { date_eval: 'desc' }

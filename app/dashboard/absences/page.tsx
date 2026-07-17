@@ -16,7 +16,38 @@ export default async function AbsencesPage() {
   if (!user) return null
 
   // Filter absences based on role
-  const whereClause = user.role === 'student' ? { id_eleve: user.id } : {}
+  let whereClause: any = {}
+  let teacherClasses: { id: number; nom: string }[] = []
+
+  if (user.role === 'student') {
+    whereClause = { id_eleve: user.id }
+  } else if (user.role === 'parent') {
+    const parentLinks = await prisma.parent_eleve.findMany({
+      where: { id_parent: user.id },
+      select: { id_eleve: true }
+    })
+    const childIds = parentLinks.map(link => link.id_eleve)
+    whereClause = { id_eleve: { in: childIds } }
+  } else if (user.role === 'teacher') {
+    // Get all class IDs assigned to this teacher via schedules
+    const schedules = await prisma.emplois_du_temps.findMany({
+      where: { id_enseignant: user.id },
+      select: { id_classe: true, classes: { select: { id: true, nom: true } } },
+      distinct: ['id_classe']
+    })
+    const classIds = schedules.map(s => s.id_classe).filter(Boolean) as number[]
+    teacherClasses = schedules
+      .map(s => s.classes)
+      .filter((c): c is { id: number; nom: string } => c !== null)
+
+    // Get student IDs in those classes
+    const inscriptions = await prisma.inscription.findMany({
+      where: { id_classe: { in: classIds } },
+      select: { id_eleve: true }
+    })
+    const studentIds = inscriptions.map(i => i.id_eleve)
+    whereClause = { id_eleve: { in: studentIds } }
+  }
 
   const absences = await prisma.absence.findMany({
     where: whereClause,
@@ -52,5 +83,8 @@ export default async function AbsencesPage() {
     duration: "1 jour"
   }))
 
-  return <AbsencesView initialAbsences={initialAbsences} stats={stats} userRole={user.role} />
+  const serializedAbsences = JSON.parse(JSON.stringify(initialAbsences))
+  const serializedTeacherClasses = JSON.parse(JSON.stringify(teacherClasses))
+
+  return <AbsencesView initialAbsences={serializedAbsences} stats={stats} userRole={user.role} teacherClasses={serializedTeacherClasses} />
 }

@@ -19,6 +19,7 @@ import { getPrisma } from "@/lib/tenant-context"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { getStudentAcademicData } from "@/lib/student-actions"
+import { getTeacherDashboardData } from "@/lib/teacher-actions"
 import { AdminOverview } from "@/components/dashboard/admin-overview"
 
 export const metadata: Metadata = {
@@ -97,13 +98,26 @@ export default async function DashboardPage() {
     if (result.success) studentData = result.data
   }
 
+  // Fetch teacher specific data if role is teacher
+  let teacherData: any = null
+  if (user.role === 'teacher') {
+    const result = await getTeacherDashboardData(user.id)
+    if (result.success) {
+      teacherData = result.data
+      if (user.matiere) teacherData.teacherSubject = user.matiere
+    }
+  }
+
   let displayTitle = "Tableau de bord"
   let displaySubtitle = ""
 
   if (user.role === 'admin') {
     displaySubtitle = `Voici un aperçu analytique de votre établissement en temps réel.`
   } else if (user.role === 'teacher') {
-    displaySubtitle = `Vous avez 4 cours prévus pour aujourd'hui.`
+    const todayCount = teacherData?.todayCoursesCount || 0
+    displaySubtitle = todayCount > 0
+      ? `Vous avez ${todayCount} cours prévu${todayCount > 1 ? 's' : ''} pour aujourd'hui.`
+      : `Aucun cours prévu pour aujourd'hui.`
   } else if (user.role === 'student') {
     displaySubtitle = `Ton prochain cours : ${studentData?.schedule[0]?.subject || "Aucun cours prévu"}.`
   }
@@ -132,29 +146,25 @@ export default async function DashboardPage() {
             }}
           />
         ) : (
-          /* Render Student/Teacher Views (Previously existing logic simplified for consistency) */
+          /* Render Student/Teacher Views */
           <div className="grid gap-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                {(user.role === 'teacher' ? [
-                  { name: "Mes Classes", value: "5", change: "Stable", icon: UsersIcon },
-                  { name: "Élèves Total", value: "185", change: "Stable", icon: UsersIcon },
-                  { name: "Heures Hebdo", value: "22h", change: "+2h", icon: Calendar },
-                  { name: "Présence", value: "94%", change: "+1.2%", icon: TrendingUp },
+                  { name: "Mes Classes", value: String(teacherData?.classCount || 0), icon: UsersIcon },
+                  { name: "Élèves Total", value: String(teacherData?.totalStudents || 0), icon: UsersIcon },
+                  { name: "Heures Hebdo", value: `${teacherData?.weeklyHours || 0}h`, icon: Calendar },
+                  { name: "Présence", value: `${teacherData?.attendanceRate || 0}%`, icon: TrendingUp },
                ] : [
-                  { name: "Moyenne", value: `${studentData?.globalAverage || "0.0"}/20`, change: "+0.5", icon: TrendingUp },
-                  { name: "Rang", value: `${studentData?.rank || "0"}ème`, change: "+2", icon: UsersIcon },
-                  { name: "Absences", value: studentData?.absences.toString() || "0", change: "0", icon: Clock },
-                  { name: "Badges", value: "12", change: "+1", icon: Sparkles },
+                  { name: "Moyenne", value: `${studentData?.globalAverage || "0.0"}/20`, icon: TrendingUp },
+                  { name: "Rang", value: `${studentData?.rank || "0"}ème`, icon: UsersIcon },
+                  { name: "Absences", value: studentData?.absences.toString() || "0", icon: Clock },
+                  { name: "Badges", value: "12", icon: Sparkles },
                ]).map((stat, i) => (
                   <Card key={i} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                           <stat.icon className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex items-center gap-1 text-sm font-medium text-emerald-600">
-                          <ArrowUpRight className="h-4 w-4" />
-                          {stat.change}
                         </div>
                       </div>
                       <div className="mt-4">
@@ -168,15 +178,50 @@ export default async function DashboardPage() {
 
             <div className="grid gap-6 lg:grid-cols-3">
                <div className="lg:col-span-2 space-y-6">
-                  {user.role === 'teacher' && (
+                  {user.role === 'teacher' && teacherData?.nextClass && (
                     <Card className="border-primary/20 bg-primary/5">
                       <CardHeader><CardTitle className="text-lg">Prochain cours : Faire l&apos;appel</CardTitle></CardHeader>
                       <CardContent className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-primary">Terminale S1 - Mathématiques</p>
-                          <p className="text-sm text-muted-foreground">Salle 204 • Début dans 15 min</p>
+                          <p className="font-semibold text-primary">{teacherData.nextClass.className} - {teacherData.nextClass.matiere}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {teacherData.nextClass.salle} • {teacherData.nextClass.minutesUntil > 0 
+                              ? `Début dans ${teacherData.nextClass.minutesUntil} min` 
+                              : `À ${teacherData.nextClass.startTimeFormatted}`}
+                          </p>
                         </div>
                         <Button asChild><Link href="/dashboard/absences">Faire l&apos;appel</Link></Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {user.role === 'teacher' && !teacherData?.nextClass && (
+                    <Card className="border-muted bg-muted/30">
+                      <CardContent className="p-6 text-center">
+                        <p className="text-muted-foreground">Aucun cours à venir pour aujourd&apos;hui.</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {user.role === 'teacher' && teacherData?.todaySchedule && teacherData.todaySchedule.length > 0 && (
+                    <Card>
+                      <CardHeader><CardTitle className="text-lg">Emploi du temps du jour</CardTitle></CardHeader>
+                      <CardContent className="space-y-3">
+                        {teacherData.todaySchedule.map((course: any, i: number) => {
+                          const start = new Date(course.heure_debut)
+                          const end = new Date(course.heure_fin)
+                          const startStr = `${String(start.getUTCHours()).padStart(2, '0')}:${String(start.getUTCMinutes()).padStart(2, '0')}`
+                          const endStr = `${String(end.getUTCHours()).padStart(2, '0')}:${String(end.getUTCMinutes()).padStart(2, '0')}`
+                          return (
+                            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <div className="text-xs font-mono text-muted-foreground w-24">{startStr} - {endStr}</div>
+                                <div>
+                                  <p className="font-medium text-sm">{course.matiere}</p>
+                                  <p className="text-xs text-muted-foreground">{course.className} • {course.salle}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </CardContent>
                     </Card>
                   )}
@@ -198,14 +243,37 @@ export default async function DashboardPage() {
                   <Card>
                     <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> Agenda</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                      {[{ name: "Conseil 3A", date: "14h00" }, { name: "Devoir Math", date: "Demain" }].map((e, i) => (
-                        <div key={i} className="flex items-center gap-3"><div className="h-2 w-2 rounded-full bg-primary" /><div><p className="text-sm font-medium">{e.name}</p><p className="text-xs text-muted-foreground">{e.date}</p></div></div>
-                      ))}
+                      {user.role === 'teacher' && teacherData?.upcomingAgenda && teacherData.upcomingAgenda.length > 0 ? (
+                        teacherData.upcomingAgenda.map((e: any, i: number) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                            <div>
+                              <p className="text-sm font-medium">{e.matiere} - {e.className}</p>
+                              <p className="text-xs text-muted-foreground">{e.jour} à {e.heureFormatted} • {e.salle}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucun cours à venir.</p>
+                      )}
                     </CardContent>
                   </Card>
+                  {user.role === 'teacher' && (teacherData?.unreadMessages || 0) > 0 && (
+                    <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <MessageSquare className="h-5 w-5 text-blue-500" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{teacherData.unreadMessages} message{teacherData.unreadMessages > 1 ? 's' : ''} non lu{teacherData.unreadMessages > 1 ? 's' : ''}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild><Link href="/dashboard/messages">Voir</Link></Button>
+                      </CardContent>
+                    </Card>
+                  )}
                   <Card>
                     <CardHeader><CardTitle className="text-lg">Actions Rapides</CardTitle></CardHeader>
                     <CardContent className="grid gap-2">
+                       <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/absences">Marquer les absences</Link></Button>
+                       <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/grades">Saisir des notes</Link></Button>
                        <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/messages">Messagerie</Link></Button>
                        <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/settings">Mon Profil</Link></Button>
                     </CardContent>

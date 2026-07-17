@@ -42,9 +42,10 @@ interface ScheduleViewProps {
   initialSchedule: any[]
   initialClassId?: string
   isReadOnly?: boolean
+  userRole?: string
 }
 
-export function ScheduleView({ initialClasses, initialTeachers, initialSchedule, initialClassId, isReadOnly = false }: ScheduleViewProps) {
+export function ScheduleView({ initialClasses, initialTeachers, initialSchedule, initialClassId, isReadOnly = false, userRole = "admin" }: ScheduleViewProps) {
   const [selectedClassId, setSelectedClassId] = useState(initialClassId || initialClasses[0]?.id?.toString() || "")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -88,7 +89,7 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
       if (!grid[item.jour]) grid[item.jour] = {}
       grid[item.jour][hourStr] = {
         subject: item.matiere,
-        teacher: item.users.nom,
+        teacher: userRole === "teacher" && item.classes?.nom ? `Classe : ${item.classes.nom}` : item.users.nom,
         room: item.salle,
         color: colorMap[item.matiere] || colorMap.default
       }
@@ -106,16 +107,22 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
       <main className="p-6">
         <div className="flex flex-col lg:flex-row gap-4 mb-6 items-start lg:items-center justify-between">
           <div className="flex items-center gap-4">
-            <Select value={selectedClassId} onValueChange={setSelectedClassId} disabled={isReadOnly}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Choisir une classe" />
-              </SelectTrigger>
-              <SelectContent>
-                {initialClasses.map(c => (
-                  <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {userRole === "teacher" ? (
+              <div className="text-sm font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
+                Mon Emploi du Temps
+              </div>
+            ) : (
+              <Select value={selectedClassId} onValueChange={setSelectedClassId} disabled={isReadOnly}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Choisir une classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {initialClasses.map(c => (
+                    <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" onClick={() => navigateWeek('prev')}>
