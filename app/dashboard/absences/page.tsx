@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getPrisma } from "@/lib/tenant-context"
 import { AbsencesView } from "@/components/dashboard/absences-view"
 import { cookies } from "next/headers"
@@ -6,7 +8,7 @@ export default async function AbsencesPage() {
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
-  
+
   if (!userId) return null
 
   const user = await prisma.user.findUnique({
