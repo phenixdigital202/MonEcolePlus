@@ -1,13 +1,14 @@
+export const dynamic = "force-dynamic";
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getAbsenceStats } from "@/lib/absences-actions"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -32,8 +33,8 @@ export default async function AbsencesStatusPage() {
 
   return (
     <>
-      <DashboardHeader 
-        title="Statistiques des Absences" 
+      <DashboardHeader
+        title="Statistiques des Absences"
         subtitle="Analyse détaillée de l'assiduité des élèves"
       />
       <main className="p-6 space-y-6">

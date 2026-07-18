@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
 import { redirect } from "next/navigation"
