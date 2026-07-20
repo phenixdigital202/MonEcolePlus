@@ -3,17 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model abonnements {
   id                     Int       @id @default(autoincrement())
   id_ecole               Int
-  stripe_subscription_id String?
-  status                 String?
-  current_period_end     DateTime?
+  stripe_subscription_id String?   @db.VarChar(255)
+  status                 String?   @db.VarChar(50)
+  current_period_end     DateTime? @db.Timestamp(0)
   ecoles                 ecoles    @relation(fields: [id_ecole], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "abonnements_ibfk_1")
 
   @@index([id_ecole], map: "id_ecole")
@@ -22,9 +21,9 @@ model abonnements {
 model absences {
   id           Int              @id @default(autoincrement())
   id_eleve     Int
-  date_absence DateTime
+  date_absence DateTime         @db.Date
   statut       absences_statut? @default(non_justifie)
-  motif        String?
+  motif        String?          @db.Text
   users        users            @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "absences_ibfk_1")
 
   @@index([id_eleve], map: "id_eleve")
@@ -32,17 +31,17 @@ model absences {
 
 model admin {
   IDadmin      Int    @id @default(autoincrement())
-  email        String
-  mot_de_passe String
+  email        String @db.VarChar(255)
+  mot_de_passe String @db.VarChar(255)
 }
 
 model ai_insights {
   id              Int      @id @default(autoincrement())
   id_utilisateur  Int
-  type            String
-  message         String
-  score_confiance Decimal?
-  created_at      DateTime @default(now())
+  type            String   @db.VarChar(50)
+  message         String   @db.Text
+  score_confiance Decimal? @db.Decimal(3, 2)
+  created_at      DateTime @default(now()) @db.Timestamp(0)
   users           users    @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "ai_insights_ibfk_1")
 
   @@index([id_utilisateur], map: "id_utilisateur")
@@ -50,11 +49,11 @@ model ai_insights {
 
 model annonces {
   id            Int            @id @default(autoincrement())
-  titre         String
-  message       String
+  titre         String         @db.VarChar(255)
+  message       String         @db.Text
   cible         annonces_cible @default(tous)
   id_auteur     Int
-  date_creation DateTime       @default(now())
+  date_creation DateTime       @default(now()) @db.Timestamp(0)
   users         users          @relation(fields: [id_auteur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "annonces_ibfk_1")
 
   @@index([id_auteur], map: "id_auteur")
@@ -62,9 +61,9 @@ model annonces {
 
 model badges {
   id            Int            @id @default(autoincrement())
-  nom           String
-  description   String?
-  icon_name     String?        @default("Award")
+  nom           String         @db.VarChar(100)
+  description   String?        @db.Text
+  icon_name     String?        @default("Award") @db.VarChar(50)
   points_requis Int?           @default(0)
   eleve_badges  eleve_badges[]
 }
@@ -72,9 +71,9 @@ model badges {
 model classes {
   id               Int                @id @default(autoincrement())
   id_ecole         Int?
-  nom              String
-  niveau           String
-  created_at       DateTime           @default(now())
+  nom              String             @db.VarChar(50)
+  niveau           String             @db.VarChar(50)
+  created_at       DateTime           @default(now()) @db.Timestamp(0)
   ecoles           ecoles?            @relation(fields: [id_ecole], references: [id], onUpdate: Restrict, map: "fk_classe_ecole")
   emplois_du_temps emplois_du_temps[]
   evaluations      evaluations[]
@@ -85,14 +84,14 @@ model classes {
 
 model ecoles {
   id                 Int           @id @default(autoincrement())
-  nom                String
-  subdomain          String?       @unique(map: "subdomain")
-  logo_url           String?
-  stripe_customer_id String?
+  nom                String        @db.VarChar(100)
+  subdomain          String?       @unique(map: "subdomain") @db.VarChar(50)
+  logo_url           String?       @db.VarChar(255)
+  stripe_customer_id String?       @db.VarChar(255)
   plan               ecoles_plan?  @default(gratuit)
-  database_url       String?
-  db_status          String        @default("ready")
-  created_at         DateTime      @default(now())
+  database_url       String?       @db.VarChar(512)
+  db_status          String        @default("ready") @db.VarChar(20)
+  created_at         DateTime      @default(now()) @db.Timestamp(0)
   abonnements        abonnements[]
   classes            classes[]
   users              users[]
@@ -102,7 +101,7 @@ model eleve_badges {
   id             Int      @id @default(autoincrement())
   id_eleve       Int
   id_badge       Int
-  date_obtention DateTime @default(now())
+  date_obtention DateTime @default(now()) @db.Timestamp(0)
   users          users    @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "eleve_badges_ibfk_1")
   badges         badges   @relation(fields: [id_badge], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "eleve_badges_ibfk_2")
 
@@ -118,11 +117,11 @@ model emplois_du_temps {
   id            Int                   @id @default(autoincrement())
   id_classe     Int
   id_enseignant Int
-  matiere       String
+  matiere       String                @db.VarChar(100)
   jour          emplois_du_temps_jour
-  heure_debut   DateTime
-  heure_fin     DateTime
-  salle         String?
+  heure_debut   DateTime              @db.Time(0)
+  heure_fin     DateTime              @db.Time(0)
+  salle         String?               @db.VarChar(50)
   classes       classes               @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "emplois_du_temps_ibfk_1")
   users         users                 @relation(fields: [id_enseignant], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "emplois_du_temps_ibfk_2")
 
@@ -137,11 +136,11 @@ model enseignants {
 model evaluations {
   id        Int                    @id @default(autoincrement())
   id_classe Int
-  matiere   String
-  date_eval DateTime
+  matiere   String                 @db.VarChar(100)
+  date_eval DateTime               @db.Date
   type_eval evaluations_type_eval? @default(devoir)
   bareme    Int?                   @default(20)
-  periode   String?
+  periode   String?                @db.VarChar(50)
   classes   classes                @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "evaluations_ibfk_1")
   notes     notes[]
 
@@ -152,7 +151,7 @@ model inscriptions {
   id             Int     @id @default(autoincrement())
   id_eleve       Int
   id_classe      Int
-  annee_scolaire String
+  annee_scolaire String  @db.VarChar(20)
   users          users   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inscriptions_ibfk_1")
   classes        classes @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inscriptions_ibfk_2")
 
@@ -164,9 +163,9 @@ model messages {
   id                                    Int      @id @default(autoincrement())
   id_expediteur                         Int
   id_destinataire                       Int
-  contenu                               String
+  contenu                               String   @db.Text
   lu                                    Boolean  @default(false)
-  created_at                            DateTime @default(now())
+  created_at                            DateTime @default(now()) @db.Timestamp(0)
   users_messages_id_destinataireTousers users    @relation("messages_id_destinataireTousers", fields: [id_destinataire], references: [id], onDelete: Cascade)
   users_messages_id_expediteurTousers   users    @relation("messages_id_expediteurTousers", fields: [id_expediteur], references: [id], onDelete: Cascade)
 
@@ -178,8 +177,8 @@ model notes {
   id            Int         @id @default(autoincrement())
   id_evaluation Int
   id_eleve      Int
-  valeur        Decimal
-  commentaire   String?
+  valeur        Decimal     @db.Decimal(4, 2)
+  commentaire   String?     @db.Text
   evaluations   evaluations @relation(fields: [id_evaluation], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notes_ibfk_1")
   users         users       @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notes_ibfk_2")
 
@@ -190,10 +189,10 @@ model notes {
 model paiements {
   id             Int              @id @default(autoincrement())
   id_utilisateur Int
-  montant        Decimal
+  montant        Decimal          @db.Decimal(15, 2)
   status         paiements_status @default(en_attente)
   type           paiements_type
-  date_paiement  DateTime         @default(now())
+  date_paiement  DateTime         @default(now()) @db.Timestamp(0)
   users          users            @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "paiements_ibfk_1")
 
   @@index([id_utilisateur], map: "id_utilisateur")
@@ -202,11 +201,11 @@ model paiements {
 model parcours_scolaires {
   id               Int                          @id @default(autoincrement())
   id_eleve         Int
-  annee_scolaire   String
-  classe_nom       String
-  moyenne_generale Decimal?
+  annee_scolaire   String                       @db.VarChar(20)
+  classe_nom       String                       @db.VarChar(50)
+  moyenne_generale Decimal?                     @db.Decimal(4, 2)
   resultat         parcours_scolaires_resultat? @default(Admis)
-  observations     String?
+  observations     String?                      @db.Text
   users            users                        @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "parcours_scolaires_ibfk_1")
 
   @@index([id_eleve], map: "id_eleve")
@@ -229,21 +228,21 @@ model parents {
 
 model settings {
   id       Int     @id @default(autoincrement())
-  key_name String  @unique(map: "key_name")
-  value    String?
+  key_name String  @unique(map: "key_name") @db.VarChar(50)
+  value    String? @db.Text
 }
 
 model users {
   id                                         Int                  @id @default(autoincrement())
   id_ecole                                   Int?
-  nom                                        String
-  email                                      String               @unique(map: "email")
-  password                                   String
+  nom                                        String               @db.VarChar(100)
+  email                                      String               @unique(map: "email") @db.VarChar(255)
+  password                                   String               @db.VarChar(255)
   role                                       users_role
-  matiere                                    String?
+  matiere                                    String?              @db.VarChar(100)
   points                                     Int                  @default(0)
   niveau                                     Int                  @default(1)
-  created_at                                 DateTime             @default(now())
+  created_at                                 DateTime             @default(now()) @db.Timestamp(0)
   absences                                   absences[]
   ai_insights                                ai_insights[]
   annonces                                   annonces[]
