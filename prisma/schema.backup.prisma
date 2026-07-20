@@ -14,9 +14,9 @@ model abonnements {
   stripe_subscription_id String?
   status                 String?
   current_period_end     DateTime?
-  ecoles                 ecoles    @relation(fields: [id_ecole], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  ecoles                 ecoles    @relation(fields: [id_ecole], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "abonnements_ibfk_1")
 
-  @@index([id_ecole])
+  @@index([id_ecole], map: "id_ecole")
 }
 
 model absences {
@@ -25,9 +25,9 @@ model absences {
   date_absence DateTime
   statut       absences_statut? @default(non_justifie)
   motif        String?
-  users        users            @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users        users            @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "absences_ibfk_1")
 
-  @@index([id_eleve])
+  @@index([id_eleve], map: "id_eleve")
 }
 
 model admin {
@@ -43,9 +43,9 @@ model ai_insights {
   message         String
   score_confiance Decimal?
   created_at      DateTime @default(now())
-  users           users    @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users           users    @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "ai_insights_ibfk_1")
 
-  @@index([id_utilisateur])
+  @@index([id_utilisateur], map: "id_utilisateur")
 }
 
 model annonces {
@@ -55,9 +55,9 @@ model annonces {
   cible         annonces_cible @default(tous)
   id_auteur     Int
   date_creation DateTime       @default(now())
-  users         users          @relation(fields: [id_auteur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users         users          @relation(fields: [id_auteur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "annonces_ibfk_1")
 
-  @@index([id_auteur])
+  @@index([id_auteur], map: "id_auteur")
 }
 
 model badges {
@@ -75,18 +75,18 @@ model classes {
   nom              String
   niveau           String
   created_at       DateTime           @default(now())
-  ecoles           ecoles?            @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  ecoles           ecoles?            @relation(fields: [id_ecole], references: [id], onUpdate: Restrict, map: "fk_classe_ecole")
   emplois_du_temps emplois_du_temps[]
   evaluations      evaluations[]
   inscriptions     inscriptions[]
 
-  @@index([id_ecole])
+  @@index([id_ecole], map: "fk_classe_ecole")
 }
 
 model ecoles {
   id                 Int           @id @default(autoincrement())
   nom                String
-  subdomain          String?       @unique
+  subdomain          String?       @unique(map: "subdomain")
   logo_url           String?
   stripe_customer_id String?
   plan               ecoles_plan?  @default(gratuit)
@@ -103,11 +103,11 @@ model eleve_badges {
   id_eleve       Int
   id_badge       Int
   date_obtention DateTime @default(now())
-  users          users    @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  badges         badges   @relation(fields: [id_badge], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users          users    @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "eleve_badges_ibfk_1")
+  badges         badges   @relation(fields: [id_badge], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "eleve_badges_ibfk_2")
 
-  @@index([id_badge])
-  @@index([id_eleve])
+  @@index([id_badge], map: "id_badge")
+  @@index([id_eleve], map: "id_eleve")
 }
 
 model eleves {
@@ -123,11 +123,11 @@ model emplois_du_temps {
   heure_debut   DateTime
   heure_fin     DateTime
   salle         String?
-  classes       classes               @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  users         users                 @relation(fields: [id_enseignant], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  classes       classes               @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "emplois_du_temps_ibfk_1")
+  users         users                 @relation(fields: [id_enseignant], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "emplois_du_temps_ibfk_2")
 
-  @@index([id_classe])
-  @@index([id_enseignant])
+  @@index([id_classe], map: "id_classe")
+  @@index([id_enseignant], map: "id_enseignant")
 }
 
 model enseignants {
@@ -142,10 +142,10 @@ model evaluations {
   type_eval evaluations_type_eval? @default(devoir)
   bareme    Int?                   @default(20)
   periode   String?
-  classes   classes                @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  classes   classes                @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "evaluations_ibfk_1")
   notes     notes[]
 
-  @@index([id_classe])
+  @@index([id_classe], map: "id_classe")
 }
 
 model inscriptions {
@@ -153,11 +153,11 @@ model inscriptions {
   id_eleve       Int
   id_classe      Int
   annee_scolaire String
-  users          users   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  classes        classes @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users          users   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inscriptions_ibfk_1")
+  classes        classes @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "inscriptions_ibfk_2")
 
-  @@index([id_classe])
-  @@index([id_eleve])
+  @@index([id_classe], map: "id_classe")
+  @@index([id_eleve], map: "id_eleve")
 }
 
 model messages {
@@ -170,8 +170,8 @@ model messages {
   users_messages_id_destinataireTousers users    @relation("messages_id_destinataireTousers", fields: [id_destinataire], references: [id], onDelete: Cascade)
   users_messages_id_expediteurTousers   users    @relation("messages_id_expediteurTousers", fields: [id_expediteur], references: [id], onDelete: Cascade)
 
-  @@index([id_destinataire])
-  @@index([id_expediteur])
+  @@index([id_destinataire], map: "id_destinataire")
+  @@index([id_expediteur], map: "id_expediteur")
 }
 
 model notes {
@@ -180,11 +180,11 @@ model notes {
   id_eleve      Int
   valeur        Decimal
   commentaire   String?
-  evaluations   evaluations @relation(fields: [id_evaluation], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  users         users       @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  evaluations   evaluations @relation(fields: [id_evaluation], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notes_ibfk_1")
+  users         users       @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notes_ibfk_2")
 
-  @@index([id_eleve])
-  @@index([id_evaluation])
+  @@index([id_eleve], map: "id_eleve")
+  @@index([id_evaluation], map: "id_evaluation")
 }
 
 model paiements {
@@ -194,9 +194,9 @@ model paiements {
   status         paiements_status @default(en_attente)
   type           paiements_type
   date_paiement  DateTime         @default(now())
-  users          users            @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users          users            @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "paiements_ibfk_1")
 
-  @@index([id_utilisateur])
+  @@index([id_utilisateur], map: "id_utilisateur")
 }
 
 model parcours_scolaires {
@@ -207,9 +207,9 @@ model parcours_scolaires {
   moyenne_generale Decimal?
   resultat         parcours_scolaires_resultat? @default(Admis)
   observations     String?
-  users            users                        @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users            users                        @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "parcours_scolaires_ibfk_1")
 
-  @@index([id_eleve])
+  @@index([id_eleve], map: "id_eleve")
 }
 
 model parent_eleve {
@@ -219,8 +219,8 @@ model parent_eleve {
   users_parent_eleve_id_eleveTousers  users @relation("parent_eleve_id_eleveTousers", fields: [id_eleve], references: [id], onDelete: Cascade)
   users_parent_eleve_id_parentTousers users @relation("parent_eleve_id_parentTousers", fields: [id_parent], references: [id], onDelete: Cascade)
 
-  @@index([id_eleve])
-  @@index([id_parent])
+  @@index([id_eleve], map: "id_eleve")
+  @@index([id_parent], map: "id_parent")
 }
 
 model parents {
@@ -229,7 +229,7 @@ model parents {
 
 model settings {
   id       Int     @id @default(autoincrement())
-  key_name String  @unique
+  key_name String  @unique(map: "key_name")
   value    String?
 }
 
@@ -237,7 +237,7 @@ model users {
   id                                         Int                  @id @default(autoincrement())
   id_ecole                                   Int?
   nom                                        String
-  email                                      String               @unique
+  email                                      String               @unique(map: "email")
   password                                   String
   role                                       users_role
   matiere                                    String?
@@ -257,9 +257,9 @@ model users {
   parcours_scolaires                         parcours_scolaires[]
   parent_eleve_parent_eleve_id_eleveTousers  parent_eleve[]       @relation("parent_eleve_id_eleveTousers")
   parent_eleve_parent_eleve_id_parentTousers parent_eleve[]       @relation("parent_eleve_id_parentTousers")
-  ecoles                                     ecoles?              @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  ecoles                                     ecoles?              @relation(fields: [id_ecole], references: [id], onUpdate: Restrict, map: "fk_user_ecole")
 
-  @@index([id_ecole])
+  @@index([id_ecole], map: "fk_user_ecole")
 }
 
 enum absences_statut {
