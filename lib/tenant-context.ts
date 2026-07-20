@@ -3,6 +3,7 @@ import masterPrisma from "./prisma"
 import { getTenantClient } from "./prisma-tenant"
 import fs from "fs"
 import path from "path"
+import { domainToUnicode } from "url"
 
 /**
  * Identifies the current tenant (school) based on the request host (subdomain)
@@ -19,7 +20,11 @@ export async function getCurrentTenant() {
   let subdomain = null
   
   if (parts.length > 1) {
-    subdomain = parts[0]
+    try {
+      subdomain = domainToUnicode(parts[0])
+    } catch (e) {
+      subdomain = parts[0]
+    }
   }
 
   // Ignore 'www'

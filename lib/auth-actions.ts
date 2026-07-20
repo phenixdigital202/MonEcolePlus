@@ -44,7 +44,14 @@ export async function registerUser(formData: FormData) {
 
     // If we are on the main signup and creating a new school
     if (!tenant && schoolName) {
-      const slug = schoolName.toLowerCase().trim().replace(/\s+/g, '-')
+      const slug = schoolName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Enlève les accents
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]/g, '-') // Remplace les caractères non alphanumériques par des tirets
+        .replace(/-+/g, '-') // Enlève les tirets multiples
+        .replace(/^-|-$/g, '') // Enlève les tirets aux extrémités
       const dbName = `monecole_${slug.replace(/-/g, '_')}_${Date.now().toString().slice(-4)}`
       
       // 1. Provision the database
