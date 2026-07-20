@@ -3,321 +3,376 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-model abonnements {
+// ─────────────────────────────────────────────
+// MODÈLES
+// ─────────────────────────────────────────────
+
+model Abonnement {
   id                     Int       @id @default(autoincrement())
   id_ecole               Int
   stripe_subscription_id String?
   status                 String?
   current_period_end     DateTime?
-  ecoles                 ecoles    @relation(fields: [id_ecole], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  ecole                  Ecole     @relation(fields: [id_ecole], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_ecole])
+  @@map("abonnements")
 }
 
-model absences {
-  id           Int              @id @default(autoincrement())
+model Absence {
+  id           Int            @id @default(autoincrement())
   id_eleve     Int
   date_absence DateTime
-  statut       absences_statut? @default(non_justifie)
+  statut       AbsenceStatut? @default(non_justifie)
   motif        String?
-  users        users            @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user         User           @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_eleve])
+  @@map("absences")
 }
 
-model admin {
+model Admin {
   IDadmin      Int    @id @default(autoincrement())
   email        String
   mot_de_passe String
+
+  @@map("admin")
 }
 
-model ai_insights {
+model AIInsight {
   id              Int      @id @default(autoincrement())
   id_utilisateur  Int
   type            String
   message         String
   score_confiance Decimal?
   created_at      DateTime @default(now())
-  users           users    @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user            User     @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_utilisateur])
+  @@map("ai_insights")
 }
 
-model annonces {
-  id            Int            @id @default(autoincrement())
+model Annonce {
+  id            Int          @id @default(autoincrement())
   titre         String
   message       String
-  cible         annonces_cible @default(tous)
+  cible         AnnonceCible @default(tous)
   id_auteur     Int
-  date_creation DateTime       @default(now())
-  users         users          @relation(fields: [id_auteur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  date_creation DateTime     @default(now())
+  user          User         @relation(fields: [id_auteur], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_auteur])
+  @@map("annonces")
 }
 
-model badges {
-  id            Int            @id @default(autoincrement())
+model Badge {
+  id            Int          @id @default(autoincrement())
   nom           String
   description   String?
-  icon_name     String?        @default("Award")
-  points_requis Int?           @default(0)
-  eleve_badges  eleve_badges[]
+  icon_name     String?      @default("Award")
+  points_requis Int?         @default(0)
+  eleveBadges   EleveBadge[]
+
+  @@map("badges")
 }
 
-model classes {
-  id               Int                @id @default(autoincrement())
-  id_ecole         Int?
-  nom              String
-  niveau           String
-  created_at       DateTime           @default(now())
-  ecoles           ecoles?            @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
-  emplois_du_temps emplois_du_temps[]
-  evaluations      evaluations[]
-  inscriptions     inscriptions[]
+model Class {
+  id             Int             @id @default(autoincrement())
+  id_ecole       Int?
+  nom            String
+  niveau         String
+  created_at     DateTime        @default(now())
+  ecole          Ecole?          @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  emploisDuTemps EmploiDuTemps[]
+  evaluations    Evaluation[]
+  inscriptions   Inscription[]
 
   @@index([id_ecole])
+  @@map("classes")
 }
 
-model ecoles {
-  id                 Int           @id @default(autoincrement())
+model Ecole {
+  id                 Int          @id @default(autoincrement())
   nom                String
-  subdomain          String?       @unique
+  subdomain          String?      @unique
   logo_url           String?
   stripe_customer_id String?
-  plan               ecoles_plan?  @default(gratuit)
+  plan               EcolePlan?   @default(gratuit)
   database_url       String?
-  db_status          String        @default("ready")
-  created_at         DateTime      @default(now())
-  abonnements        abonnements[]
-  classes            classes[]
-  users              users[]
+  db_status          String       @default("ready")
+  created_at         DateTime     @default(now())
+  abonnements        Abonnement[]
+  classes            Class[]
+  users              User[]
+
+  @@map("ecoles")
 }
 
-model eleve_badges {
+model EleveBadge {
   id             Int      @id @default(autoincrement())
   id_eleve       Int
   id_badge       Int
   date_obtention DateTime @default(now())
-  users          users    @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  badges         badges   @relation(fields: [id_badge], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user           User     @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  badge          Badge    @relation(fields: [id_badge], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_badge])
   @@index([id_eleve])
+  @@map("eleve_badges")
 }
 
-model eleves {
+model Eleve {
   IDeleves Int @id @default(autoincrement())
+
+  @@map("eleves")
 }
 
-model emplois_du_temps {
-  id            Int                   @id @default(autoincrement())
+model EmploiDuTemps {
+  id            Int      @id @default(autoincrement())
   id_classe     Int
   id_enseignant Int
   matiere       String
-  jour          emplois_du_temps_jour
+  jour          Jour
   heure_debut   DateTime
   heure_fin     DateTime
   salle         String?
-  classes       classes               @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  users         users                 @relation(fields: [id_enseignant], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  classe        Class    @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user          User     @relation(fields: [id_enseignant], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_classe])
   @@index([id_enseignant])
+  @@map("emplois_du_temps")
 }
 
-model enseignants {
+model Enseignant {
   IDenseign Int @id @default(autoincrement())
+
+  @@map("enseignants")
 }
 
-model evaluations {
-  id        Int                    @id @default(autoincrement())
+model Evaluation {
+  id        Int       @id @default(autoincrement())
   id_classe Int
   matiere   String
   date_eval DateTime
-  type_eval evaluations_type_eval? @default(devoir)
-  bareme    Int?                   @default(20)
+  type_eval TypeEval? @default(devoir)
+  bareme    Int?      @default(20)
   periode   String?
-  classes   classes                @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  notes     notes[]
+  classe    Class     @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  notes     Note[]
 
   @@index([id_classe])
+  @@map("evaluations")
 }
 
-model inscriptions {
-  id             Int     @id @default(autoincrement())
+model Inscription {
+  id             Int    @id @default(autoincrement())
   id_eleve       Int
   id_classe      Int
   annee_scolaire String
-  users          users   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  classes        classes @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user           User   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  classe         Class  @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_classe])
   @@index([id_eleve])
+  @@map("inscriptions")
 }
 
-model messages {
-  id                                    Int      @id @default(autoincrement())
-  id_expediteur                         Int
-  id_destinataire                       Int
-  contenu                               String
-  lu                                    Boolean  @default(false)
-  created_at                            DateTime @default(now())
-  users_messages_id_destinataireTousers users    @relation("messages_id_destinataireTousers", fields: [id_destinataire], references: [id], onDelete: Cascade)
-  users_messages_id_expediteurTousers   users    @relation("messages_id_expediteurTousers", fields: [id_expediteur], references: [id], onDelete: Cascade)
+model Message {
+  id              Int      @id @default(autoincrement())
+  id_expediteur   Int
+  id_destinataire Int
+  contenu         String
+  lu              Boolean  @default(false)
+  created_at      DateTime @default(now())
+  destinataire    User     @relation("MessageDestinataire", fields: [id_destinataire], references: [id], onDelete: Cascade)
+  expediteur      User     @relation("MessageExpediteur", fields: [id_expediteur], references: [id], onDelete: Cascade)
 
   @@index([id_destinataire])
   @@index([id_expediteur])
+  @@map("messages")
 }
 
-model notes {
-  id            Int         @id @default(autoincrement())
+model Note {
+  id            Int        @id @default(autoincrement())
   id_evaluation Int
   id_eleve      Int
   valeur        Decimal
   commentaire   String?
-  evaluations   evaluations @relation(fields: [id_evaluation], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  users         users       @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  evaluation    Evaluation @relation(fields: [id_evaluation], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user          User       @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_eleve])
   @@index([id_evaluation])
+  @@map("notes")
 }
 
-model paiements {
-  id             Int              @id @default(autoincrement())
+model Paiement {
+  id             Int            @id @default(autoincrement())
   id_utilisateur Int
   montant        Decimal
-  status         paiements_status @default(en_attente)
-  type           paiements_type
-  date_paiement  DateTime         @default(now())
-  users          users            @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  status         PaiementStatus @default(en_attente)
+  type           PaiementType
+  date_paiement  DateTime       @default(now())
+  user           User           @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_utilisateur])
+  @@map("paiements")
 }
 
-model parcours_scolaires {
-  id               Int                          @id @default(autoincrement())
+model ParcoursScolaire {
+  id               Int               @id @default(autoincrement())
   id_eleve         Int
   annee_scolaire   String
   classe_nom       String
   moyenne_generale Decimal?
-  resultat         parcours_scolaires_resultat? @default(Admis)
+  resultat         ParcoursResultat? @default(Admis)
   observations     String?
-  users            users                        @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user             User              @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_eleve])
+  @@map("parcours_scolaires")
 }
 
-model parent_eleve {
-  id                                  Int   @id @default(autoincrement())
-  id_parent                           Int
-  id_eleve                            Int
-  users_parent_eleve_id_eleveTousers  users @relation("parent_eleve_id_eleveTousers", fields: [id_eleve], references: [id], onDelete: Cascade)
-  users_parent_eleve_id_parentTousers users @relation("parent_eleve_id_parentTousers", fields: [id_parent], references: [id], onDelete: Cascade)
+model ParentEleve {
+  id        Int  @id @default(autoincrement())
+  id_parent Int
+  id_eleve  Int
+  eleve     User @relation("ParentEleveEleve", fields: [id_eleve], references: [id], onDelete: Cascade)
+  parent    User @relation("ParentEleveParent", fields: [id_parent], references: [id], onDelete: Cascade)
 
   @@index([id_eleve])
   @@index([id_parent])
+  @@map("parent_eleve")
 }
 
-model parents {
+model Parent {
   IDparents Int @id @default(autoincrement())
+
+  @@map("parents")
 }
 
-model settings {
+model Setting {
   id       Int     @id @default(autoincrement())
   key_name String  @unique
   value    String?
+
+  @@map("settings")
 }
 
-model users {
-  id                                         Int                  @id @default(autoincrement())
-  id_ecole                                   Int?
-  nom                                        String
-  email                                      String               @unique
-  password                                   String
-  role                                       users_role
-  matiere                                    String?
-  points                                     Int                  @default(0)
-  niveau                                     Int                  @default(1)
-  created_at                                 DateTime             @default(now())
-  absences                                   absences[]
-  ai_insights                                ai_insights[]
-  annonces                                   annonces[]
-  eleve_badges                               eleve_badges[]
-  emplois_du_temps                           emplois_du_temps[]
-  inscriptions                               inscriptions[]
-  messages_messages_id_destinataireTousers   messages[]           @relation("messages_id_destinataireTousers")
-  messages_messages_id_expediteurTousers     messages[]           @relation("messages_id_expediteurTousers")
-  notes                                      notes[]
-  paiements                                  paiements[]
-  parcours_scolaires                         parcours_scolaires[]
-  parent_eleve_parent_eleve_id_eleveTousers  parent_eleve[]       @relation("parent_eleve_id_eleveTousers")
-  parent_eleve_parent_eleve_id_parentTousers parent_eleve[]       @relation("parent_eleve_id_parentTousers")
-  ecoles                                     ecoles?              @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+model User {
+  id                  Int                @id @default(autoincrement())
+  id_ecole            Int?
+  nom                 String
+  email               String             @unique
+  password            String
+  role                Role
+  matiere             String?
+  points              Int                @default(0)
+  niveau              Int                @default(1)
+  created_at          DateTime           @default(now())
+  absences            Absence[]
+  aiInsights          AIInsight[]
+  annonces            Annonce[]
+  eleveBadges         EleveBadge[]
+  emploisDuTemps      EmploiDuTemps[]
+  inscriptions        Inscription[]
+  messagesRecus       Message[]          @relation("MessageDestinataire")
+  messagesEnvoyes     Message[]          @relation("MessageExpediteur")
+  notes               Note[]
+  paiements           Paiement[]
+  parcoursScolaires   ParcoursScolaire[]
+  parentEleveAsEleve  ParentEleve[]      @relation("ParentEleveEleve")
+  parentEleveAsParent ParentEleve[]      @relation("ParentEleveParent")
+  ecole               Ecole?             @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
 
   @@index([id_ecole])
+  @@map("users")
 }
 
-enum absences_statut {
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum AbsenceStatut {
   justifie
   non_justifie
   en_attente
+
+  @@map("absences_statut")
 }
 
-enum annonces_cible {
+enum AnnonceCible {
   tous
   enseignants
   parents
   eleves
+
+  @@map("annonces_cible")
 }
 
-enum paiements_status {
+enum PaiementStatus {
   paye
   en_attente
   annule
+
+  @@map("paiements_status")
 }
 
-enum emplois_du_temps_jour {
+enum Jour {
   Lundi
   Mardi
   Mercredi
   Jeudi
   Vendredi
   Samedi
+
+  @@map("emplois_du_temps_jour")
 }
 
-enum evaluations_type_eval {
+enum TypeEval {
   devoir
   examen
   controle
+
+  @@map("evaluations_type_eval")
 }
 
-enum paiements_type {
+enum PaiementType {
   scolarite
   inscription
   examen
+
+  @@map("paiements_type")
 }
 
-enum ecoles_plan {
+enum EcolePlan {
   gratuit
   standard
   premium
+
+  @@map("ecoles_plan")
 }
 
-enum parcours_scolaires_resultat {
+enum ParcoursResultat {
   Admis
   Redoublant
   Exclu
   Transfert
+
+  @@map("parcours_scolaires_resultat")
 }
 
-enum users_role {
+enum Role {
   admin
   teacher
   parent
   student
+
+  @@map("users_role")
 }
