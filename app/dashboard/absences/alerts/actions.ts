@@ -12,7 +12,7 @@ export async function updateAlertSettings(settings: { smsEnabled: boolean, email
       return { error: "Établissement non trouvé" }
     }
 
-    await masterPrisma.ecoles.update({
+    await masterPrisma.ecole.update({
       where: { id: school.id },
       data: {
         sms_alerts_enabled: settings.smsEnabled,
@@ -32,7 +32,7 @@ export async function getAlertTemplates() {
   const { getPrisma } = await import("@/lib/tenant-context")
   const prisma = await getPrisma()
   
-  const settings = await prisma.settings.findMany({
+  const settings = await prisma.setting.findMany({
     where: {
       key_name: {
         in: ["absences_sms_template", "absences_email_template"]
@@ -51,13 +51,13 @@ export async function updateAlertTemplates(templates: { smsTemplate: string, ema
     const { getPrisma } = await import("@/lib/tenant-context")
     const prisma = await getPrisma()
 
-    await prisma.settings.upsert({
+    await prisma.setting.upsert({
       where: { key_name: "absences_sms_template" },
       update: { value: templates.smsTemplate },
       create: { key_name: "absences_sms_template", value: templates.smsTemplate }
     })
 
-    await prisma.settings.upsert({
+    await prisma.setting.upsert({
       where: { key_name: "absences_email_template" },
       update: { value: templates.emailTemplate },
       create: { key_name: "absences_email_template", value: templates.emailTemplate }

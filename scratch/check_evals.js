@@ -10,7 +10,7 @@ async function main() {
   })
 
   try {
-    const evaluations = await prisma.evaluations.findMany()
+    const evaluations = await prisma.evaluation.findMany()
     console.log("Evaluations count:", evaluations.length)
     console.log("Sample:", evaluations.slice(0, 5))
     

@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 async function main() {
-  const schools = await prisma.ecoles.findMany()
+  const schools = await prisma.ecole.findMany()
   for (const school of schools) {
     const tenantPrisma = new PrismaClient({
       datasources: {

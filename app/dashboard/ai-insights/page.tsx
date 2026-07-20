@@ -46,7 +46,7 @@ export default async function AIInsightsPage() {
 
   if (isTeacher) {
     // 1. Get teacher's classes
-    const schedules = await prisma.emplois_du_temps.findMany({
+    const schedules = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       include: {
         classes: {
@@ -83,14 +83,14 @@ export default async function AIInsightsPage() {
 
     // 2. Average grade for teacher's classes/subject
     if (classIds.length > 0) {
-      const dbSubjects = await prisma.emplois_du_temps.findMany({
+      const dbSubjects = await prisma.emploiDuTemps.findMany({
         where: { id_enseignant: user.id },
         select: { matiere: true },
         distinct: ["matiere"]
       })
       const subjects = dbSubjects.map(s => s.matiere).filter(Boolean) as string[]
 
-      const notesAgg = await prisma.notes.aggregate({
+      const notesAgg = await prisma.note.aggregate({
         _avg: { valeur: true },
         where: {
           evaluations: {
@@ -102,7 +102,7 @@ export default async function AIInsightsPage() {
       teacherStats.avgGrade = Math.round((Number(notesAgg._avg.valeur) || 0) * 10) / 10
 
       // 3. At-risk students (average < 10)
-      const lowNotes = await prisma.notes.groupBy({
+      const lowNotes = await prisma.note.groupBy({
         by: ["id_eleve"],
         _avg: { valeur: true },
         where: {

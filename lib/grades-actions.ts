@@ -11,13 +11,13 @@ export async function saveGrades(evaluationId: number, grades: { studentId: numb
     
     // Using transaction for reliability
     await prisma.$transaction([
-      prisma.notes.deleteMany({
+      prisma.note.deleteMany({
         where: {
           id_evaluation: evaluationId,
           id_eleve: { in: studentIds }
         }
       }),
-      prisma.notes.createMany({
+      prisma.note.createMany({
         data: grades.map(g => ({
           id_evaluation: evaluationId,
           id_eleve: g.studentId,
@@ -44,7 +44,7 @@ export async function createEvaluationAction(data: {
 }) {
   try {
     const prisma = await getPrisma()
-    const evaluation = await prisma.evaluations.create({
+    const evaluation = await prisma.evaluation.create({
       data: {
         id_classe: data.id_classe,
         matiere: data.matiere,
@@ -69,7 +69,7 @@ export async function updateEvaluationAction(id: number, data: {
 }) {
   try {
     const prisma = await getPrisma()
-    const evaluation = await prisma.evaluations.update({
+    const evaluation = await prisma.evaluation.update({
       where: { id },
       data: {
         matiere: data.matiere,
@@ -92,7 +92,7 @@ export async function deleteEvaluationAction(id: number) {
     const prisma = await getPrisma()
     
     // Check if there are notes associated
-    const notesCount = await prisma.notes.count({
+    const notesCount = await prisma.note.count({
       where: { id_evaluation: id }
     })
     
@@ -100,7 +100,7 @@ export async function deleteEvaluationAction(id: number) {
       return { success: false, error: "Impossible de supprimer une évaluation qui contient déjà des notes." }
     }
 
-    await prisma.evaluations.delete({
+    await prisma.evaluation.delete({
       where: { id }
     })
     
@@ -132,7 +132,7 @@ export async function getEvaluationsByClass(classId: number) {
 
   if (user.role === 'teacher') {
     // Get all distinct subjects taught by this teacher
-    const dbSubjects = await prisma.emplois_du_temps.findMany({
+    const dbSubjects = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       select: { matiere: true },
       distinct: ['matiere']
@@ -144,7 +144,7 @@ export async function getEvaluationsByClass(classId: number) {
       if (s.matiere) subjects.add(s.matiere)
     })
 
-    return await prisma.evaluations.findMany({
+    return await prisma.evaluation.findMany({
       where: {
         id_classe: classId,
         matiere: { in: Array.from(subjects) }
@@ -153,7 +153,7 @@ export async function getEvaluationsByClass(classId: number) {
     })
   }
 
-  return await prisma.evaluations.findMany({
+  return await prisma.evaluation.findMany({
     where: { id_classe: classId },
     orderBy: { date_eval: 'desc' }
   })
@@ -161,7 +161,7 @@ export async function getEvaluationsByClass(classId: number) {
 
 export async function getGradesByEvaluation(evaluationId: number) {
   const prisma = await getPrisma()
-  return await prisma.notes.findMany({
+  return await prisma.note.findMany({
     where: { id_evaluation: evaluationId }
   })
 }

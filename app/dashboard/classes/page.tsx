@@ -81,7 +81,7 @@ export default async function ClassesPage() {
   if (isTeacher) {
     const classIds = classes.map(c => c.id)
     if (classIds.length > 0) {
-      const allNotes = await prisma.notes.aggregate({
+      const allNotes = await prisma.note.aggregate({
         where: {
           evaluations: {
             id_classe: { in: classIds }
@@ -92,7 +92,7 @@ export default async function ClassesPage() {
       globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
     }
   } else {
-    const allNotes = await prisma.notes.aggregate({
+    const allNotes = await prisma.note.aggregate({
       _avg: { valeur: true }
     })
     globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"

@@ -26,7 +26,7 @@ export async function getStudentAcademicData(userId: number) {
     const level = currentClass.niveau || "Collège"
 
     // 2. Fetch Grades & Class Averages
-    const studentNotes = await prisma.notes.findMany({
+    const studentNotes = await prisma.note.findMany({
       where: { id_eleve: userId },
       include: {
         evaluations: true
@@ -46,7 +46,7 @@ export async function getStudentAcademicData(userId: number) {
     })
 
     // Get ALL notes for the class in one query to calculate class averages and ranks
-    const allClassNotes = await prisma.notes.findMany({
+    const allClassNotes = await prisma.note.findMany({
       where: {
         evaluations: { id_classe: classId }
       },
@@ -94,7 +94,7 @@ export async function getStudentAcademicData(userId: number) {
     })
 
     // 5. Schedule
-    const schedule = await prisma.emplois_du_temps.findMany({
+    const schedule = await prisma.emploiDuTemps.findMany({
       where: { id_classe: classId },
       include: { users: true }
     })

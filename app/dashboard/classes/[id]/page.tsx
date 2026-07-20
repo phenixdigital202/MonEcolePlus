@@ -47,7 +47,7 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
 
   // Security check: if teacher, ensure they teach this class
   if (user.role === 'teacher') {
-    const isTeaching = await prisma.emplois_du_temps.findFirst({
+    const isTeaching = await prisma.emploiDuTemps.findFirst({
       where: {
         id_classe: classId,
         id_enseignant: user.id

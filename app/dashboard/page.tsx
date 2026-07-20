@@ -78,7 +78,7 @@ export default async function DashboardPage() {
   })).reverse()
 
   // Fetch real AI insights
-  const dbInsights = await prisma.ai_insights.findMany({
+  const dbInsights = await prisma.aIInsight.findMany({
     where: { id_utilisateur: user.id },
     take: 3,
     orderBy: { created_at: 'desc' }

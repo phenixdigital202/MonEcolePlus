@@ -6,7 +6,7 @@ async function cleanup() {
   
   // 1. Delete from Master
   try {
-    const deleted = await prisma.ecoles.deleteMany({
+    const deleted = await prisma.ecole.deleteMany({
       where: {
         subdomain: {
           in: ['lycée-moderne-abou', 'lycée-moderne-judith']

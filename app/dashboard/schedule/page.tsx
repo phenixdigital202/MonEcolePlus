@@ -39,7 +39,7 @@ export default async function SchedulePage({
   } else if (user.role === 'teacher') {
     isReadOnly = true
     classId = 0
-    schedule = await prisma.emplois_du_temps.findMany({
+    schedule = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       include: {
         users: true,

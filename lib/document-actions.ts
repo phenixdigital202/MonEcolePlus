@@ -5,13 +5,13 @@ import { revalidatePath } from "next/cache"
 
 export async function getSchoolBranding() {
   // For now, getting the first school in the DB
-  const school = await prisma.ecoles.findFirst()
+  const school = await prisma.ecole.findFirst()
   return school
 }
 
 export async function updateSchoolBranding(id: number, data: any) {
   try {
-    await prisma.ecoles.update({
+    await prisma.ecole.update({
       where: { id },
       data: {
         nom: data.nom,

@@ -19,7 +19,7 @@ export async function addCourse(formData: FormData) {
   const heure_fin = new Date(`1970-01-01T${heure_fin_str}:00Z`)
 
   try {
-    await prisma.emplois_du_temps.create({
+    await prisma.emploiDuTemps.create({
       data: {
         id_classe,
         id_enseignant,
@@ -50,7 +50,7 @@ export async function generateAIScheduleAll() {
     }
 
     // Clear all existing schedules
-    await prisma.emplois_du_temps.deleteMany()
+    await prisma.emploiDuTemps.deleteMany()
 
     const subjects = ["Mathématiques", "Français", "Anglais", "SVT", "Physique-Chimie", "Histoire-Géo", "EPS", "Arts Plastiques"]
     const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
@@ -85,7 +85,7 @@ export async function generateAIScheduleAll() {
     }
 
     // Bulk creation
-    await prisma.emplois_du_temps.createMany({
+    await prisma.emploiDuTemps.createMany({
         data: newEntries
     })
 
@@ -111,7 +111,7 @@ export async function updateCoursePosition(courseId: number, day: any, hour: str
     const endHour = parseInt(hour.split(":")[0]) + 1
     const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
 
-    await prisma.emplois_du_temps.update({
+    await prisma.emploiDuTemps.update({
       where: { id: courseId },
       data: {
         jour: day,
@@ -139,7 +139,7 @@ export async function getTeachers() {
 
 export async function getScheduleData(classId?: number) {
   const prisma = await getPrisma()
-  return await prisma.emplois_du_temps.findMany({
+  return await prisma.emploiDuTemps.findMany({
     where: { id_classe: classId },
     include: {
       users: true,

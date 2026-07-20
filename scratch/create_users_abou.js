@@ -102,17 +102,17 @@ async function createUsers() {
 
     // 5. Link parent and students in parent_eleve table
     // Delete existing links first if any to avoid duplicates
-    await prisma.parent_eleve.deleteMany({
+    await prisma.parentEleve.deleteMany({
       where: { id_parent: parent.id }
     });
 
-    await prisma.parent_eleve.create({
+    await prisma.parentEleve.create({
       data: {
         id_parent: parent.id,
         id_eleve: child1.id
       }
     });
-    await prisma.parent_eleve.create({
+    await prisma.parentEleve.create({
       data: {
         id_parent: parent.id,
         id_eleve: child2.id

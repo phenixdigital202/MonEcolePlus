@@ -82,7 +82,7 @@ export async function getContacts(userId: number, role: string) {
       }))
     } else if (role === 'parent') {
       // 1. Get parent's children
-      const parentLinks = await prisma.parent_eleve.findMany({
+      const parentLinks = await prisma.parentEleve.findMany({
         where: { id_parent: userId },
         include: {
           eleve: {
@@ -193,7 +193,7 @@ export async function getContacts(userId: number, role: string) {
       }))
     } else if (role === 'teacher') {
       // 1. Get classes assigned to this teacher via schedule
-      const schedules = await prisma.emplois_du_temps.findMany({
+      const schedules = await prisma.emploiDuTemps.findMany({
         where: { id_enseignant: userId },
         include: {
           classes: {
@@ -225,7 +225,7 @@ export async function getContacts(userId: number, role: string) {
 
       // 3. Parents of those students
       const studentIds = Array.from(studentMap.keys())
-      const parentLinks = await prisma.parent_eleve.findMany({
+      const parentLinks = await prisma.parentEleve.findMany({
         where: { id_eleve: { in: studentIds } },
         include: { parent: true }
       })

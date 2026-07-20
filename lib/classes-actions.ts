@@ -54,8 +54,8 @@ export async function deleteClass(id: number) {
     // Delete first related records if necessary depending on foreign keys (inscriptions, etc.)
     // In our schema, we should handle cascade or manual delete.
     await prisma.inscription.deleteMany({ where: { id_classe: id } })
-    await prisma.emplois_du_temps.deleteMany({ where: { id_classe: id } })
-    await prisma.evaluations.deleteMany({ where: { id_classe: id } })
+    await prisma.emploiDuTemps.deleteMany({ where: { id_classe: id } })
+    await prisma.evaluation.deleteMany({ where: { id_classe: id } })
     
     await prisma.class.delete({
       where: { id }

@@ -11,7 +11,7 @@ async function verifyInterDB() {
     users.forEach(u => console.log(`- ${u.email} (${u.role})` || 'No Email'));
     
     // Check school stub
-    const schools = await prisma.ecoles.findMany();
+    const schools = await prisma.ecole.findMany();
     console.log(`--- monecole_inter.ecoles content ---`);
     schools.forEach(s => console.log(`- ${s.nom} (Sub: ${s.subdomain})`));
   } catch (e) {

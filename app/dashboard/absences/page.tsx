@@ -24,7 +24,7 @@ export default async function AbsencesPage() {
   if (user.role === 'student') {
     whereClause = { id_eleve: user.id }
   } else if (user.role === 'parent') {
-    const parentLinks = await prisma.parent_eleve.findMany({
+    const parentLinks = await prisma.parentEleve.findMany({
       where: { id_parent: user.id },
       select: { id_eleve: true }
     })
@@ -32,7 +32,7 @@ export default async function AbsencesPage() {
     whereClause = { id_eleve: { in: childIds } }
   } else if (user.role === 'teacher') {
     // Get all class IDs assigned to this teacher via schedules
-    const schedules = await prisma.emplois_du_temps.findMany({
+    const schedules = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       select: { id_classe: true, classes: { select: { id: true, nom: true } } },
       distinct: ['id_classe']

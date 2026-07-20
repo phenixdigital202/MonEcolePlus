@@ -18,7 +18,7 @@ async function verify() {
     });
 
     console.log("\n=== VERIFYING PARENT-CHILD LINKS ===");
-    const parentLinks = await prisma.parent_eleve.findMany({
+    const parentLinks = await prisma.parentEleve.findMany({
       include: {
         parent: true,
         eleve: true

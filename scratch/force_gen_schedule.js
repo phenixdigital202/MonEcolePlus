@@ -62,8 +62,8 @@ async function main() {
     }
   }
 
-  await prisma.emplois_du_temps.deleteMany();
-  await prisma.emplois_du_temps.createMany({ data: newEntries });
+  await prisma.emploiDuTemps.deleteMany();
+  await prisma.emploiDuTemps.createMany({ data: newEntries });
   console.log(`Generated ${newEntries.length} schedule entries for all classes.`);
 }
 

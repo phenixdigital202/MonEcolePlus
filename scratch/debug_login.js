@@ -27,7 +27,7 @@ async function debugLogin() {
       console.log("User not found in Master DB.");
       
       // List schools to see if we should be on a subdomain
-      const schools = await prisma.ecoles.findMany();
+      const schools = await prisma.ecole.findMany();
       console.log("Schools in Master DB:", schools);
       
       return;

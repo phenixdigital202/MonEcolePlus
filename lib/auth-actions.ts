@@ -54,7 +54,7 @@ export async function registerUser(formData: FormData) {
       }
 
       // 2. Create the school in Master DB
-      const newSchool = await prismaMaster.ecoles.create({
+      const newSchool = await prismaMaster.ecole.create({
         data: {
           nom: schoolName,
           subdomain: slug,
@@ -66,7 +66,7 @@ export async function registerUser(formData: FormData) {
       targetPrisma = getTenantClient(newSchool.database_url!)
 
       // CRITICAL FIX: Create the school stub in the tenant DB to satisfy FK constraints
-      await targetPrisma.ecoles.create({
+      await targetPrisma.ecole.create({
         data: {
           id: schoolId,
           nom: schoolName,

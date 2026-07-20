@@ -258,9 +258,9 @@ export async function getAnalyticsData() {
   try {
     const prisma = await getPrismaClient()
     const [avgGrade, absenceStats, subjects, totalUsers] = await Promise.all([
-      prisma.notes.aggregate({ _avg: { valeur: true } }),
+      prisma.note.aggregate({ _avg: { valeur: true } }),
       prisma.absence.findMany({ select: { statut: true, date_absence: true } }),
-      prisma.notes.findMany({ select: { valeur: true, evaluations: { select: { matiere: true } } } }),
+      prisma.note.findMany({ select: { valeur: true, evaluations: { select: { matiere: true } } } }),
       prisma.user.count({ where: { role: 'student' } })
     ])
 

@@ -49,7 +49,7 @@ export async function getGamificationStats(userId: number) {
     }
 
     // 2. Fetch all possible badges
-    const allBadges = await prisma.badges.findMany()
+    const allBadges = await prisma.badge.findMany()
     const earnedBadgeIds = user.eleve_badges.map(eb => eb.id_badge)
 
     return {

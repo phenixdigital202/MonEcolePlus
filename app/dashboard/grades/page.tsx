@@ -46,7 +46,7 @@ export default async function GradesPage() {
 
   // If parent, fetch and show children's gradebooks
   if (user.role === 'parent') {
-    const parentLinks = await prisma.parent_eleve.findMany({
+    const parentLinks = await prisma.parentEleve.findMany({
       where: { id_parent: user.id },
       include: {
         eleve: {
@@ -109,8 +109,8 @@ export default async function GradesPage() {
     "Informatique"
   ]
 
-  const totalNotes = await prisma.notes.count()
-  const classAverageResult = await prisma.notes.aggregate({
+  const totalNotes = await prisma.note.count()
+  const classAverageResult = await prisma.note.aggregate({
     _avg: { valeur: true }
   })
   const classAvg = Number(classAverageResult._avg.valeur) || 0

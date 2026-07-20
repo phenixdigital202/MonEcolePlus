@@ -51,7 +51,7 @@ export async function getCurrentTenant() {
   }
 
   // Lookup in Master
-  const school = await masterPrisma.ecoles.findUnique({
+  const school = await masterPrisma.ecole.findUnique({
     where: { subdomain }
   })
 

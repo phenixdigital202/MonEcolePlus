@@ -4,7 +4,7 @@ import { EvaluationsListView } from "@/components/dashboard/evaluations-list-vie
 
 export default async function EvaluationsListPage() {
   const prisma = await getPrisma()
-  const evaluations = await prisma.evaluations.findMany({
+  const evaluations = await prisma.evaluation.findMany({
     include: {
       classes: true,
       _count: {

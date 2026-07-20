@@ -36,7 +36,7 @@ async function generateDemoSchool() {
     const hashedPassword = await bcrypt.hash("demo123", 10);
 
     // Stub school in tenant
-    await prisma.ecoles.create({
+    await prisma.ecole.create({
       data: { id: school.id, nom: schoolName, subdomain: slug }
     });
 

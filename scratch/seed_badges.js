@@ -8,10 +8,10 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const count = await prisma.badges.count();
+  const count = await prisma.badge.count();
   if (count === 0) {
     console.log("Seeding badges...");
-    await prisma.badges.createMany({
+    await prisma.badge.createMany({
       data: [
         { nom: "Premier de Classe", description: "Terminer au sommet du classement.", icon_name: "Crown" },
         { nom: "Assidu", description: "Aucune absence enregistrée ce mois.", icon_name: "UserCheck" },
@@ -25,13 +25,13 @@ async function main() {
   
   // Award a badge to student Ab5 Toure (ID 6) for testing
   const studentId = 6;
-  const badge = await prisma.badges.findFirst({ where: { nom: "Premier de Classe" } });
+  const badge = await prisma.badge.findFirst({ where: { nom: "Premier de Classe" } });
   if (badge) {
-    const existing = await prisma.eleve_badges.findFirst({
+    const existing = await prisma.eleveBadge.findFirst({
         where: { id_eleve: studentId, id_badge: badge.id }
     });
     if (!existing) {
-        await prisma.eleve_badges.create({
+        await prisma.eleveBadge.create({
             data: {
                 id_eleve: studentId,
                 id_badge: badge.id,
@@ -42,7 +42,7 @@ async function main() {
     }
   }
 
-  console.log("Badges count:", await prisma.badges.count());
+  console.log("Badges count:", await prisma.badge.count());
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

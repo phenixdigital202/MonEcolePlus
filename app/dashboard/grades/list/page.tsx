@@ -9,7 +9,7 @@ import { Search, Filter, ArrowUpDown } from "lucide-react"
 export default async function GradesListPage() {
   const prisma = await getPrisma()
   // Fetch all notes with related data
-  const notes = await prisma.notes.findMany({
+  const notes = await prisma.note.findMany({
     include: {
       users: true,
       evaluations: {

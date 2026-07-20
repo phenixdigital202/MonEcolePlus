@@ -8,7 +8,7 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const ecoles = await prisma.ecoles.findMany();
+  const ecoles = await prisma.ecole.findMany();
   console.log(ecoles);
 }
 

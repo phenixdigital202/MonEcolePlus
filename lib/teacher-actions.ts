@@ -16,7 +16,7 @@ export async function getTeacherDashboardData(teacherId: number) {
     const prisma = await getPrisma()
 
     // 1. Get all schedule entries for this teacher (with class info)
-    const allScheduleEntries = await prisma.emplois_du_temps.findMany({
+    const allScheduleEntries = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: teacherId },
       include: {
         classes: true,

@@ -1,70 +1,62 @@
-import mysql from 'mysql2/promise'
+import { Client } from 'pg'
 import { execSync } from 'child_process'
-import path from 'path'
 
 /**
- * Creates a new physical MySQL database for a tenant and initializes its schema.
+ * Creates a new physical PostgreSQL database for a tenant and initializes its schema.
  */
 export async function provisionTenantDatabase(dbName: string) {
-  const masterUrl = process.env.DATABASE_URL
-  if (!masterUrl) throw new Error("DATABASE_URL not found")
+  const directUrl = process.env.DIRECT_URL
+  const poolUrl = process.env.DATABASE_URL
+  
+  if (!directUrl || !poolUrl) throw new Error("DATABASE_URL or DIRECT_URL not found")
 
   console.log(`[Provisioner] Starting provisioning for database: ${dbName}`)
 
-  // Robust URL parsing - Force IPv4 (127.0.0.1) to avoid localhost/IPv6 issues on Windows
-  let connUrl;
-  try {
-    connUrl = new URL(masterUrl.replace('mysql://', 'http://'))
-  } catch (e) {
-    throw new Error(`Invalid DATABASE_URL format: ${masterUrl}`)
-  }
-
-  const user = connUrl.username || 'root'
-  const password = connUrl.password || ''
-  const host = (connUrl.hostname === 'localhost' || connUrl.hostname === '0.0.0.0') ? '127.0.0.1' : connUrl.hostname
-  const port = connUrl.port || '3306'
-
-  // 1. Create the database using mysql2
-  const connection = await mysql.createConnection({
-    host,
-    port: parseInt(port),
-    user,
-    password
-  })
+  // 1. Create the database using pg
+  const client = new Client({ connectionString: directUrl })
 
   try {
-    console.log(`[Provisioner] Executing: CREATE DATABASE IF NOT EXISTS \`${dbName}\``)
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``)
-    console.log(`[Provisioner] Database \`${dbName}\` is ready.`)
+    await client.connect()
+    console.log(`[Provisioner] Executing: CREATE DATABASE "${dbName}"`)
+    await client.query(`CREATE DATABASE "${dbName}"`)
+    console.log(`[Provisioner] Database "${dbName}" is ready.`)
   } catch (error: any) {
-    console.error(`[Provisioner] Failed to create database:`, error.message)
-    throw error
+    if (!error.message.includes('already exists')) {
+       console.error(`[Provisioner] Failed to create database:`, error.message)
+       throw error
+    }
   } finally {
-    await connection.end()
+    await client.end()
   }
+
+  // Generate tenant URLs
+  const parsedDirect = new URL(directUrl)
+  parsedDirect.pathname = `/${dbName}`
+  const tenantDirectUrl = parsedDirect.toString()
+
+  const parsedPool = new URL(poolUrl)
+  parsedPool.pathname = `/${dbName}`
+  const tenantPoolUrl = parsedPool.toString()
 
   // 2. Initialize schema using Prisma db push
-  const tenantUrl = `mysql://${user}${password ? `:${password}` : ''}@${host}:${port}/${dbName}`
-  
   console.log(`[Provisioner] Initializing schema for ${dbName} via npx prisma db push...`)
   try {
-    // Force DATABASE_URL for this specific process
-    // On Windows, use cmd /c to ensure PATH is handled correctly
     const cmd = `npx prisma db push --skip-generate --accept-data-loss`
     
     execSync(cmd, {
       env: {
         ...process.env,
-        DATABASE_URL: tenantUrl,
+        DATABASE_URL: tenantPoolUrl,
+        DIRECT_URL: tenantDirectUrl,
       },
       stdio: 'pipe', 
       windowsHide: true,
       encoding: 'utf-8',
-      timeout: 60000 // 60 seconds timeout for schema initialization
+      timeout: 60000
     })
     
     console.log(`[Provisioner] Schema initialization successful for ${dbName}.`)
-    return { success: true, url: tenantUrl }
+    return { success: true, url: tenantPoolUrl }
   } catch (error: any) {
     const errorMsg = error.stderr || error.stdout || error.message
     console.error(`[Provisioner] Prisma initialization failed:`, errorMsg)

@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma"
 
 export async function getAvailableSchools() {
   try {
-    const schools = await prisma.ecoles.findMany({
+    const schools = await prisma.ecole.findMany({
       select: {
         id: true,
         nom: true,

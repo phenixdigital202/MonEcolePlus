@@ -8,7 +8,7 @@ export async function getParentDashboardData(parentId: number) {
     const prisma = await getPrisma()
 
     // 1. Fetch parent's children
-    const links = await prisma.parent_eleve.findMany({
+    const links = await prisma.parentEleve.findMany({
       where: { id_parent: parentId },
       include: {
         eleve: {
@@ -45,7 +45,7 @@ export async function getParentDashboardData(parentId: number) {
         
         let previousAverage = 10.0 // Default fallback
         // Fetch previous averages from parcours_scolaires if available
-        const lastYear = await prisma.parcours_scolaires.findFirst({
+        const lastYear = await prisma.parcoursScolaire.findFirst({
           where: { id_eleve: student.id },
           orderBy: { annee_scolaire: 'desc' }
         })
@@ -96,7 +96,7 @@ export async function getParentDashboardData(parentId: number) {
       .filter(Boolean) as number[]
 
     const upcomingEvals = resolvedClassIds.length > 0
-      ? await prisma.evaluations.findMany({
+      ? await prisma.evaluation.findMany({
           where: { id_classe: { in: resolvedClassIds } },
           include: { classes: true },
           orderBy: { date_eval: 'asc' },
@@ -117,7 +117,7 @@ export async function getParentDashboardData(parentId: number) {
     })
 
     // 5. Fetch announcements/notifications for parents or all
-    const announcements = await prisma.annonces.findMany({
+    const announcements = await prisma.annonce.findMany({
       where: {
         cible: { in: ['parents', 'tous'] }
       },

@@ -21,7 +21,7 @@ export default async function SchoolSettingsPage() {
   }
 
   // Fetch school data (will return null if empty, component handles fallback)
-  const schoolData = await prisma.ecoles.findFirst()
+  const schoolData = await prisma.ecole.findFirst()
 
   return (
     <SchoolSettingsPortal 
