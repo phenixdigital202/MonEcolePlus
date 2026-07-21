@@ -28,19 +28,7 @@ function SignupSuccessContent() {
   const school = searchParams.get("school") || "votre établissement"
   const subdomain = searchParams.get("subdomain") || "demo"
 
-  const schoolUrl =
-    subdomain === "demo"
-      ? "http://localhost:3000/dashboard"
-      : `http://${subdomain}.localhost:3000/dashboard`
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(schoolUrl)
-      alert("Lien copié !")
-    } catch {
-      alert("Impossible de copier le lien.")
-    }
-  }
+  const schoolUrl = "/dashboard"
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -69,7 +57,7 @@ function SignupSuccessContent() {
               <ShieldCheck className="h-8 w-8 text-emerald-600 mb-2" />
               <CardTitle>Données isolées</CardTitle>
               <CardDescription>
-                Une base de données dédiée a été créée pour votre établissement.
+                Une base de données physique dédiée a été générée pour votre établissement pour une sécurité maximale.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -77,9 +65,9 @@ function SignupSuccessContent() {
           <Card>
             <CardHeader>
               <Globe className="h-8 w-8 text-blue-600 mb-2" />
-              <CardTitle>URL dédiée</CardTitle>
+              <CardTitle>Accès Centralisé</CardTitle>
               <CardDescription>
-                Votre établissement dispose de son propre sous-domaine.
+                Connectez-vous simplement avec votre email depuis n'importe où, nous vous redirigeons vers votre environnement.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -89,33 +77,18 @@ function SignupSuccessContent() {
           <CardHeader>
             <CardTitle>Accéder à votre tableau de bord</CardTitle>
             <CardDescription>
-              Utilisez le lien ci-dessous pour ouvrir votre espace.
+              Votre compte a été connecté automatiquement. Cliquez ci-dessous pour ouvrir votre espace d'administration.
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <code className="flex-1 rounded bg-slate-100 p-3 overflow-auto">
-                {schoolUrl}
-              </code>
-
-              <Button
-                variant="outline"
-                onClick={copyToClipboard}
-              >
-                Copier
-              </Button>
-            </div>
-          </CardContent>
-
-          <CardFooter>
+          <CardFooter className="pt-6">
             <Link
               href={schoolUrl}
               className="w-full"
             >
-              <Button className="w-full">
+              <Button className="w-full text-lg h-12">
                 Lancer le Dashboard
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </CardFooter>
