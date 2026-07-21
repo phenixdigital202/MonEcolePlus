@@ -51,12 +51,12 @@ export default async function DashboardPage() {
 
   // Fetch real data totals
   const [studentCount, teacherCount, classCount, revenueData] = await Promise.all([
-    prisma.user.count({ where: { role: 'student' } }),
-    prisma.user.count({ where: { role: 'teacher' } }),
-    prisma.class.count(),
+    prisma.user.count({ where: { role: 'student', id_ecole: user.id_ecole } }),
+    prisma.user.count({ where: { role: 'teacher', id_ecole: user.id_ecole } }),
+    prisma.class.count({ where: { id_ecole: user.id_ecole } }),
     prisma.paiement.aggregate({
       _sum: { montant: true },
-      where: { status: 'paye' }
+      where: { status: 'paye', user: { id_ecole: user.id_ecole } }
     })
   ])
 
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
 
   // Fetch chart data (Real payments by day/month)
   const recentPayments = await prisma.paiement.findMany({
-    where: { status: 'paye' },
+    where: { status: 'paye', user: { id_ecole: user.id_ecole } },
     take: 20,
     orderBy: { date_paiement: 'desc' },
     select: { montant: true, date_paiement: true, type: true }
