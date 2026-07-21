@@ -38,28 +38,33 @@ export async function provisionTenantDatabase(dbName: string) {
   parsedPool.pathname = `/${dbName}`
   const tenantPoolUrl = parsedPool.toString()
 
-  // 2. Initialize schema using Prisma db push
-  console.log(`[Provisioner] Initializing schema for ${dbName} via npx prisma db push...`)
+  // 2. Initialize schema using pure SQL (Vercel compatible)
+  console.log(`[Provisioner] Initializing schema for ${dbName} via SQL script...`)
+  
+  const tenantClient = new Client({ connectionString: tenantDirectUrl })
+  
   try {
-    const cmd = `npx prisma db push --skip-generate --accept-data-loss`
+    const fs = require('fs')
+    const path = require('path')
     
-    execSync(cmd, {
-      env: {
-        ...process.env,
-        DATABASE_URL: tenantPoolUrl,
-        DIRECT_URL: tenantDirectUrl,
-      },
-      stdio: 'pipe', 
-      windowsHide: true,
-      encoding: 'utf-8',
-      timeout: 60000
-    })
+    // Read the init.sql file generated during build
+    const sqlPath = path.join(process.cwd(), 'prisma', 'init.sql')
+    if (!fs.existsSync(sqlPath)) {
+        throw new Error("Init SQL script not found. Please run 'npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql'")
+    }
     
+    const sql = fs.readFileSync(sqlPath, 'utf8')
+    
+    await tenantClient.connect()
+    console.log(`[Provisioner] Executing schema SQL on tenant database...`)
+    await tenantClient.query(sql)
     console.log(`[Provisioner] Schema initialization successful for ${dbName}.`)
+    
     return { success: true, url: tenantPoolUrl }
   } catch (error: any) {
-    const errorMsg = error.stderr || error.stdout || error.message
-    console.error(`[Provisioner] Prisma initialization failed:`, errorMsg)
-    return { success: false, error: `Prisma error: ${errorMsg}` }
+    console.error(`[Provisioner] Schema initialization failed:`, error.message)
+    return { success: false, error: `Initialization error: ${error.message}` }
+  } finally {
+    await tenantClient.end()
   }
 }
