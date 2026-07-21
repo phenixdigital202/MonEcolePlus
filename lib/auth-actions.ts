@@ -172,9 +172,27 @@ export async function loginUser(formData: FormData) {
       return { error: "Identifiants invalides." }
     }
 
-    // Set session cookie
+    let tenantUserId = user.id;
+
+    if (user.id_ecole) {
+      // Find the school to get its database_url
+      const ecole = await prismaMaster.ecole.findUnique({
+        where: { id: user.id_ecole }
+      })
+      if (ecole && ecole.database_url) {
+        const tenantPrisma = getTenantClient(ecole.database_url)
+        const tenantUser = await tenantPrisma.user.findUnique({
+          where: { email }
+        })
+        if (tenantUser) {
+          tenantUserId = tenantUser.id
+        }
+      }
+    }
+
+    // Set session cookie using the TENANT USER ID (crucial for dashboard)
     const cookieStore = await cookies()
-    cookieStore.set("user_id", user.id.toString(), {
+    cookieStore.set("user_id", tenantUserId.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
