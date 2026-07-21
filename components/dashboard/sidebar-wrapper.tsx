@@ -32,7 +32,7 @@ function SidebarContent({
   const { isOpen: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -59,8 +59,8 @@ function SidebarContent({
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      {/* Desktop sidebar spacer (sidebar itself is fixed) */}
+      <div className="hidden lg:block relative">
         <DashboardSidebar 
           userRole={userRole as any} 
           userName={userName} 
@@ -71,7 +71,7 @@ function SidebarContent({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:ml-64 transition-all duration-300">
+      <div className="flex flex-col min-h-screen min-w-0 overflow-x-hidden">
         {children}
       </div>
     </div>
