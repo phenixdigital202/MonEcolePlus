@@ -98,7 +98,6 @@ export async function registerUser(formData: FormData) {
       try {
         await prismaMaster.user.create({
           data: {
-            id: newUser.id, // Keep IDs synced if possible, though not strictly necessary
             nom: `${firstName} ${lastName}`,
             email,
             password: hashedPassword,

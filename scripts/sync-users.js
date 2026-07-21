@@ -26,7 +26,6 @@ async function syncUsers() {
         if (!exists) {
           await masterPrisma.user.create({
             data: {
-              id: user.id,
               nom: user.nom,
               email: user.email,
               password: user.password,
