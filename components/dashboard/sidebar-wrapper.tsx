@@ -32,7 +32,7 @@ function SidebarContent({
   const { isOpen: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex w-full">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -71,7 +71,7 @@ function SidebarContent({
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:ml-64 transition-all duration-300">
         {children}
       </div>
     </div>

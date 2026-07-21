@@ -289,7 +289,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
             onOpenChange={(open) => setOpenDialog(open ? shortcut.id : null)}
           >
             <DialogTrigger asChild>
-              <button className="group relative flex items-center gap-3 md:gap-4 p-4 md:p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 text-left overflow-hidden">
+              <button className="min-w-0 group relative flex items-center gap-3 md:gap-4 p-4 md:p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 text-left overflow-hidden">
                 <div className={cn("absolute top-0 right-0 h-2 w-2 rounded-bl-full bg-slate-200 transition-colors group-hover:bg-primary/40")} />
                 <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3", shortcut.bg, shortcut.color)}>
                    <shortcut.icon className="h-6 w-6" />
