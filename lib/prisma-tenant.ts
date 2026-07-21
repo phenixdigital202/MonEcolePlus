@@ -1,7 +1,15 @@
 import { PrismaClient } from '@prisma/client'
 
-// Cache for Prisma clients to avoid connection leaks
-const clients: Record<string, PrismaClient> = {}
+declare global {
+  var tenantClients: Record<string, PrismaClient> | undefined
+}
+
+// Cache for Prisma clients to avoid connection leaks in dev
+const clients: Record<string, PrismaClient> = globalThis.tenantClients || {}
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.tenantClients = clients
+}
 
 /**
  * Gets a Prisma client for a specific tenant based on their database URL.

@@ -1,19 +1,14 @@
-
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-async function checkUsers() {
-  const prisma = new PrismaClient();
-  try {
-    const users = await prisma.user.findMany();
-    console.log("Users in Master DB:", users.map(u => ({ email: u.email, role: u.role })));
-    
-    const schools = await prisma.ecole.findMany();
-    console.log("Schools in Master DB:", schools);
-  } catch (error) {
-    console.error("Error checking users:", error);
-  } finally {
-    await prisma.$disconnect();
+async function check() {
+  const schools = await prisma.ecole.findMany();
+  console.log('Schools:', schools);
+  if (schools.length > 0) {
+    console.log('String hex:', Buffer.from(schools[0].subdomain).toString('hex'));
+    console.log('Is it lycée?', schools[0].subdomain === 'lycée-judith-toure');
+    console.log('Is it lycã©e?', schools[0].subdomain === 'lycã©e-judith-toure');
   }
 }
 
-checkUsers();
+check().catch(console.error).finally(() => prisma.$disconnect());

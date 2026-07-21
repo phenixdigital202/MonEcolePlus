@@ -17,7 +17,7 @@ export async function updateSchoolBranding(id: number, data: any) {
         nom: data.nom,
         logo_url: data.logo_url,
         // We simulate these metadata fields as we haven't modified the schema yet
-        // In a real app, these would be columns in the ecoles table.
+        // In a real app, these would be columns in the ecole table.
       }
     })
     revalidatePath("/dashboard/settings/school")

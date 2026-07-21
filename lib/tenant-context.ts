@@ -11,60 +11,43 @@ import { domainToUnicode } from "url"
  */
 export async function getCurrentTenant() {
   const reqHeaders = await headers()
-  const host = reqHeaders.get("host") || ""
-  const referer = reqHeaders.get("referer") || ""
-  // 1. Identification via subdomain (SaaS Mode)
-  const hostname = host.split(':')[0]
-  const parts = hostname.split('.')
+  const cookieStore = await import("next/headers").then(m => m.cookies())
   
-  let subdomain = null
-  
-  if (parts.length > 1) {
-    try {
-      subdomain = domainToUnicode(parts[0])
-    } catch (e) {
-      subdomain = parts[0]
+  const schoolId = cookieStore.get("school_id")?.value
+
+  if (schoolId) {
+    const school = await masterPrisma.ecole.findUnique({
+      where: { id: parseInt(schoolId) }
+    })
+    
+    if (school && school.database_url) {
+      return school
     }
   }
 
-  // Ignore 'www'
-  if (subdomain === 'www') {
-    subdomain = null
+  // Fallback for signup/onboarding when school is in URL (e.g., success page)
+  const host = reqHeaders.get("host") || ""
+  const referer = reqHeaders.get("referer") || ""
+  
+  // Try to find if referer has a subdomain just as a fallback (optional)
+  let subdomain = null
+  try {
+    if (referer) {
+      const url = new URL(referer)
+      subdomain = url.searchParams.get("subdomain")
+    }
+  } catch (e) {}
+
+  if (subdomain) {
+    const school = await masterPrisma.ecole.findUnique({
+      where: { subdomain }
+    })
+    if (school && school.database_url) {
+      return school
+    }
   }
 
-  // Local development hack: if on localhost without subdomain, default to 'lycee-abou'
-  if (!subdomain && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-    subdomain = 'lycee-abou'
-  }
-
-  // 2. Fallback to Referer (Critical for Server Actions on localhost)
-  if (!subdomain && referer) {
-    try {
-      const refUrl = new URL(referer)
-      const refHost = refUrl.host.split(':')[0]
-      const refParts = refHost.split('.')
-      if (refParts.length > 1 && refParts[0] !== 'www' && refParts[0] !== 'localhost') {
-        subdomain = refParts[0]
-      }
-    } catch(e) {}
-  }
-
-  console.log('[Tenant Context] Host:', host, 'Hostname:', hostname, 'Parts:', parts, 'Resolved Subdomain:', subdomain);
-
-  if (!subdomain) {
-    return null
-  }
-
-  // Lookup in Master
-  const school = await masterPrisma.ecole.findUnique({
-    where: { subdomain }
-  })
-
-  if (!school || !school.database_url) {
-    return null
-  }
-
-  return school
+  return null
 }
 
 /**

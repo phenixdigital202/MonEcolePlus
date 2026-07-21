@@ -49,9 +49,9 @@ export default async function AIInsightsPage() {
     const schedules = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       include: {
-        classes: {
+        classe: {
           include: {
-            inscriptions: { include: { eleve: true } }
+            inscriptions: { include: { user: true } }
           }
         }
       },
@@ -65,8 +65,8 @@ export default async function AIInsightsPage() {
     for (const s of schedules) {
       if (s.id_classe) classIds.push(s.id_classe)
       if (s.classes) {
-        if (!classNames.includes(s.classes.nom)) classNames.push(s.classes.nom)
-        for (const ins of s.classes.inscriptions) {
+        if (!classNames.includes(s.classe.nom)) classNames.push(s.classe.nom)
+        for (const ins of s.classe.inscriptions) {
           studentIdSet.add(ins.id_eleve)
         }
       }
@@ -93,7 +93,7 @@ export default async function AIInsightsPage() {
       const notesAgg = await prisma.note.aggregate({
         _avg: { valeur: true },
         where: {
-          evaluations: {
+          evaluation: {
             id_classe: { in: classIds },
             ...(subjects.length > 0 ? { matiere: { in: subjects } } : {})
           }
@@ -106,7 +106,7 @@ export default async function AIInsightsPage() {
         by: ["id_eleve"],
         _avg: { valeur: true },
         where: {
-          evaluations: {
+          evaluation: {
             id_classe: { in: classIds },
             ...(subjects.length > 0 ? { matiere: { in: subjects } } : {})
           }

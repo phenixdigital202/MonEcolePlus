@@ -4,7 +4,7 @@ import { getPrisma } from "@/lib/tenant-context"
 
 /**
  * Fetches all dashboard data for a teacher:
- * - Classes they teach (distinct from emplois_du_temps)
+ * - Classes they teach (distinct from emploisDuTemps)
  * - Total students across those classes
  * - Weekly hours from schedule
  * - Attendance rate for students in their classes
@@ -19,8 +19,8 @@ export async function getTeacherDashboardData(teacherId: number) {
     const allScheduleEntries = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: teacherId },
       include: {
-        classes: true,
-        users: true
+        classe: true,
+        user: true
       },
       orderBy: [
         { jour: 'asc' },
@@ -33,9 +33,9 @@ export async function getTeacherDashboardData(teacherId: number) {
     for (const entry of allScheduleEntries) {
       if (!classMap.has(entry.id_classe)) {
         classMap.set(entry.id_classe, {
-          id: entry.classes.id,
-          nom: entry.classes.nom,
-          niveau: entry.classes.niveau
+          id: entry.classe.id,
+          nom: entry.classe.nom,
+          niveau: entry.classe.niveau
         })
       }
     }
@@ -102,8 +102,8 @@ export async function getTeacherDashboardData(teacherId: number) {
       .map(e => ({
         id: e.id,
         matiere: e.matiere,
-        className: e.classes.nom,
-        classNiveau: e.classes.niveau,
+        className: e.classe.nom,
+        classNiveau: e.classe.niveau,
         salle: e.salle || 'Non assignée',
         heure_debut: e.heure_debut.toISOString(),
         heure_fin: e.heure_fin.toISOString(),
@@ -158,7 +158,7 @@ export async function getTeacherDashboardData(teacherId: number) {
         const start = new Date(course.heure_debut)
         upcomingAgenda.push({
           matiere: course.matiere,
-          className: course.classes.nom,
+          className: course.classe.nom,
           jour: offset === 0 ? "Aujourd'hui" : offset === 1 ? "Demain" : dayName,
           heureFormatted: `${String(start.getUTCHours()).padStart(2, '0')}:${String(start.getUTCMinutes()).padStart(2, '0')}`,
           salle: course.salle || 'N/A'
@@ -181,7 +181,7 @@ export async function getTeacherDashboardData(teacherId: number) {
       success: true,
       data: {
         classCount: teacherClasses.length,
-        classes: teacherClasses,
+        classe: teacherClasses,
         totalStudents,
         weeklyHours,
         attendanceRate,

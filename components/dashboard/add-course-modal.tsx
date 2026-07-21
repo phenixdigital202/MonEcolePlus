@@ -41,7 +41,7 @@ interface AddCourseModalProps {
 export function AddCourseModal({ isOpen, onClose, classes, teachers }: AddCourseModalProps) {
   const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState({
-    id_classe: "",
+    id_classes: "",
     id_enseignant: "",
     matiere: "",
     jour: "Lundi",
@@ -78,7 +78,7 @@ export function AddCourseModal({ isOpen, onClose, classes, teachers }: AddCourse
             <Label htmlFor="class">Classe</Label>
             <Select 
               value={formData.id_classe} 
-              onValueChange={(v) => setFormData(f => ({...f, id_classe: v}))}
+              onValueChange={(v) => setFormData(f => ({...f, id_classes: v}))}
               required
             >
               <SelectTrigger>

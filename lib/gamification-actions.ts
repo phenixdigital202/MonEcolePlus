@@ -12,8 +12,8 @@ export async function getGamificationStats(userId: number) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        eleve_badges: {
-          include: { badges: true }
+        eleveBadges: {
+          include: { badge: true }
         },
         notes: true,
         absences: true
@@ -41,7 +41,7 @@ export async function getGamificationStats(userId: number) {
     if (currentPoints !== academicPoints) {
       const level = Math.floor(academicPoints / 200) + 1
       await prisma.$executeRawUnsafe(
-        `UPDATE users SET points = ?, niveau = ? WHERE id = ?`,
+        `UPDATE users SET points = , niveau =  WHERE id = `,
         academicPoints,
         level,
         userId
@@ -50,7 +50,7 @@ export async function getGamificationStats(userId: number) {
 
     // 2. Fetch all possible badges
     const allBadges = await prisma.badge.findMany()
-    const earnedBadgeIds = user.eleve_badges.map(eb => eb.id_badge)
+    const earnedBadgeIds = user.eleveBadges.map(eb => eb.id_badge)
 
     return {
       success: true,
@@ -59,11 +59,11 @@ export async function getGamificationStats(userId: number) {
         level: Math.floor(academicPoints / 200) + 1,
         nextLevelXP: 200,
         currentXP: academicPoints % 200,
-        earnedBadges: user.eleve_badges.map(eb => ({
-            id: eb.badges.id,
-            name: eb.badges.nom,
-            description: eb.badges.description,
-            icon: eb.badges.icon_name,
+        earnedBadges: user.eleveBadges.map(eb => ({
+            id: eb.badge.id,
+            name: eb.badge.nom,
+            description: eb.badge.description,
+            icon: eb.badge.icon_name,
             date: eb.date_obtention
         })),
         allBadges: allBadges.map(b => ({

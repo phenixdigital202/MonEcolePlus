@@ -33,7 +33,7 @@ export default async function ClassesPage() {
   // Fetch classes from the database, filtering if the user is a teacher
   const classes = await prisma.class.findMany({
     where: isTeacher ? {
-      emplois_du_temps: {
+      emploisDuTemps: {
         some: {
           id_enseignant: user.id
         }
@@ -43,13 +43,13 @@ export default async function ClassesPage() {
       _count: {
         select: { 
           inscriptions: true,
-          emplois_du_temps: true 
+          emploisDuTemps: true 
         }
       },
-      emplois_du_temps: {
+      emploisDuTemps: {
         select: { 
           matiere: true,
-          users: { select: { nom: true } }
+          user: { select: { nom: true } }
         }
       },
       evaluations: {
@@ -83,7 +83,7 @@ export default async function ClassesPage() {
     if (classIds.length > 0) {
       const allNotes = await prisma.note.aggregate({
         where: {
-          evaluations: {
+          evaluation: {
             id_classe: { in: classIds }
           }
         },
@@ -100,7 +100,7 @@ export default async function ClassesPage() {
 
   const formattedClasses = classes.map(c => {
     // Unique subjects count
-    const uniqueSubjects = new Set(c.emplois_du_temps.map(e => e.matiere)).size
+    const uniqueSubjects = new Set(c.emploisDuTemps.map(e => e.matiere)).size
     
     // Calculate class average
     const classNotes = c.evaluations.flatMap(e => e.notes.map(n => Number(n.valeur)))
@@ -113,7 +113,7 @@ export default async function ClassesPage() {
       name: c.nom,
       level: c.niveau,
       students: c._count.inscriptions,
-      teacher: c.emplois_du_temps[0]?.users.nom || "Non assigné",
+      teacher: c.emploisDuTemps[0]?.user.nom || "Non assigné",
       subjects: uniqueSubjects,
       average: Number(classAvg)
     }

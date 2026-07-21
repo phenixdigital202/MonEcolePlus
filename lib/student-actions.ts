@@ -29,7 +29,7 @@ export async function getStudentAcademicData(userId: number) {
     const studentNotes = await prisma.note.findMany({
       where: { id_eleve: userId },
       include: {
-        evaluations: true
+        evaluation: true
       }
     })
 
@@ -37,7 +37,7 @@ export async function getStudentAcademicData(userId: number) {
     const subjectStats: Record<string, { total: number; count: number; classTotal: number; classCount: number }> = {}
 
     studentNotes.forEach(note => {
-      const subject = note.evaluations.matiere
+      const subject = note.evaluation.matiere
       if (!subjectStats[subject]) {
         subjectStats[subject] = { total: 0, count: 0, classTotal: 0, classCount: 0 }
       }
@@ -48,16 +48,16 @@ export async function getStudentAcademicData(userId: number) {
     // Get ALL notes for the class in one query to calculate class averages and ranks
     const allClassNotes = await prisma.note.findMany({
       where: {
-        evaluations: { id_classe: classId }
+        evaluation: { id_classe: classId }
       },
       include: {
-        evaluations: true
+        evaluation: true
       }
     })
 
     // Calculate class stats per subject
     allClassNotes.forEach(note => {
-      const subject = note.evaluations.matiere
+      const subject = note.evaluation.matiere
       if (!subjectStats[subject]) {
         subjectStats[subject] = { total: 0, count: 0, classTotal: 0, classCount: 0 }
       }
@@ -96,7 +96,7 @@ export async function getStudentAcademicData(userId: number) {
     // 5. Schedule
     const schedule = await prisma.emploiDuTemps.findMany({
       where: { id_classe: classId },
-      include: { users: true }
+      include: { user: true }
     })
 
     return {
@@ -110,9 +110,9 @@ export async function getStudentAcademicData(userId: number) {
         absences: absenceCount,
         subjects: formattedSubjectStats,
         recentGrades: studentNotes.slice(-5).map(n => ({
-          subject: n.evaluations.matiere,
+          subject: n.evaluation.matiere,
           value: Number(n.valeur),
-          date: new Date(n.evaluations.date_eval).toLocaleDateString("fr-FR", { day: 'numeric', month: 'short' })
+          date: new Date(n.evaluation.date_eval).toLocaleDateString("fr-FR", { day: 'numeric', month: 'short' })
         })),
         documentCounts: {
           certificates: 1, // At least the enrollment certificate
@@ -133,7 +133,7 @@ export async function getStudentAcademicData(userId: number) {
             day: s.jour,
             start: formatTime(s.heure_debut),
             end: formatTime(s.heure_fin),
-            teacher: s.users.nom
+            teacher: s.user.nom
           }
         })
       }

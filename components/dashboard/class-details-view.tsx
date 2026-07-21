@@ -69,7 +69,7 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
     }, 1500)
   }
 
-  const mainTeacher = classe.emplois_du_temps[0]?.users.nom || "Non assigné"
+  const mainTeacher = classe.emploisDuTemps[0]?.user.nom || "Non assigné"
 
   return (
     <>
@@ -220,10 +220,10 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
-                {classe.emplois_du_temps.map((e: any, i: number) => (
+                {classe.emploisDuTemps.map((e: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-primary/20 transition-all group">
                     <div>
-                      <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">{e.users?.nom || "Inconnu"}</p>
+                      <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">{e.user?.nom || "Inconnu"}</p>
                       <p className="text-xs text-slate-500 font-medium">{e.matiere || "N/A"}</p>
                     </div>
                     <Badge variant="outline" className="text-[10px] rounded-lg border-slate-200 bg-slate-50/50 uppercase font-black tracking-tighter">
@@ -231,7 +231,7 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                     </Badge>
                   </div>
                 ))}
-                {classe.emplois_du_temps.length === 0 && (
+                {classe.emploisDuTemps.length === 0 && (
                   <p className="text-sm text-slate-400 italic text-center py-6 font-medium">Aucun enseignant assigné.</p>
                 )}
               </CardContent>

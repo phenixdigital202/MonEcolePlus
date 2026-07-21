@@ -44,7 +44,7 @@ export async function getParentDashboardData(parentId: number) {
         const initials = nameParts.map(p => p[0]).join("").toUpperCase().substring(0, 2)
         
         let previousAverage = 10.0 // Default fallback
-        // Fetch previous averages from parcours_scolaires if available
+        // Fetch previous averages from parcoursScolaires if available
         const lastYear = await prisma.parcoursScolaire.findFirst({
           where: { id_eleve: student.id },
           orderBy: { annee_scolaire: 'desc' }
@@ -98,7 +98,7 @@ export async function getParentDashboardData(parentId: number) {
     const upcomingEvals = resolvedClassIds.length > 0
       ? await prisma.evaluation.findMany({
           where: { id_classe: { in: resolvedClassIds } },
-          include: { classes: true },
+          include: { classe: true },
           orderBy: { date_eval: 'asc' },
           take: 5
         })

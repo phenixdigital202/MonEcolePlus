@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
     // Fetch all students in the class
     const inscriptions = await prisma.inscription.findMany({
       where: { id_classe: id },
-      include: { eleve: {
+      include: { user: {
         include: {
           notes: {
             where: {
-              evaluations: {
+              evaluation: {
                 id_classe: id,
                 // In a real app, we would filter by date/semester
                 // periode: semester 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     })
 
     const studentsData = inscriptions.map(i => {
-      const student = i.eleve
+      const student = i.user
       const notes = student.notes || []
       const avg = notes.length > 0 
         ? notes.reduce((acc, n) => acc + Number(n.valeur), 0) / notes.length

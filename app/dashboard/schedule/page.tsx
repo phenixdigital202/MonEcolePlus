@@ -42,8 +42,8 @@ export default async function SchedulePage({
     schedule = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       include: {
-        users: true,
-        classes: true
+        user: true,
+        classe: true
       }
     })
   } else {

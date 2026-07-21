@@ -63,11 +63,11 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
     include: {
       inscriptions: {
         include: {
-          eleve: {
+          user: {
             include: {
               notes: {
                 where: {
-                  evaluations: { id_classe: classId }
+                  evaluation: { id_classe: classId }
                 },
                 select: { valeur: true }
               }
@@ -75,9 +75,9 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
           }
         }
       },
-      emplois_du_temps: {
+      emploisDuTemps: {
         include: {
-          users: {
+          user: {
             select: { nom: true }
           }
         }
@@ -112,7 +112,7 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
 
   // Process student averages
   const enrichedInscriptions = classe.inscriptions.map(ins => {
-    const grades = ins.eleve.notes.map(n => Number(n.valeur))
+    const grades = ins.user.notes.map(n => Number(n.valeur))
     const avg = grades.length > 0 
       ? (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1)
       : "N/A"
@@ -121,7 +121,7 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
   })
 
   // Calculate class average
-  const classNotes = enrichedInscriptions.filter(i => i.average !== "N/A").map(i => Number(i.average))
+  const classNotes = classe.evaluations.flatMap(e => e.notes.map(n => Number(n.valeur)))
   const classAvg = classNotes.length > 0 
     ? (classNotes.reduce((a, b) => a + b, 0) / classNotes.length).toFixed(1)
     : "N/A"

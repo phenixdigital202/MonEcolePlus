@@ -11,14 +11,14 @@ export default async function GradesListPage() {
   // Fetch all notes with related data
   const notes = await prisma.note.findMany({
     include: {
-      users: true,
-      evaluations: {
+      user: true,
+      evaluation: {
         include: {
-          classes: true
+          classe: true
         }
       }
     },
-    orderBy: { evaluations: { date_eval: 'desc' } }
+    orderBy: { evaluation: { date_eval: 'desc' } }
   })
 
   // Predefined subjects for filtering (conceptually)
@@ -74,18 +74,18 @@ export default async function GradesListPage() {
                     return (
                       <tr key={note.id} className="group hover:bg-primary/5 transition-colors">
                         <td className="py-4 text-sm">
-                          {new Date(note.evaluations.date_eval).toLocaleDateString('fr-FR')}
+                          {new Date(note.evaluation.date_eval).toLocaleDateString('fr-FR')}
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-2">
                             <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-                              {note.users.nom.split(" ").map(n => n[0]).join("")}
+                              {note.user.nom.split(" ").map(n => n[0]).join("")}
                             </div>
-                            <span className="font-medium text-sm">{note.users.nom}</span>
+                            <span className="font-medium text-sm">{note.user.nom}</span>
                           </div>
                         </td>
-                        <td className="py-4 text-sm">{note.evaluations.classes.nom}</td>
-                        <td className="py-4 text-sm font-medium">{note.evaluations.matiere}</td>
+                        <td className="py-4 text-sm">{note.evaluation.classe.nom}</td>
+                        <td className="py-4 text-sm font-medium">{note.evaluation.matiere}</td>
                         <td className="py-4 text-center">
                           <Badge 
                             variant="secondary" 

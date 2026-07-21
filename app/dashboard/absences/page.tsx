@@ -34,12 +34,12 @@ export default async function AbsencesPage() {
     // Get all class IDs assigned to this teacher via schedules
     const schedules = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
-      select: { id_classe: true, classes: { select: { id: true, nom: true } } },
+      select: { id_classe: true, classe: { select: { id: true, nom: true } } },
       distinct: ['id_classe']
     })
     const classIds = schedules.map(s => s.id_classe).filter(Boolean) as number[]
     teacherClasses = schedules
-      .map(s => s.classes)
+      .map(s => s.classe)
       .filter((c): c is { id: number; nom: string } => c !== null)
 
     // Get student IDs in those classes
@@ -54,7 +54,7 @@ export default async function AbsencesPage() {
   const absences = await prisma.absence.findMany({
     where: whereClause,
     include: {
-      users: {
+      user: {
         include: {
           inscriptions: {
             include: {
@@ -77,8 +77,8 @@ export default async function AbsencesPage() {
   // Formatting data for the client component
   const initialAbsences = absences.map(a => ({
     id: a.id,
-    student: a.users.nom,
-    class: a.users.inscriptions[0]?.classe.nom || "N/A",
+    student: a.user.nom,
+    class: a.user.inscriptions[0]?.classe.nom || "N/A",
     date: a.date_absence.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
     reason: a.motif || "Non communiquée",
     status: a.statut || "en_attente",

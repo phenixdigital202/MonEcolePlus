@@ -202,7 +202,7 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
                                 </div>
                                 <p className="font-black text-sm tracking-tight mb-1">{item.matiere}</p>
                                 <p className="text-[11px] opacity-90 font-bold flex items-center gap-1">
-                                    {item.users.nom}
+                                    {item.user.nom}
                                 </p>
                                 <p className="text-[10px] opacity-70 mt-2 font-medium bg-black/10 w-fit px-2 py-0.5 rounded-lg">
                                     {item.salle || "Sans salle"}

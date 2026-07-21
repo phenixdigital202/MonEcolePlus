@@ -20,8 +20,8 @@ export async function getContacts(userId: number, role: string) {
         include: { 
           classe: {
             include: {
-              emplois_du_temps: {
-                include: { users: true }
+              emploisDuTemps: {
+                include: { user: true }
               }
             }
           }
@@ -32,8 +32,8 @@ export async function getContacts(userId: number, role: string) {
 
       if (currentInscription?.classe) {
         const teachers = new Map()
-        currentInscription.classe.emplois_du_temps.forEach(edt => {
-          teachers.set(edt.users.id, edt.users)
+        currentInscription.classe.emploisDuTemps.forEach(edt => {
+          teachers.set(edt.user.id, edt.user)
         })
         contacts.profs = Array.from(teachers.values()).map(t => ({
           id: t.id,
@@ -59,7 +59,7 @@ export async function getContacts(userId: number, role: string) {
 
       const family: any[] = await prisma.$queryRawUnsafe(
         `SELECT u.id, u.nom as name FROM users u 
-         JOIN parent_eleve pe ON u.id = pe.id_parent 
+         JOIN parentEleve pe ON u.id = pe.id_parent 
          WHERE pe.id_eleve = ?`,
         userId
       )
@@ -91,8 +91,8 @@ export async function getContacts(userId: number, role: string) {
                 include: {
                   classe: {
                     include: {
-                      emplois_du_temps: {
-                        include: { users: true }
+                      emploisDuTemps: {
+                        include: { user: true }
                       }
                     }
                   }
@@ -116,12 +116,12 @@ export async function getContacts(userId: number, role: string) {
       for (const link of parentLinks) {
         for (const inscription of link.eleve.inscriptions) {
           if (inscription.classe) {
-            for (const edt of inscription.classe.emplois_du_temps) {
-              if (!teacherMap.has(edt.users.id)) {
-                teacherMap.set(edt.users.id, {
-                  id: edt.users.id,
-                  name: edt.users.nom,
-                  avatar: edt.users.nom.substring(0, 2).toUpperCase(),
+            for (const edt of inscription.classe.emploisDuTemps) {
+              if (!teacherMap.has(edt.user.id)) {
+                teacherMap.set(edt.user.id, {
+                  id: edt.user.id,
+                  name: edt.user.nom,
+                  avatar: edt.user.nom.substring(0, 2).toUpperCase(),
                   role: 'teacher'
                 })
               }
@@ -196,10 +196,10 @@ export async function getContacts(userId: number, role: string) {
       const schedules = await prisma.emploiDuTemps.findMany({
         where: { id_enseignant: userId },
         include: {
-          classes: {
+          classe: {
             include: {
               inscriptions: {
-                include: { eleve: true }
+                include: { user: true }
               }
             }
           }
@@ -210,12 +210,12 @@ export async function getContacts(userId: number, role: string) {
       // 2. Collect all students in teacher's classes
       const studentMap = new Map<number, any>()
       for (const schedule of schedules) {
-        for (const inscription of schedule.classes?.inscriptions || []) {
-          if (inscription.eleve && !studentMap.has(inscription.eleve.id)) {
-            studentMap.set(inscription.eleve.id, {
-              id: inscription.eleve.id,
-              name: inscription.eleve.nom,
-              avatar: inscription.eleve.nom.substring(0, 2).toUpperCase(),
+        for (const inscription of schedule.classe?.inscriptions || []) {
+          if (inscription.user && !studentMap.has(inscription.user.id)) {
+            studentMap.set(inscription.user.id, {
+              id: inscription.user.id,
+              name: inscription.user.nom,
+              avatar: inscription.user.nom.substring(0, 2).toUpperCase(),
               role: 'student'
             })
           }
@@ -326,7 +326,7 @@ export async function linkParentToStudent(parentId: number, studentId: number) {
     const prisma = await getPrisma()
     // Using raw SQL to bypass model check
     await prisma.$executeRawUnsafe(
-      `INSERT IGNORE INTO parent_eleve (id_parent, id_eleve) VALUES (?, ?)`,
+      `INSERT IGNORE INTO parentEleve (id_parent, id_eleve) VALUES (?, ?)`,
       parentId,
       studentId
     )

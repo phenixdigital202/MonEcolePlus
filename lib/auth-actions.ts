@@ -38,7 +38,7 @@ export async function registerUser(formData: FormData) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     let targetPrisma = prisma
-    let schoolId: number | null = null
+    let schoolId: number | null = tenant?.id || null
 
     let newSchoolSlug = ""
 
@@ -93,6 +93,24 @@ export async function registerUser(formData: FormData) {
       }
     })
 
+    // Create the user in Master DB for centralized login
+    if (schoolId) {
+      try {
+        await prismaMaster.user.create({
+          data: {
+            id: newUser.id, // Keep IDs synced if possible, though not strictly necessary
+            nom: `${firstName} ${lastName}`,
+            email,
+            password: hashedPassword,
+            role: role || "admin",
+            id_ecole: schoolId
+          }
+        })
+      } catch (e) {
+        console.error("Could not sync user to master DB:", e)
+      }
+    }
+
     // Set a simple session cookie
     const cookieStore = await cookies()
     cookieStore.set("user_id", newUser.id.toString(), {
@@ -101,10 +119,21 @@ export async function registerUser(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
     })
+
+    if (schoolId) {
+      cookieStore.set("school_id", schoolId.toString(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      })
+    }
     
     if (schoolId) {
-      redirect(`/signup/success?school=${schoolName}&subdomain=${newSchoolSlug}`)
+      return { success: true, url: `/signup/success?school=${schoolName}&subdomain=${newSchoolSlug}` }
     }
+    
+    return { success: true, url: "/dashboard" }
     
   } catch (error: any) {
     if (error.message?.includes("NEXT_REDIRECT")) throw error;
@@ -124,9 +153,9 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
-    const prisma = await getPrisma()
+    // ALWAYS search in Master DB for unified login
     console.log(`[Login] Attempting login for: ${email}`)
-    const user = await prisma.user.findUnique({
+    const user = await prismaMaster.user.findUnique({
       where: { email }
     })
 
@@ -152,17 +181,28 @@ export async function loginUser(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
     })
+    
+    if (user.id_ecole) {
+      cookieStore.set("school_id", user.id_ecole.toString(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      })
+    }
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes("NEXT_REDIRECT")) throw error;
     console.error("Login error:", error)
     return { error: "Une erreur est survenue lors de la connexion." }
   }
 
-  redirect("/dashboard")
+  return { success: true }
 }
 
 export async function logoutUser() {
   const cookieStore = await cookies()
   cookieStore.delete("user_id")
+  cookieStore.delete("school_id")
   redirect("/login")
 }

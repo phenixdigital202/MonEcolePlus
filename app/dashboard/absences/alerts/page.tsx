@@ -12,7 +12,7 @@ export default async function AbsencesAlertsPage() {
   const criticalAbsences = await prisma.absence.findMany({
     where: { statut: 'non_justifie' },
     include: {
-      users: {
+      user: {
         include: {
           inscriptions: {
             include: {
@@ -50,9 +50,9 @@ export default async function AbsencesAlertsPage() {
                         <AlertTriangle className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground">{abs.users.nom}</p>
+                        <p className="font-semibold text-foreground">{abs.user.nom}</p>
                         <p className="text-xs text-muted-foreground">
-                          {abs.users.inscriptions[0]?.classe.nom || "N/A"} • SMS + Email envoyé
+                          {abs.user.inscriptions[0]?.classe.nom || "N/A"} • SMS + Email envoyé
                         </p>
                       </div>
                     </div>

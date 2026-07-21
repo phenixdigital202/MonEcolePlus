@@ -34,6 +34,8 @@ export default function SignupPage() {
       setError(result.error)
       setPending(false)
       setIsProvisioning(false)
+    } else if (result?.url) {
+      router.push(result.url)
     }
   }
 

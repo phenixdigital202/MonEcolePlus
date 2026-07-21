@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   const user = await prisma.user.findUnique({
     where: { id: parseInt(userId) },
     include: {
-      ecoles: true
+      ecole: true
     }
   })
 
@@ -32,7 +32,7 @@ export default async function DashboardLayout({
     <SidebarWrapper 
       userRole={user.role} 
       userName={user.nom} 
-      schoolName={user.ecoles?.nom || "Mon Établissement"}
+      schoolName={user.ecole?.nom || "Mon Établissement"}
       userPoints={user.points}
       userLevel={user.niveau}
     >

@@ -6,7 +6,7 @@ export default async function EvaluationsListPage() {
   const prisma = await getPrisma()
   const evaluations = await prisma.evaluation.findMany({
     include: {
-      classes: true,
+      classe: true,
       _count: {
         select: { notes: true }
       }

@@ -15,7 +15,7 @@ const plans = [
     price: { monthly: "0", yearly: "0" },
     features: {
       students: "100 élèves max",
-      classes: "5 classes",
+      classe: "5 classes",
       teachers: "10 enseignants",
       storage: "1 Go stockage",
       support: "Email uniquement",
@@ -34,7 +34,7 @@ const plans = [
     price: { monthly: "49", yearly: "39" },
     features: {
       students: "Illimité",
-      classes: "Illimité",
+      classe: "Illimité",
       teachers: "Illimité",
       storage: "50 Go stockage",
       support: "Prioritaire",
@@ -53,7 +53,7 @@ const plans = [
     price: { monthly: "Sur mesure", yearly: "Sur mesure" },
     features: {
       students: "Illimité",
-      classes: "Illimité",
+      classe: "Illimité",
       teachers: "Illimité",
       storage: "Illimité",
       support: "Dédié 24/7",

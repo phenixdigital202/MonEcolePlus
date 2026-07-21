@@ -142,8 +142,8 @@ export async function getScheduleData(classId?: number) {
   return await prisma.emploiDuTemps.findMany({
     where: { id_classe: classId },
     include: {
-      users: true,
-      classes: true
+      user: true,
+      classe: true
     }
   })
 }

@@ -73,7 +73,7 @@ export async function scheduleClassAction(formData: any) {
     const hEnd = `${heure_fin}:00`
 
     await prisma.$executeRawUnsafe(
-        `INSERT INTO emplois_du_temps (id_classe, id_enseignant, matiere, jour, heure_debut, heure_fin, salle) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO emploisDuTemps (id_classe, id_enseignant, matiere, jour, heure_debut, heure_fin, salle) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         parseInt(id_classe), parseInt(id_enseignant), matiere, jour, hStart, hEnd, salle || "N/A"
     )
 
@@ -140,7 +140,7 @@ export async function getParentsAction() {
     const parents = await prisma.user.findMany({
       where: { role: 'parent' },
       include: {
-        parent_links: {
+        parentEleveAsParent: {
           include: {
             eleve: true
           }
@@ -260,14 +260,14 @@ export async function getAnalyticsData() {
     const [avgGrade, absenceStats, subjects, totalUsers] = await Promise.all([
       prisma.note.aggregate({ _avg: { valeur: true } }),
       prisma.absence.findMany({ select: { statut: true, date_absence: true } }),
-      prisma.note.findMany({ select: { valeur: true, evaluations: { select: { matiere: true } } } }),
+      prisma.note.findMany({ select: { valeur: true, evaluation: { select: { matiere: true } } } }),
       prisma.user.count({ where: { role: 'student' } })
     ])
 
     // Process subjects
     const subjectMap: any = {}
     subjects.forEach(n => {
-      const mat = n.evaluations.matiere
+      const mat = n.evaluation.matiere
       if (!subjectMap[mat]) subjectMap[mat] = { sum: 0, count: 0 }
       subjectMap[mat].sum += Number(n.valeur)
       subjectMap[mat].count++

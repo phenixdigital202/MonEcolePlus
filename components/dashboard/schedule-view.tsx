@@ -89,7 +89,7 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
       if (!grid[item.jour]) grid[item.jour] = {}
       grid[item.jour][hourStr] = {
         subject: item.matiere,
-        teacher: userRole === "teacher" && item.classes?.nom ? `Classe : ${item.classes.nom}` : item.users.nom,
+        teacher: userRole === "teacher" && item.classes?.nom ? `Classe : ${item.classes.nom}` : item.user.nom,
         room: item.salle,
         color: colorMap[item.matiere] || colorMap.default
       }

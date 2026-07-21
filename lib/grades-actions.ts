@@ -170,9 +170,9 @@ export async function getStudentsByClass(classId: number) {
   const prisma = await getPrisma()
   const inscriptions = await prisma.inscription.findMany({
     where: { id_classe: classId },
-    include: { eleve: true }
+    include: { user: true }
   })
-  return inscriptions.map(i => i.eleve)
+  return inscriptions.map(i => i.user)
 }
 
 export async function getClasses() {
