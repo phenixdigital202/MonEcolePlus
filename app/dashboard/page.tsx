@@ -123,7 +123,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50/30">
+    <div className="flex flex-col min-h-full bg-slate-50/30 min-w-0">
       <DashboardHeader 
         title={displayTitle} 
         subtitle={displaySubtitle}

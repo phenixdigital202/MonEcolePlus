@@ -43,7 +43,7 @@ const financialData = [
 
 export default function AdminDashboardPage() {
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto min-w-0">
       <DashboardHeader 
         title="Tableau de Bord Administrateur" 
         subtitle="Vue d'ensemble de votre établissement"
