@@ -146,6 +146,8 @@ model EmploiDuTemps {
 
   @@index([id_classe])
   @@index([id_enseignant])
+  @@index([id_classe, jour])
+  @@index([id_enseignant, jour])
   @@map("emplois_du_temps")
 }
 
@@ -222,6 +224,7 @@ model Paiement {
   user           User           @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_utilisateur])
+  @@index([status, date_paiement])
   @@map("paiements")
 }
 
@@ -292,6 +295,7 @@ model User {
   ecole               Ecole?             @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
 
   @@index([id_ecole])
+  @@index([role, id_ecole])
   @@map("users")
 }
 

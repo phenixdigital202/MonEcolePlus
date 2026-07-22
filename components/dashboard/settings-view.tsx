@@ -52,7 +52,7 @@ export function SettingsView({ user }: SettingsViewProps) {
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
           <p className="text-muted-foreground">

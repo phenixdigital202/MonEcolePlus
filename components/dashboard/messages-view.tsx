@@ -18,7 +18,8 @@ import {
   Users as UsersIcon,
   Heart,
   ShieldAlert,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from "lucide-react"
 import { getConversation, sendMessage } from "@/lib/message-actions"
 import { cn } from "@/lib/utils"
@@ -43,6 +44,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [showChat, setShowChat] = useState(false) // Mobile: toggle between list and chat
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -91,6 +93,11 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
     setSending(false)
   }
 
+  const handleSelectContact = (contact: any) => {
+    setSelectedContact(contact)
+    setShowChat(true) // On mobile, switch to chat view after selecting
+  }
+
   const renderContactButton = (contact: any) => (
     <button
       key={contact.id}
@@ -98,7 +105,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
         "w-full p-4 flex items-center gap-3 hover:bg-muted/50 transition-all border-b border-border last:border-0 text-left",
         selectedContact?.id === contact.id ? "bg-primary/5 border-l-4 border-l-primary" : ""
       )}
-      onClick={() => setSelectedContact(contact)}
+      onClick={() => handleSelectContact(contact)}
     >
       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
         <span className="text-sm font-bold text-primary">{contact.avatar}</span>
@@ -115,9 +122,12 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
   )
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-220px)] animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Sidebar Contacts */}
-      <Card className="lg:col-span-1 flex flex-col shadow-xl border-primary/10 overflow-hidden">
+    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6 h-[calc(100vh-160px)] md:h-[calc(100vh-220px)] animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Sidebar Contacts — hidden on mobile when chat is shown */}
+      <Card className={cn(
+        "lg:col-span-1 flex flex-col shadow-xl border-primary/10 overflow-hidden",
+        showChat ? "hidden lg:flex" : "flex"
+      )}>
         <div className="p-4 border-b bg-muted/20">
            <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -134,7 +144,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
                  <TabsTrigger value="all" className="text-[10px] font-bold uppercase"><MessageSquare className="h-3 w-3 mr-1" /> Tous</TabsTrigger>
                  <TabsTrigger value="profs" className="text-[10px] font-bold uppercase">
                    <GraduationCap className="h-3 w-3 mr-1" />
-                   {currentUserRole === 'teacher' ? 'Collègues' : 'Profs'}
+                   {currentUserRole === 'teacher' ? 'Coll.' : 'Profs'}
                  </TabsTrigger>
                  <TabsTrigger value="class" className="text-[10px] font-bold uppercase">
                     <UsersIcon className="h-3 w-3 mr-1" />
@@ -170,25 +180,38 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
         </div>
       </Card>
 
-      {/* Chat Area */}
-      <Card className="lg:col-span-2 flex flex-col shadow-2xl border-primary/5 overflow-hidden">
+      {/* Chat Area — hidden on mobile when list is shown */}
+      <Card className={cn(
+        "lg:col-span-2 flex flex-col shadow-2xl border-primary/5 overflow-hidden",
+        showChat ? "flex" : "hidden lg:flex"
+      )}>
         {selectedContact ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b bg-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="p-4 border-b bg-white flex items-center justify-between gap-2">
+              {/* Back button — mobile only */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden shrink-0 -ml-2"
+                onClick={() => setShowChat(false)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">Retour aux contacts</span>
+              </Button>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="text-sm font-black text-primary">{selectedContact.avatar}</span>
                 </div>
-                <div>
-                  <p className="font-bold text-foreground">{selectedContact.name}</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-foreground truncate">{selectedContact.name}</p>
                   <div className="flex items-center gap-1.5">
                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                      <p className="text-[10px] text-muted-foreground uppercase font-bold">En ligne</p>
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="text-muted-foreground">
+              <Button variant="ghost" size="icon" className="text-muted-foreground shrink-0">
                 <MoreVertical className="h-5 w-5" />
               </Button>
             </div>
@@ -196,7 +219,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
             {/* Messages body */}
             <div 
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50"
+              className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/50"
             >
               {loading ? (
                 <div className="h-full flex items-center justify-center">
@@ -222,7 +245,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
                     )}
                   >
                     <div className={cn(
-                      "max-w-[80%] space-y-1 animate-in slide-in-from-bottom-2 duration-300",
+                      "max-w-[85%] sm:max-w-[80%] space-y-1 animate-in slide-in-from-bottom-2 duration-300",
                       message.sender === "me" ? "items-end" : "items-start"
                     )}>
                        <div
@@ -257,25 +280,25 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
             </div>
 
             {/* Input area */}
-            <div className="p-4 border-t bg-white">
-              <form className="flex items-center gap-3" onSubmit={handleSend}>
+            <div className="p-3 md:p-4 border-t bg-white">
+              <form className="flex items-center gap-2 md:gap-3" onSubmit={handleSend}>
                 <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground">
                   <Paperclip className="h-5 w-5" />
                 </Button>
                 <Input
                   placeholder="Écrivez votre message..."
-                  className="flex-1 h-12 bg-muted/50 border-transparent focus-visible:ring-primary"
+                  className="flex-1 h-11 md:h-12 bg-muted/50 border-transparent focus-visible:ring-primary"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                 />
-                <Button type="submit" size="icon" className="h-12 w-12 rounded-xl shadow-lg shadow-primary/20" disabled={!newMessage.trim() || sending}>
+                <Button type="submit" size="icon" className="h-11 w-11 md:h-12 md:w-12 rounded-xl shadow-lg shadow-primary/20 shrink-0" disabled={!newMessage.trim() || sending}>
                   {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-4">
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 md:p-12 space-y-4">
              <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center">
                 <MessageSquare className="h-10 w-10 text-primary/20" />
              </div>

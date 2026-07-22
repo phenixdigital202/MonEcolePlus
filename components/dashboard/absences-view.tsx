@@ -119,7 +119,7 @@ export function AbsencesView({ initialAbsences, stats, userRole, teacherClasses 
 
         {/* Alert Banner - only for admin */}
         {stats.unjustified > 0 && userRole !== 'student' && userRole !== 'parent' && userRole !== 'teacher' && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
               <AlertTriangle className="h-5 w-5 text-white" />
             </div>

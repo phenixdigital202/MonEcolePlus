@@ -262,12 +262,13 @@ export default function AdminParentsPage() {
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
           ) : (
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent bg-slate-50/30">
                   <TableHead className="font-bold text-slate-800">Parent</TableHead>
                   <TableHead className="font-bold text-slate-800">Enfants liés</TableHead>
-                  <TableHead className="font-bold text-slate-800">Dernière activité</TableHead>
+                  <TableHead className="hidden md:table-cell font-bold text-slate-800">Dernière activité</TableHead>
                   <TableHead className="text-right font-bold text-slate-800">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -307,7 +308,7 @@ export default function AdminParentsPage() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <span className="text-xs text-slate-500 font-medium">Jamais</span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -343,6 +344,7 @@ export default function AdminParentsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

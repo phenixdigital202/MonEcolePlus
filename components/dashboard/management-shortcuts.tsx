@@ -175,7 +175,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
            const fd = new FormData(e.currentTarget)
            await handleAction("schedule", Object.fromEntries(fd), scheduleClassAction)
         }}>
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                  <Label>Classe</Label>
                  <Select name="id_classe" required>
@@ -199,7 +199,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
               <Label htmlFor="matiere">Matière</Label>
               <Input id="matiere" name="matiere" placeholder="Ex: Mathématiques" required />
            </div>
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                  <Label>Jour</Label>
                  <Select name="jour" defaultValue="Lundi" required>
@@ -214,7 +214,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
                  <Input id="salle" name="salle" placeholder="Ex: 204" />
               </div>
            </div>
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                  <Label htmlFor="heure_debut">Début</Label>
                  <Input id="heure_debut" name="heure_debut" type="time" required />

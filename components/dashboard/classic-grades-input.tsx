@@ -138,7 +138,7 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
   return (
     <div className="space-y-6">
       {/* Selection Bar */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Classe</Label>
           <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -199,7 +199,7 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Input Table */}
-        <Card className="lg:col-span-2 overflow-hidden border-primary/20 shadow-xl">
+        <Card className="lg:col-span-2 overflow-hidden border-primary/20 shadow-xl min-w-0">
           <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -218,7 +218,8 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
                 <p className="text-muted-foreground">Chargement des élèves...</p>
               </div>
             ) : students.length > 0 ? (
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px]">
                 <thead className="bg-muted/50 border-b">
                   <tr>
                     <th className="py-3 px-6 text-left text-xs font-bold uppercase tracking-wider">Élève</th>
@@ -268,6 +269,7 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
                   )})}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className="p-20 text-center text-muted-foreground">
                 {selectedClass ? "Aucun élève trouvé dans cette classe." : "Sélectionnez une classe pour commencer la saisie."}

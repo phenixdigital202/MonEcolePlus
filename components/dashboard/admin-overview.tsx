@@ -1,20 +1,11 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  PieChart,
-  Pie
-} from 'recharts'
+import dynamic from 'next/dynamic'
+
+const AdminEnrollmentChart = dynamic(() => import('./admin-overview-charts').then(m => m.AdminEnrollmentChart), { ssr: false })
+const AdminFinanceChart = dynamic(() => import('./admin-overview-charts').then(m => m.AdminFinanceChart), { ssr: false })
+const AdminClassPieChart = dynamic(() => import('./admin-overview-charts').then(m => m.AdminClassPieChart), { ssr: false })
 import { 
   Users, 
   TrendingUp, 
@@ -132,23 +123,7 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
             </div>
           </CardHeader>
           <CardContent className="h-[250px] md:h-[300px] pt-4 px-1 md:px-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={inscriptionData}>
-                <defs>
-                  <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Area type="monotone" dataKey="students" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorStudents)" />
-              </AreaChart>
-            </ResponsiveContainer>
+              <AdminEnrollmentChart data={inscriptionData} />
           </CardContent>
         </Card>
 
@@ -169,19 +144,7 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
              </div>
           </CardHeader>
           <CardContent className="h-[250px] md:h-[300px] pt-4 px-1 md:px-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={displayFinanceData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{fill: '#f1f5f9'}}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="revenue" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={24} />
-                <Bar dataKey="target" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
+              <AdminFinanceChart data={displayFinanceData} />
           </CardContent>
         </Card>
       </div>
@@ -194,24 +157,7 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
                <CardDescription className="text-xs">Par cycle d&apos;enseignement</CardDescription>
             </CardHeader>
             <CardContent className="h-[250px]">
-               <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                     <Pie
-                        data={classData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                     >
-                        {classData.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                     </Pie>
-                     <Tooltip />
-                  </PieChart>
-               </ResponsiveContainer>
+               <AdminClassPieChart data={classData} />
                <div className="flex justify-center gap-4 mt-2">
                   {classData.map((item, i) => (
                      <div key={i} className="flex items-center gap-1.5">
@@ -224,7 +170,7 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
          </Card>
 
          {/* AI Insights Card (Enhanced) */}
-         <Card className="lg:col-span-2 border-none shadow-2xl bg-gradient-to-br from-primary to-indigo-700 text-white overflow-hidden group">
+         <Card className="lg:col-span-2 relative border-none shadow-2xl bg-gradient-to-br from-primary to-indigo-700 text-white overflow-hidden group">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-white/10 blur-3xl group-hover:scale-125 transition-transform duration-1000" />
             <CardHeader>
                <div className="flex items-center gap-2">

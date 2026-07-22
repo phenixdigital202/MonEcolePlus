@@ -104,16 +104,16 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
         subtitle="Vue calendrier, Génération IA et Drag & Drop pour une gestion simplifiée"
       />
       
-      <main className="p-6">
-        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-start lg:items-center justify-between">
-          <div className="flex items-center gap-4">
+      <main className="p-4 md:p-6">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-3">
             {userRole === "teacher" ? (
               <div className="text-sm font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
                 Mon Emploi du Temps
               </div>
             ) : (
               <Select value={selectedClassId} onValueChange={setSelectedClassId} disabled={isReadOnly}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Choisir une classe" />
                 </SelectTrigger>
                 <SelectContent>
@@ -124,33 +124,33 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
               </Select>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
               <Button variant="outline" size="icon" onClick={() => navigateWeek('prev')}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium text-foreground min-w-[200px] text-center">
+              <span className="text-xs sm:text-sm font-medium text-foreground flex-1 text-center sm:min-w-[200px]">
                 {weekRange}
               </span>
               <Button variant="outline" size="icon" onClick={() => navigateWeek('next')}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-          </div>
 
-          {!isReadOnly && (
-            <div className="flex gap-2">
-              <Link href="/dashboard/schedule/ai">
-                <Button variant="outline">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Génération IA
+            {!isReadOnly && (
+              <div className="flex gap-2 flex-wrap">
+                <Link href="/dashboard/schedule/ai">
+                  <Button variant="outline" size="sm" className="md:size-default">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Génération </span>IA
+                  </Button>
+                </Link>
+                <Button size="sm" className="md:size-default" onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Ajouter </span>Cours
                 </Button>
-              </Link>
-              <Button onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter cours
-              </Button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         <Card>

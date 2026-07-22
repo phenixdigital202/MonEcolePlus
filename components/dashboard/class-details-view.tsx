@@ -93,9 +93,9 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
         </div>
       </DashboardHeader>
 
-      <main className="p-6 space-y-6">
+      <main className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Overview Stats */}
-        <div className="grid gap-4 md:grid-cols-4 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 animate-in fade-in slide-in-from-top-4 duration-500">
           {[
             { label: "Effectif", val: `${classe._count.inscriptions} élèves`, icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
             { label: "Moyenne Classe", val: classe.classAverage === "N/A" ? "N/A" : `${classe.classAverage}/20`, icon: GraduationCap, color: "text-emerald-500", bg: "bg-emerald-50" },

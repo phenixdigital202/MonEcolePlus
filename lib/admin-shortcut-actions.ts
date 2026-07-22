@@ -14,23 +14,26 @@ export async function addStudentAction(formData: any) {
     const prisma = await getPrismaClient()
     const { nom, email, password, id_classe } = formData
     
-    // 1. Create User (Standard Prisma usually works for known tables, but using Raw SQL for consistency on this system)
     const hashedPassword = await bcrypt.hash(password, 10)
     
-    await prisma.$executeRawUnsafe(
-        `INSERT INTO users (nom, email, password, role, created_at) VALUES (?, ?, ?, 'student', NOW())`,
-        nom, email, hashedPassword
-    )
+    const newUser = await prisma.user.create({
+      data: {
+        nom,
+        email,
+        password: hashedPassword,
+        role: 'student',
+        created_at: new Date()
+      }
+    })
 
-    // Get the newly created user ID
-    const user: any = await prisma.$queryRawUnsafe(`SELECT id FROM users WHERE email = ?`, email)
-    const userId = user[0]?.id
-
-    if (userId && id_classe) {
-      await prisma.$executeRawUnsafe(
-          `INSERT INTO inscriptions (id_eleve, id_classe, annee_scolaire) VALUES (?, ?, '2023-2024')`,
-          userId, parseInt(id_classe)
-      )
+    if (newUser.id && id_classe) {
+      await prisma.inscription.create({
+        data: {
+          id_eleve: newUser.id,
+          id_classe: parseInt(id_classe),
+          annee_scolaire: '2023-2024'
+        }
+      })
     }
 
     revalidatePath("/dashboard")
@@ -48,10 +51,15 @@ export async function issueInvoiceAction(formData: any) {
     const prisma = await getPrismaClient()
     const { id_utilisateur, montant, type } = formData
     
-    await prisma.$executeRawUnsafe(
-        `INSERT INTO paiements (id_utilisateur, montant, type, status, date_paiement) VALUES (?, ?, ?, 'en_attente', NOW())`,
-        parseInt(id_utilisateur), parseFloat(montant), type
-    )
+    await prisma.paiement.create({
+      data: {
+        id_utilisateur: parseInt(id_utilisateur),
+        montant: parseFloat(montant),
+        type: type,
+        status: 'en_attente',
+        date_paiement: new Date()
+      }
+    })
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/admin/students")
@@ -68,14 +76,22 @@ export async function scheduleClassAction(formData: any) {
     const prisma = await getPrismaClient()
     const { id_classe, id_enseignant, matiere, jour, heure_debut, heure_fin, salle } = formData
     
-    // Formatting times for MySQL
-    const hStart = `${heure_debut}:00`
-    const hEnd = `${heure_fin}:00`
+    // Create Date objects for times (Prisma DateTime requires full ISO strings, but since only time is used, we can use a dummy date)
+    const today = new Date().toISOString().split('T')[0]
+    const startDateTime = new Date(`${today}T${heure_debut}:00Z`)
+    const endDateTime = new Date(`${today}T${heure_fin}:00Z`)
 
-    await prisma.$executeRawUnsafe(
-        `INSERT INTO emploisDuTemps (id_classe, id_enseignant, matiere, jour, heure_debut, heure_fin, salle) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        parseInt(id_classe), parseInt(id_enseignant), matiere, jour, hStart, hEnd, salle || "N/A"
-    )
+    await prisma.emploiDuTemps.create({
+      data: {
+        id_classe: parseInt(id_classe),
+        id_enseignant: parseInt(id_enseignant),
+        matiere: matiere,
+        jour: jour,
+        heure_debut: startDateTime,
+        heure_fin: endDateTime,
+        salle: salle || "N/A"
+      }
+    })
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/admin/students")
@@ -92,10 +108,15 @@ export async function broadcastAnnouncementAction(formData: any) {
     const prisma = await getPrismaClient()
     const { titre, message, cible, id_auteur } = formData
     
-    await prisma.$executeRawUnsafe(
-        `INSERT INTO annonces (titre, message, cible, id_auteur, date_creation) VALUES (?, ?, ?, ?, NOW())`,
-        titre, message, cible, parseInt(id_auteur)
-    )
+    await prisma.annonce.create({
+      data: {
+        titre,
+        message,
+        cible,
+        id_auteur: parseInt(id_auteur),
+        date_creation: new Date()
+      }
+    })
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/admin/students")
