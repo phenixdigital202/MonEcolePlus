@@ -112,12 +112,18 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
 
   // Process student averages
   const enrichedInscriptions = classe.inscriptions.map(ins => {
-    const grades = ins.user.notes.map(n => Number(n.valeur))
+    const studentUser = ins.user
+    const grades = studentUser?.notes ? studentUser.notes.map(n => Number(n.valeur)) : []
     const avg = grades.length > 0 
       ? (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1)
       : "N/A"
     
-    return { ...ins, average: avg }
+    return { 
+      ...ins, 
+      user: studentUser,
+      eleve: studentUser || { id: ins.id_eleve, nom: "Élève Inconnu", email: "" },
+      average: avg 
+    }
   })
 
   // Calculate class average

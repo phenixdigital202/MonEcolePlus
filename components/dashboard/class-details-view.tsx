@@ -137,63 +137,66 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {classe.inscriptions.map((ins: any) => (
-                      <tr key={ins.eleve.id} className="group hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100">
-                              <AvatarFallback className="bg-primary/5 text-primary text-xs font-black">
-                                {ins.eleve.nom.split(" ").map((n: string) => n[0]).join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-bold text-slate-800 text-sm">{ins.eleve.nom}</p>
-                              <p className="text-xs text-slate-400 font-medium">{ins.eleve.email}</p>
+                    {classe.inscriptions.map((ins: any) => {
+                      const student = ins.eleve || ins.user || { id: ins.id_eleve, nom: "Élève Inconnu", email: "" }
+                      return (
+                        <tr key={student.id} className="group hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100">
+                                <AvatarFallback className="bg-primary/5 text-primary text-xs font-black">
+                                  {student.nom ? student.nom.split(" ").map((n: string) => n[0]).join("") : "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-bold text-slate-800 text-sm">{student.nom}</p>
+                                <p className="text-xs text-slate-400 font-medium">{student.email}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-sm font-bold text-slate-700">{ins.average}{ins.average !== "N/A" && "/20"}</span>
-                        </td>
-                        <td className="p-4">
-                          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 rounded-full text-[10px]" variant="secondary">ACTIF</Badge>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            <Link href={`/dashboard/messages?to=${ins.eleve.id}`}>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
-                                    <Mail className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                            
-                            {userRole === "admin" && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                    <MoreHorizontal className="h-4 w-4" />
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm font-bold text-slate-700">{ins.average}{ins.average !== "N/A" && "/20"}</span>
+                          </td>
+                          <td className="p-4">
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 rounded-full text-[10px]" variant="secondary">ACTIF</Badge>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-1">
+                              <Link href={`/dashboard/messages?to=${student.id}`}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
+                                      <Mail className="h-4 w-4" />
                                   </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-xl border-slate-100">
-                                  <DropdownMenuLabel>Gestion Éleve</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer gap-2">
-                                    <Users className="h-4 w-4" /> Profil complet
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10"
-                                    onClick={() => unenrollStudent(ins.eleve.id)}
-                                    disabled={loadingAction === `unenroll-${ins.eleve.id}`}
-                                  >
-                                    {loadingAction === `unenroll-${ins.eleve.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    Désinscrire
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              </Link>
+                              
+                              {userRole === "admin" && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="rounded-xl border-slate-100">
+                                    <DropdownMenuLabel>Gestion Éleve</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="cursor-pointer gap-2">
+                                      <Users className="h-4 w-4" /> Profil complet
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10"
+                                      onClick={() => unenrollStudent(student.id)}
+                                      disabled={loadingAction === `unenroll-${student.id}`}
+                                    >
+                                      {loadingAction === `unenroll-${student.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                      Désinscrire
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                     {classe.inscriptions.length === 0 && (
                       <tr>
                         <td colSpan={4} className="py-12 text-center text-slate-400 italic font-medium">

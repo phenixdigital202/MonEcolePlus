@@ -71,18 +71,19 @@ export async function deleteClass(id: number) {
 export async function enrollStudentAction(studentId: number, classId: number) {
   const prisma = await getPrisma()
   try {
-    // Check if duplicate (optional but safe)
-    const exists: any = await prisma.$queryRawUnsafe(
-        'SELECT id FROM inscriptions WHERE id_eleve = ? AND id_classe = ?',
-        studentId, classId
-    )
+    const existing = await prisma.inscription.findFirst({
+      where: { id_eleve: studentId, id_classe: classId }
+    })
     
-    if (exists.length > 0) return { success: false, error: "L'élève est déjà inscrit" }
+    if (existing) return { success: false, error: "L'élève est déjà inscrit" }
 
-    await prisma.$executeRawUnsafe(
-        'INSERT INTO inscriptions (id_eleve, id_classe, annee_scolaire) VALUES (?, ?, ?)',
-        studentId, classId, '2023-2024'
-    )
+    await prisma.inscription.create({
+      data: {
+        id_eleve: studentId,
+        id_classe: classId,
+        annee_scolaire: '2023-2024'
+      }
+    })
     
     revalidatePath(`/dashboard/classes/${classId}`)
     return { success: true }
@@ -95,10 +96,9 @@ export async function enrollStudentAction(studentId: number, classId: number) {
 export async function unenrollStudentAction(studentId: number, classId: number) {
   const prisma = await getPrisma()
   try {
-    await prisma.$executeRawUnsafe(
-        'DELETE FROM inscriptions WHERE id_eleve = ? AND id_classe = ?',
-        studentId, classId
-    )
+    await prisma.inscription.deleteMany({
+      where: { id_eleve: studentId, id_classe: classId }
+    })
     revalidatePath(`/dashboard/classes/${classId}`)
     return { success: true }
   } catch (error) {
@@ -109,15 +109,24 @@ export async function unenrollStudentAction(studentId: number, classId: number) 
 
 export async function getEligibleStudentsAction(classId: number) {
   const prisma = await getPrisma()
-    try {
-        // Find students NOT in this class
-        const students = await prisma.$queryRawUnsafe(`
-            SELECT id, nom, email FROM users 
-            WHERE role = 'student' 
-            AND id NOT IN (SELECT id_eleve FROM inscriptions WHERE id_classe = ?)
-        `, classId)
-        return { success: true, data: students }
-    } catch (e) {
-        return { success: false, error: "Erreur de chargement" }
-    }
+  try {
+    const enrolled = await prisma.inscription.findMany({
+      where: { id_classe: classId },
+      select: { id_eleve: true }
+    })
+    const enrolledIds = enrolled.map(e => e.id_eleve)
+
+    const students = await prisma.user.findMany({
+      where: {
+        role: 'student',
+        id: { notIn: enrolledIds.length > 0 ? enrolledIds : [-1] }
+      },
+      select: { id: true, nom: true, email: true },
+      orderBy: { nom: 'asc' }
+    })
+    return { success: true, data: students }
+  } catch (e) {
+    console.error("Error fetching eligible students:", e)
+    return { success: false, error: "Erreur de chargement" }
+  }
 }
