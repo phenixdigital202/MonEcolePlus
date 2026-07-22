@@ -33,6 +33,9 @@ model Absence {
   user         User           @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_eleve])
+  @@index([date_absence])
+  @@index([id_eleve, date_absence])
+  @@index([statut])
   @@map("absences")
 }
 
@@ -169,6 +172,7 @@ model Evaluation {
   notes     Note[]
 
   @@index([id_classe])
+  @@index([id_classe, date_eval])
   @@map("evaluations")
 }
 
@@ -182,6 +186,7 @@ model Inscription {
 
   @@index([id_classe])
   @@index([id_eleve])
+  @@index([annee_scolaire, id_classe])
   @@map("inscriptions")
 }
 
@@ -197,6 +202,8 @@ model Message {
 
   @@index([id_destinataire])
   @@index([id_expediteur])
+  @@index([id_destinataire, lu])
+  @@index([id_expediteur, id_destinataire])
   @@map("messages")
 }
 
@@ -211,6 +218,7 @@ model Note {
 
   @@index([id_eleve])
   @@index([id_evaluation])
+  @@index([id_eleve, id_evaluation])
   @@map("notes")
 }
 
