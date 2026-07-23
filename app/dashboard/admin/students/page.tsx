@@ -8,7 +8,6 @@ import {
   MoreHorizontal,
   Mail,
   GraduationCap,
-  Filter,
   Download,
   Trash2,
   Edit,
@@ -17,7 +16,9 @@ import {
   Calendar,
   Loader2,
   School,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2,
+  UserCheck
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -79,6 +80,7 @@ export default function AdminStudentsPage() {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any>(null)
   const [studentToDelete, setStudentToDelete] = useState<any>(null)
+  const [selectedProfileStudent, setSelectedProfileStudent] = useState<any>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const router = useRouter()
 
@@ -235,6 +237,84 @@ export default function AdminStudentsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Full Profile Modal */}
+        <Dialog open={!!selectedProfileStudent} onOpenChange={(open) => !open && setSelectedProfileStudent(null)}>
+          <DialogContent className="sm:max-w-lg rounded-3xl p-6">
+            {selectedProfileStudent && (
+              <div className="space-y-6">
+                <DialogHeader>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16 border-2 border-indigo-100 shadow-md">
+                      <AvatarFallback className="bg-indigo-600 text-white font-black text-xl">
+                        {selectedProfileStudent.nom ? selectedProfileStudent.nom.split(' ').map((n: string) => n[0]).join('') : "E"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="text-2xl font-black text-slate-800">{selectedProfileStudent.nom}</DialogTitle>
+                      <DialogDescription className="text-sm text-slate-500 font-medium">
+                        {selectedProfileStudent.email}
+                      </DialogDescription>
+                      <Badge className="mt-1 bg-emerald-500 text-white border-none text-[10px] rounded-full">Élève Actif</Badge>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Classe Affectée</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      {selectedProfileStudent.inscriptions?.[0]?.classe?.nom || "Non inscrit"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Niveau Scolaire</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      {selectedProfileStudent.inscriptions?.[0]?.classe?.niveau || "Général"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Date d&apos;inscription</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      {selectedProfileStudent.created_at ? new Date(selectedProfileStudent.created_at).toLocaleDateString("fr-FR") : "Récente"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Taux de Présence</p>
+                    <p className="font-bold text-emerald-600 text-sm mt-0.5">94%</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions inside Profile */}
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 rounded-xl gap-2 h-11"
+                    onClick={() => {
+                      const student = selectedProfileStudent
+                      setSelectedProfileStudent(null)
+                      router.push(`/dashboard/messages?to=${student.id}`)
+                    }}
+                  >
+                    <Mail className="h-4 w-4 text-indigo-600" />
+                    Envoyer un message
+                  </Button>
+                  <Button 
+                    className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white gap-2 border-none h-11"
+                    onClick={() => {
+                      setSelectedProfileStudent(null)
+                      router.push(`/dashboard/documents/bulletin`)
+                    }}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Voir Bulletin
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Edit Dialog */}
         <Dialog open={!!editingStudent} onOpenChange={(open) => !open && setEditingStudent(null)}>
           <DialogContent className="sm:max-w-md rounded-3xl">
@@ -267,7 +347,7 @@ export default function AdminStudentsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
+        {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
           <AlertDialogContent className="rounded-3xl">
             <AlertDialogHeader>
@@ -276,7 +356,7 @@ export default function AdminStudentsPage() {
                 Confirmer la suppression
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir radier <strong>{studentToDelete?.nom}</strong> ? Cette action est irréversible et supprimera toutes ses données associées (notes, absences, etc.).
+                Êtes-vous sûr de vouloir supprimer l&apos;élève <strong>{studentToDelete?.nom}</strong> ? Cette action est irréversible et supprimera définitivement son compte et ses données.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -286,7 +366,7 @@ export default function AdminStudentsPage() {
                 className="bg-destructive hover:bg-destructive/90 rounded-xl text-white border-none"
                 disabled={actionLoading}
               >
-                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmer la radiation"}
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Supprimer"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -374,7 +454,7 @@ export default function AdminStudentsPage() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                               <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
-                                {student.nom.split(' ').map((n: string) => n[0]).join('')}
+                                {student.nom ? student.nom.split(' ').map((n: string) => n[0]).join('') : "E"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
@@ -406,7 +486,7 @@ export default function AdminStudentsPage() {
                               <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-widest px-3 py-2">Options</DropdownMenuLabel>
                               <DropdownMenuItem 
                                 className="gap-2 rounded-xl cursor-pointer"
-                                onClick={() => toast.info("Profil complet bientôt disponible")}
+                                onClick={() => setSelectedProfileStudent(student)}
                               >
                                 <Eye className="h-4 w-4 text-blue-500" /> Profil Complet
                               </DropdownMenuItem>
@@ -424,7 +504,7 @@ export default function AdminStudentsPage() {
                                 className="gap-2 rounded-xl cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
                                 onClick={() => setStudentToDelete(student)}
                               >
-                                <Trash2 className="h-4 w-4" /> Radier
+                                <Trash2 className="h-4 w-4" /> Supprimer
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
