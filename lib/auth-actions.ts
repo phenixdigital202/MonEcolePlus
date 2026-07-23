@@ -198,6 +198,13 @@ export async function loginUser(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
     })
+
+    cookieStore.set("user_role", user.role, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    })
     
     if (user.id_ecole) {
       cookieStore.set("school_id", user.id_ecole.toString(), {
@@ -220,6 +227,7 @@ export async function loginUser(formData: FormData) {
 export async function logoutUser() {
   const cookieStore = await cookies()
   cookieStore.delete("user_id")
+  cookieStore.delete("user_role")
   cookieStore.delete("school_id")
   redirect("/login")
 }

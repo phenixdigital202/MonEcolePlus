@@ -1,151 +1,137 @@
-"use client"
-
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { 
   Users, 
   GraduationCap, 
   School, 
-  Settings, 
-  Bell, 
-  PieChart as PieChartIcon,
-  TrendingUp,
-  ShieldCheck,
-  FileText,
-  CreditCard
+  TrendingUp, 
+  ShieldCheck, 
+  FileText, 
+  CreditCard,
+  Bell,
+  Clock,
+  BookOpen
 } from "lucide-react"
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  CartesianGrid
-} from "recharts"
+import { getPrisma } from "@/lib/tenant-context"
+import { cookies } from "next/headers"
 
-const schoolStats = [
-  { label: "Total Éleves", value: "1,240", icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { label: "Enseignants", value: "85", icon: GraduationCap, color: "text-purple-500", bg: "bg-purple-500/10" },
-  { label: "Classes", value: "48", icon: School, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { label: "Taux de présence", value: "92%", icon: TrendingUp, color: "text-green-500", bg: "bg-green-500/10" },
-]
+export default async function AdminDashboardPage() {
+  const prisma = await getPrisma()
 
-const financialData = [
-  { month: "Jan", revenue: 45000 },
-  { month: "Feb", revenue: 52000 },
-  { month: "Mar", revenue: 48000 },
-  { month: "Apr", revenue: 61000 },
-  { month: "May", revenue: 55000 },
-  { month: "Jun", revenue: 67000 },
-]
+  // Real Database Statistics
+  const [studentCount, teacherCount, classCount, totalAbsences, totalRevenueResult, recentUsers] = await Promise.all([
+    prisma.user.count({ where: { role: 'student' } }),
+    prisma.user.count({ where: { role: 'teacher' } }),
+    prisma.class.count(),
+    prisma.absence.count(),
+    prisma.paiement.aggregate({
+      _sum: { montant: true },
+      where: { status: 'paye' }
+    }),
+    prisma.user.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 5,
+      select: { id: true, nom: true, role: true, created_at: true }
+    })
+  ])
 
-export default function AdminDashboardPage() {
+  const totalRevenue = Number(totalRevenueResult._sum.montant || 0)
+  const presenceRate = studentCount > 0 
+    ? Math.min(100, Math.max(0, Math.round(100 - (totalAbsences / (studentCount * 5)) * 100))) 
+    : 100
+
+  const schoolStats = [
+    { label: "Total Éleves", value: studentCount.toString(), icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Enseignants", value: teacherCount.toString(), icon: GraduationCap, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { label: "Classes Active", value: classCount.toString(), icon: School, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+    { label: "Taux de présence", value: `${presenceRate}%`, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  ]
+
   return (
-    <div className="flex-1 overflow-y-auto min-w-0">
+    <div className="flex-1 overflow-y-auto min-w-0 p-4 md:p-8 space-y-6">
       <DashboardHeader 
         title="Tableau de Bord Administrateur" 
-        subtitle="Vue d'ensemble de votre établissement"
+        subtitle="Vue d'ensemble en temps réel de votre établissement scolaire"
       />
       
-      <main className="p-4 md:p-8 space-y-4 md:space-y-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {schoolStats.map((stat) => (
-            <Card key={stat.label} className="border-none shadow-sm bg-card/50 backdrop-blur-md">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                  </div>
-                  <div className={`p-3 rounded-xl ${stat.bg}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {schoolStats.map((stat) => (
+          <Card key={stat.label} className="border-slate-200 shadow-sm bg-white rounded-3xl">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{stat.label}</p>
+                  <h3 className="text-3xl font-black text-slate-900 mt-1">{stat.value}</h3>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
-          {/* Revenue Chart */}
-          <Card className="md:col-span-4 border-none shadow-sm bg-card/50 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-lg">Revenus Mensuels</CardTitle>
-              <CardDescription>Aperçu des paiements de scolarité</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financialData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="month" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                      tickFormatter={(value) => `${value / 1000}k`}
-                    />
-                    <Tooltip 
-                      cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          return (
-                            <div className="bg-background border border-border p-2 rounded-lg shadow-lg">
-                              <p className="font-bold text-sm text-foreground">{`${payload[0].value} €`}</p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar 
-                      dataKey="revenue" 
-                      fill="hsl(var(--primary))" 
-                      radius={[6, 6, 0, 0]}
-                      barSize={40}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className={`p-3.5 rounded-2xl ${stat.bg}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
+        ))}
+      </div>
 
-          {/* Recent Notifications / Tasks */}
-          <Card className="md:col-span-3 border-none shadow-sm bg-card/50 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-lg">Actions Requises</CardTitle>
-              <CardDescription>Tâches administratives en attente</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { title: "Préparer bulletins T3", time: "2 jours restants", icon: FileText, color: "text-amber-500" },
-                { title: "Validation inscriptions", time: "15 dossiers", icon: ShieldCheck, color: "text-blue-500" },
-                { title: "Point facturation", time: "À faire aujourd'hui", icon: CreditCard, color: "text-emerald-500" },
-                { title: "Config. nouvelle année", time: "Optionnel", icon: Settings, color: "text-slate-500" },
-              ].map((task, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className={`p-2 rounded-lg bg-background shadow-sm border border-border`}>
-                    <task.icon className={`h-4 w-4 ${task.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title}</p>
-                    <p className="text-xs text-muted-foreground">{task.time}</p>
-                  </div>
-                  <Bell className="h-4 w-4 text-muted-foreground/30" />
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        {/* Financial Summary Box */}
+        <Card className="lg:col-span-4 border-slate-200 shadow-sm bg-white rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Encaissements & Trésorerie</CardTitle>
+            <CardDescription>Paiements réels comptabilisés dans Supabase</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Encaissé (Comptabilité)</p>
+                <h2 className="text-3xl font-black text-emerald-600 mt-1">
+                  {totalRevenue.toLocaleString("fr-FR")} FCFA
+                </h2>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <p className="text-xs text-slate-500 font-semibold">Taux de présence globale</p>
+                <p className="text-xl font-bold text-primary mt-1">{presenceRate}%</p>
+              </div>
+              <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10">
+                <p className="text-xs text-slate-500 font-semibold">Absences comptabilisées</p>
+                <p className="text-xl font-bold text-purple-600 mt-1">{totalAbsences} journées</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Registered Users */}
+        <Card className="lg:col-span-3 border-slate-200 shadow-sm bg-white rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Activité Récente</CardTitle>
+            <CardDescription>Derniers utilisateurs enregistrés en base</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentUsers.map((u) => (
+              <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">
+                  {u.nom ? u.nom.substring(0, 2).toUpperCase() : "U"}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{u.nom}</p>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase">
+                    {u.role === 'teacher' ? 'Professeur' : u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : 'Admin'}
+                  </p>
+                </div>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

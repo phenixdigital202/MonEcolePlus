@@ -38,6 +38,7 @@ const navigationConfig = {
     { name: "Élèves", href: "/dashboard/admin/students", icon: GraduationCap },
     { name: "Enseignants", href: "/dashboard/admin/teachers", icon: BookOpen },
     { name: "Parents", href: "/dashboard/admin/parents", icon: UserCheck },
+    { name: "Paiements", href: "/dashboard/admin/payments", icon: CreditCard },
     { 
       name: "Emplois du temps", 
       icon: Calendar,
