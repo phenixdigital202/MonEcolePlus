@@ -5,11 +5,19 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 
 export async function saveGrades(evaluationId: number, grades: { studentId: number, value: number, comment?: string }[]) {
-  const prisma = await getPrisma()
   try {
-    const studentIds = grades.map(g => g.studentId)
+    const prisma = await getPrisma()
+
+    // Validate grades: must be numbers between 0 and 20
+    const validGrades = grades.filter(g => typeof g.value === 'number' && !isNaN(g.value) && g.value >= 0 && g.value <= 20)
     
-    // Using transaction for reliability
+    if (validGrades.length === 0) {
+      return { success: false, error: "Aucune note valide (entre 0 et 20) à enregistrer." }
+    }
+
+    const studentIds = validGrades.map(g => g.studentId)
+    
+    // Execute atomic transaction to replace/insert notes safely
     await prisma.$transaction([
       prisma.note.deleteMany({
         where: {
@@ -18,20 +26,59 @@ export async function saveGrades(evaluationId: number, grades: { studentId: numb
         }
       }),
       prisma.note.createMany({
-        data: grades.map(g => ({
+        data: validGrades.map(g => ({
           id_evaluation: evaluationId,
           id_eleve: g.studentId,
-          valeur: g.value.toString(), // Prisma Decimal fields often prefer strings or explicit Decimals
-          commentaire: g.comment
+          valeur: g.value.toString(),
+          commentaire: g.comment || null
         }))
       })
     ])
 
     revalidatePath("/dashboard/grades")
+    revalidatePath("/dashboard/grades/list")
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error saving grades:", error)
-    return { success: false, error: "Erreur lors de la sauvegarde" }
+    return { success: false, error: error?.message || "Erreur lors de la sauvegarde des notes" }
+  }
+}
+
+export async function deleteGradeAction(noteId: number) {
+  try {
+    const prisma = await getPrisma()
+    await prisma.note.delete({
+      where: { id: noteId }
+    })
+    revalidatePath("/dashboard/grades")
+    revalidatePath("/dashboard/grades/list")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error deleting grade:", error)
+    return { success: false, error: "Erreur lors de la suppression de la note" }
+  }
+}
+
+export async function updateGradeAction(noteId: number, value: number, comment?: string) {
+  try {
+    if (isNaN(value) || value < 0 || value > 20) {
+      return { success: false, error: "La note doit être comprise entre 0 et 20." }
+    }
+
+    const prisma = await getPrisma()
+    await prisma.note.update({
+      where: { id: noteId },
+      data: {
+        valeur: value.toString(),
+        commentaire: comment !== undefined ? comment : undefined
+      }
+    })
+    revalidatePath("/dashboard/grades")
+    revalidatePath("/dashboard/grades/list")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error updating grade:", error)
+    return { success: false, error: "Erreur lors de la mise à jour de la note" }
   }
 }
 
@@ -43,6 +90,13 @@ export async function createEvaluationAction(data: {
   periode?: string 
 }) {
   try {
+    if (!data.id_classe) {
+      return { success: false, error: "Veuillez sélectionner une classe." }
+    }
+    if (!data.matiere) {
+      return { success: false, error: "Veuillez spécifier une matière." }
+    }
+
     const prisma = await getPrisma()
     const evaluation = await prisma.evaluation.create({
       data: {
@@ -51,13 +105,20 @@ export async function createEvaluationAction(data: {
         date_eval: new Date(data.date_eval),
         type_eval: data.type_eval || 'devoir',
         periode: data.periode || 'Trimestre 1'
+      },
+      include: {
+        classe: true,
+        _count: {
+          select: { notes: true }
+        }
       }
     })
     revalidatePath("/dashboard/grades")
+    revalidatePath("/dashboard/grades/evaluations")
     return { success: true, evaluation }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating evaluation:", error)
-    return { success: false, error: "Erreur lors de la création de l'évaluation" }
+    return { success: false, error: error?.message || "Erreur lors de la création de l'évaluation" }
   }
 }
 
@@ -76,12 +137,18 @@ export async function updateEvaluationAction(id: number, data: {
         date_eval: new Date(data.date_eval),
         type_eval: data.type_eval || 'devoir',
         periode: data.periode || 'Trimestre 1'
+      },
+      include: {
+        classe: true,
+        _count: {
+          select: { notes: true }
+        }
       }
     })
     revalidatePath("/dashboard/grades")
     revalidatePath("/dashboard/grades/evaluations")
     return { success: true, evaluation }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating evaluation:", error)
     return { success: false, error: "Erreur lors de la modification de l'évaluation" }
   }
@@ -91,7 +158,7 @@ export async function deleteEvaluationAction(id: number) {
   try {
     const prisma = await getPrisma()
     
-    // Check if there are notes associated
+    // Check if notes exist
     const notesCount = await prisma.note.count({
       where: { id_evaluation: id }
     })
@@ -107,7 +174,7 @@ export async function deleteEvaluationAction(id: number) {
     revalidatePath("/dashboard/grades")
     revalidatePath("/dashboard/grades/evaluations")
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting evaluation:", error)
     return { success: false, error: "Erreur lors de la suppression de l'évaluation" }
   }
@@ -131,7 +198,6 @@ export async function getEvaluationsByClass(classId: number) {
   }
 
   if (user.role === 'teacher') {
-    // Get all distinct subjects taught by this teacher
     const dbSubjects = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
       select: { matiere: true },

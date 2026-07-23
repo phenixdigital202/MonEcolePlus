@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
+import { getPrisma } from "@/lib/tenant-context"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,24 +11,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const prisma = await getPrisma()
     const id = parseInt(classId)
     
-    // Fetch all students in the class
+    // Fetch all students in the class with their notes for this evaluation period
     const inscriptions = await prisma.inscription.findMany({
       where: { id_classe: id },
-      include: { user: {
-        include: {
-          notes: {
-            where: {
-              evaluation: {
-                id_classe: id,
-                // In a real app, we would filter by date/semester
-                // periode: semester 
+      include: {
+        user: {
+          include: {
+            notes: {
+              where: {
+                evaluation: {
+                  id_classe: id
+                }
+              },
+              include: {
+                evaluation: true
               }
             }
           }
         }
-      } }
+      }
     })
 
     const studentsData = inscriptions.map(i => {
@@ -41,7 +45,14 @@ export async function GET(request: NextRequest) {
       return {
         id: student.id,
         name: student.nom,
-        avg: avg
+        email: student.email,
+        avg: avg,
+        notesCount: notes.length,
+        notes: notes.map(n => ({
+          matiere: n.evaluation.matiere,
+          valeur: Number(n.valeur),
+          type: n.evaluation.type_eval
+        }))
       }
     })
 

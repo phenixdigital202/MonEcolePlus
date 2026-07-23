@@ -53,7 +53,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
     setIsDeleting(true)
     const res = await deleteEvaluationAction(currentEvaluation.id)
     if (res.success) {
-      toast.success("Évaluation supprimée")
+      toast.success("Évaluation supprimée avec succès")
       setEvaluations(prev => prev.filter(e => e.id !== currentEvaluation.id))
       setIsDeleteAlertOpen(false)
     } else {
@@ -97,7 +97,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
             <Card className="bg-emerald-500/5 border-emerald-500/10">
                 <CardContent className="p-4">
                     <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Notes Saisies</p>
-                    <p className="text-2xl font-black text-slate-800">{evaluations.reduce((acc, curr) => acc + curr._count.notes, 0)}</p>
+                    <p className="text-2xl font-black text-slate-800">{evaluations.reduce((acc, curr) => acc + (curr._count?.notes || 0), 0)}</p>
                 </CardContent>
             </Card>
         </div>
@@ -136,13 +136,13 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
                       </td>
                       <td className="p-4">
                         <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-bold">
-                            {ev.classes.nom}
+                            {ev.classe?.nom || ev.classes?.nom || "Non assignée"}
                         </Badge>
                       </td>
                       <td className="p-4 text-center">
                         <Badge 
                             className={cn(
-                                "rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-tighter",
+                                "rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-tighter border-none text-white",
                                 ev.type_eval === 'examen' ? "bg-amber-500 hover:bg-amber-600" : 
                                 ev.type_eval === 'controle' ? "bg-blue-500 hover:bg-blue-600" : 
                                 "bg-slate-500 hover:bg-slate-600"
@@ -153,9 +153,9 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs font-bold text-slate-700">{ev._count.notes} notes</span>
+                            <span className="text-xs font-bold text-slate-700">{ev._count?.notes || 0} notes</span>
                             <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: ev._count.notes > 0 ? '100%' : '0%' }} />
+                                <div className="h-full bg-primary" style={{ width: (ev._count?.notes || 0) > 0 ? '100%' : '0%' }} />
                             </div>
                         </div>
                       </td>
@@ -223,8 +223,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
       <CreateEvaluationModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        classId={classes[0]?.id || 0}
-        className={classes[0]?.nom || ""}
+        classes={classes}
         subjects={subjects}
         onSuccess={(ev) => {
           setEvaluations(prev => [ev, ...prev])
@@ -248,7 +247,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Cela supprimera définitivement l'évaluation
+              Cette action est irréversible. Cela supprimera définitivement l&apos;évaluation
               et toutes les données associées. Notez que vous ne pouvez pas supprimer une évaluation si des notes y sont déjà rattachées.
             </AlertDialogDescription>
           </AlertDialogHeader>
