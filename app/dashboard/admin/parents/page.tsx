@@ -17,7 +17,9 @@ import {
   Phone,
   Link as LinkIcon,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  X,
+  UserPlus
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -42,6 +44,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -61,31 +70,45 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
-import { getParentsAction, addUserAction, deleteUserAction, updateUserAction } from "@/lib/admin-shortcut-actions"
+import { 
+  getParentsAction, 
+  getStudentsAction, 
+  addUserAction, 
+  deleteUserAction, 
+  updateUserAction,
+  linkParentStudentAction,
+  unlinkParentStudentAction
+} from "@/lib/admin-shortcut-actions"
 import { toast } from "sonner"
 
 export default function AdminParentsPage() {
   const [parents, setParents] = useState<any[]>([])
+  const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddParentOpen, setIsAddParentOpen] = useState(false)
   const [editingParent, setEditingParent] = useState<any>(null)
   const [parentToDelete, setParentToDelete] = useState<any>(null)
   const [selectedProfileParent, setSelectedProfileParent] = useState<any>(null)
+  const [linkingParent, setLinkingParent] = useState<any>(null)
+  const [selectedStudentToLink, setSelectedStudentToLink] = useState<string>("")
   const [actionLoading, setActionLoading] = useState(false)
   const router = useRouter()
 
-  const fetchParents = async () => {
+  const fetchParentsAndStudents = async () => {
     setLoading(true)
-    const res = await getParentsAction()
-    if (res.success) {
-      setParents(res.data || [])
-    }
+    const [parentsRes, studentsRes] = await Promise.all([
+      getParentsAction(),
+      getStudentsAction()
+    ])
+    
+    if (parentsRes.success) setParents(parentsRes.data || [])
+    if (studentsRes.success) setStudents(studentsRes.data || [])
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchParents()
+    fetchParentsAndStudents()
   }, [])
 
   const handleAddParent = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -98,7 +121,7 @@ export default function AdminParentsPage() {
     if (res.success) {
       toast.success("Parent ajouté avec succès")
       setIsAddParentOpen(false)
-      fetchParents()
+      fetchParentsAndStudents()
     } else {
       toast.error(res.error || "Erreur lors de l'ajout")
     }
@@ -116,7 +139,7 @@ export default function AdminParentsPage() {
     if (res.success) {
       toast.success("Parent mis à jour")
       setEditingParent(null)
-      fetchParents()
+      fetchParentsAndStudents()
     } else {
       toast.error(res.error || "Erreur lors de la mise à jour")
     }
@@ -130,9 +153,41 @@ export default function AdminParentsPage() {
     if (res.success) {
       toast.success("Parent supprimé avec succès")
       setParentToDelete(null)
-      fetchParents()
+      fetchParentsAndStudents()
     } else {
       toast.error(res.error || "Erreur lors de la suppression")
+    }
+    setActionLoading(false)
+  }
+
+  const handleLinkStudent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkingParent || !selectedStudentToLink) {
+      toast.error("Veuillez sélectionner un élève")
+      return
+    }
+    setActionLoading(true)
+    const res = await linkParentStudentAction(linkingParent.id, parseInt(selectedStudentToLink))
+    if (res.success) {
+      toast.success("Élève rattaché au parent avec succès")
+      setLinkingParent(null)
+      setSelectedStudentToLink("")
+      fetchParentsAndStudents()
+    } else {
+      toast.error(res.error || "Erreur lors du raccordement")
+    }
+    setActionLoading(false)
+  }
+
+  const handleUnlinkStudent = async (linkId: number) => {
+    setActionLoading(true)
+    const res = await unlinkParentStudentAction(linkId)
+    if (res.success) {
+      toast.success("Raccordement supprimé")
+      setSelectedProfileParent(null)
+      fetchParentsAndStudents()
+    } else {
+      toast.error(res.error || "Erreur lors du détachement")
     }
     setActionLoading(false)
   }
@@ -189,7 +244,54 @@ export default function AdminParentsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Full Parent Profile Modal */}
+        {/* Link Student Modal */}
+        <Dialog open={!!linkingParent} onOpenChange={(open) => !open && setLinkingParent(null)}>
+          <DialogContent className="sm:max-w-md rounded-3xl p-6">
+            {linkingParent && (
+              <form onSubmit={handleLinkStudent} className="space-y-4">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-emerald-600" />
+                    Lier un Enfant à {linkingParent.nom}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Sélectionnez l&apos;élève à rattaché au compte de ce responsable légal.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3 py-2">
+                  <Label htmlFor="student-select">Sélectionner l&apos;Élève</Label>
+                  <Select value={selectedStudentToLink} onValueChange={setSelectedStudentToLink}>
+                    <SelectTrigger className="rounded-xl h-11">
+                      <SelectValue placeholder="Choisir un élève dans l'établissement..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl max-h-[250px]">
+                      {students.map(st => {
+                        const className = st.inscriptions?.[0]?.classe?.nom
+                        return (
+                          <SelectItem key={st.id} value={st.id.toString()} className="rounded-lg">
+                            {st.nom} {className ? `(${className})` : ''} - {st.email}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button type="button" variant="outline" onClick={() => setLinkingParent(null)} className="rounded-xl">
+                    Annuler
+                  </Button>
+                  <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl border-none" disabled={actionLoading}>
+                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lier cet élève"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Full Parent Profile & Children Tracking Modal */}
         <Dialog open={!!selectedProfileParent} onOpenChange={(open) => !open && setSelectedProfileParent(null)}>
           <DialogContent className="sm:max-w-lg rounded-3xl p-6">
             {selectedProfileParent && (
@@ -211,33 +313,62 @@ export default function AdminParentsPage() {
                   </div>
                 </DialogHeader>
 
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Enfants Associés</p>
-                    <p className="font-bold text-slate-800 text-sm mt-0.5">
-                      {(selectedProfileParent.parent_links || []).length} enfant(s)
-                    </p>
+                {/* Children List inside Profile */}
+                <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase font-bold text-slate-500 tracking-wider">Suivi des Enfants rattachés</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-xs text-emerald-600 font-bold h-7 hover:bg-emerald-50 rounded-lg gap-1"
+                      onClick={() => {
+                        const p = selectedProfileParent
+                        setSelectedProfileParent(null)
+                        setLinkingParent(p)
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Lier un enfant
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Statut du Compte</p>
-                    <p className="font-bold text-emerald-600 text-sm mt-0.5">Actif</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Élèves rattachés</p>
-                    <div className="flex flex-wrap gap-1">
-                      {(selectedProfileParent.parent_links || []).length > 0 ? (
-                        selectedProfileParent.parent_links.map((link: any, i: number) => (
-                          <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 rounded-full text-xs font-bold py-1 px-2.5">
-                            <GraduationCap className="h-3.5 w-3.5 mr-1" />
-                            {link.eleve.nom}
-                          </Badge>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">Aucun enfant actuellement rattaché.</p>
-                      )}
-                    </div>
-                  </div>
+
+                  {(() => {
+                    const links = selectedProfileParent.parentEleveAsParent || selectedProfileParent.parent_links || []
+                    if (links.length === 0) {
+                      return <p className="text-xs text-slate-400 italic py-2">Aucun enfant actuellement rattaché à ce compte parent.</p>
+                    }
+                    return (
+                      <div className="space-y-2">
+                        {links.map((link: any) => {
+                          const eleve = link.eleve
+                          const classeNom = eleve?.inscriptions?.[0]?.classe?.nom || "Non inscrit"
+                          return (
+                            <div key={link.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9 border border-slate-200">
+                                  <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-xs">
+                                    {eleve?.nom ? eleve.nom.split(' ').map((n: string) => n[0]).join('') : "E"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-bold text-xs text-slate-800">{eleve?.nom}</p>
+                                  <p className="text-[10px] text-slate-500">{classeNom} • {eleve?.email}</p>
+                                </div>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-slate-400 hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                onClick={() => handleUnlinkStudent(link.id)}
+                                title="Détacher cet enfant"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Quick Actions inside Profile */}
@@ -257,12 +388,13 @@ export default function AdminParentsPage() {
                   <Button 
                     className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-2 border-none h-11"
                     onClick={() => {
+                      const p = selectedProfileParent
                       setSelectedProfileParent(null)
-                      router.push(`/dashboard/admin/students`)
+                      setLinkingParent(p)
                     }}
                   >
-                    <Users className="h-4 w-4" />
-                    Gérer les Élèves
+                    <LinkIcon className="h-4 w-4" />
+                    Lier un enfant
                   </Button>
                 </div>
               </div>
@@ -396,64 +528,82 @@ export default function AdminParentsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredParents.map((parent) => (
-                    <TableRow key={parent.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                            <AvatarFallback className="bg-emerald-100 text-emerald-700 font-bold">
-                              {parent.nom ? parent.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-bold text-slate-800">{parent.nom}</p>
-                            <p className="text-xs text-slate-500">{parent.email}</p>
+                  filteredParents.map((parent) => {
+                    const links = parent.parentEleveAsParent || parent.parent_links || []
+                    return (
+                      <TableRow key={parent.id} className="group hover:bg-slate-50/50 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                              <AvatarFallback className="bg-emerald-100 text-emerald-700 font-bold">
+                                {parent.nom ? parent.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-bold text-slate-800">{parent.nom}</p>
+                              <p className="text-xs text-slate-500">{parent.email}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {(parent.parent_links || []).map((link: any, i: number) => (
-                            <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 rounded-full text-[10px] font-bold">
-                              <GraduationCap className="h-3 w-3 mr-1" />
-                              {link.eleve.nom}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-xs text-slate-500 font-medium">Récente</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100">
-                              <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {links.map((link: any, i: number) => (
+                              <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 rounded-full text-[10px] font-bold">
+                                <GraduationCap className="h-3 w-3 mr-1" />
+                                {link.eleve?.nom}
+                              </Badge>
+                            ))}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 rounded-full hover:bg-emerald-50 text-emerald-600"
+                              onClick={() => setLinkingParent(parent)}
+                              title="Lier un enfant"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[160px]">
-                            <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-widest px-3 py-2">Gestion</DropdownMenuLabel>
-                            <DropdownMenuItem 
-                              className="gap-2 rounded-xl cursor-pointer"
-                              onClick={() => setSelectedProfileParent(parent)}
-                            >
-                              <Eye className="h-4 w-4 text-blue-500" /> Voir Profil
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 rounded-xl cursor-pointer" onClick={() => setEditingParent(parent)}>
-                              <Edit className="h-4 w-4 text-amber-500" /> Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 rounded-xl cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
-                              onClick={() => setParentToDelete(parent)}
-                            >
-                              <Trash2 className="h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-xs text-slate-500 font-medium">Récente</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-100">
+                                <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[160px]">
+                              <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-widest px-3 py-2">Gestion</DropdownMenuLabel>
+                              <DropdownMenuItem 
+                                className="gap-2 rounded-xl cursor-pointer"
+                                onClick={() => setSelectedProfileParent(parent)}
+                              >
+                                <Eye className="h-4 w-4 text-blue-500" /> Suivi Enfants
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl cursor-pointer" onClick={() => setEditingParent(parent)}>
+                                <Edit className="h-4 w-4 text-amber-500" /> Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="gap-2 rounded-xl cursor-pointer"
+                                onClick={() => setLinkingParent(parent)}
+                              >
+                                <LinkIcon className="h-4 w-4 text-indigo-500" /> Lier un Enfant
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 rounded-xl cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                onClick={() => setParentToDelete(parent)}
+                              >
+                                <Trash2 className="h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

@@ -3,14 +3,13 @@
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
+import { cookies } from "next/headers"
+import masterPrisma from "./prisma"
 
 // Helper to get prisma client
 async function getPrismaClient() {
   return await getPrisma()
 }
-
-import { cookies } from "next/headers"
-import masterPrisma from "./prisma"
 
 export async function addStudentAction(formData: any) {
   try {
@@ -18,7 +17,6 @@ export async function addStudentAction(formData: any) {
     const { nom, email, password, id_classe } = formData
     
     if (!nom || !email || !password) {
-      console.warn("[addStudentAction] Missing required fields")
       return { success: false, error: "Veuillez remplir tous les champs obligatoires (nom, email, mot de passe)." }
     }
 
@@ -28,16 +26,14 @@ export async function addStudentAction(formData: any) {
 
     const prisma = await getPrismaClient()
 
-    // 1. Check if user already exists in target DB
+    // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
-      console.warn("[addStudentAction] Email already exists:", email)
       return { success: false, error: "Un utilisateur avec cet email existe déjà." }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
     
-    console.log("[addStudentAction] Creating user in tenant DB with id_ecole:", parsedSchoolId)
     const newUser = await prisma.user.create({
       data: {
         nom,
@@ -48,7 +44,6 @@ export async function addStudentAction(formData: any) {
         created_at: new Date()
       }
     })
-    console.log("[addStudentAction] Created user ID:", newUser.id)
 
     // 2. Sync user to Master DB if multi-tenant schoolId exists
     if (parsedSchoolId) {
@@ -65,7 +60,6 @@ export async function addStudentAction(formData: any) {
               created_at: new Date()
             }
           })
-          console.log("[addStudentAction] Synced student to master DB")
         }
       } catch (masterErr) {
         console.error("[addStudentAction] Master DB sync error (non-fatal):", masterErr)
@@ -76,7 +70,6 @@ export async function addStudentAction(formData: any) {
     if (newUser.id && id_classe && id_classe !== "") {
       const classIdNum = parseInt(id_classe)
       if (!isNaN(classIdNum)) {
-        console.log("[addStudentAction] Creating inscription for class ID:", classIdNum)
         await prisma.inscription.create({
           data: {
             id_eleve: newUser.id,
@@ -84,7 +77,6 @@ export async function addStudentAction(formData: any) {
             annee_scolaire: '2023-2024'
           }
         })
-        console.log("[addStudentAction] Inscription created successfully")
       }
     }
 
@@ -93,112 +85,8 @@ export async function addStudentAction(formData: any) {
     revalidatePath("/dashboard/admin/teachers")
     return { success: true }
   } catch (error: any) {
-    console.error("[addStudentAction] FATAL ERROR:", {
-      message: error?.message,
-      code: error?.code,
-      meta: error?.meta,
-      stack: error?.stack
-    })
-    return { 
-      success: false, 
-      error: error?.message ? `Erreur: ${error.message}` : "Erreur lors de l'ajout de l'élève" 
-    }
-  }
-}
-
-export async function issueInvoiceAction(formData: any) {
-  try {
-    const prisma = await getPrismaClient()
-    const { id_utilisateur, montant, type } = formData
-    
-    await prisma.paiement.create({
-      data: {
-        id_utilisateur: parseInt(id_utilisateur),
-        montant: parseFloat(montant),
-        type: type,
-        status: 'en_attente',
-        date_paiement: new Date()
-      }
-    })
-
-    revalidatePath("/dashboard")
-    revalidatePath("/dashboard/admin/students")
-    revalidatePath("/dashboard/admin/teachers")
-    return { success: true }
-  } catch (error) {
-    console.error("Error issuing invoice:", error)
-    return { success: false, error: "Erreur lors de l'émission de la facture" }
-  }
-}
-
-export async function scheduleClassAction(formData: any) {
-  try {
-    const prisma = await getPrismaClient()
-    const { id_classe, id_enseignant, matiere, jour, heure_debut, heure_fin, salle } = formData
-    
-    // Create Date objects for times (Prisma DateTime requires full ISO strings, but since only time is used, we can use a dummy date)
-    const today = new Date().toISOString().split('T')[0]
-    const startDateTime = new Date(`${today}T${heure_debut}:00Z`)
-    const endDateTime = new Date(`${today}T${heure_fin}:00Z`)
-
-    await prisma.emploiDuTemps.create({
-      data: {
-        id_classe: parseInt(id_classe),
-        id_enseignant: parseInt(id_enseignant),
-        matiere: matiere,
-        jour: jour,
-        heure_debut: startDateTime,
-        heure_fin: endDateTime,
-        salle: salle || "N/A"
-      }
-    })
-
-    revalidatePath("/dashboard")
-    revalidatePath("/dashboard/admin/students")
-    revalidatePath("/dashboard/admin/teachers")
-    return { success: true }
-  } catch (error) {
-    console.error("Error scheduling class:", error)
-    return { success: false, error: "Erreur lors de la planification du cours" }
-  }
-}
-
-export async function broadcastAnnouncementAction(formData: any) {
-  try {
-    const prisma = await getPrismaClient()
-    const { titre, message, cible, id_auteur } = formData
-    
-    await prisma.annonce.create({
-      data: {
-        titre,
-        message,
-        cible,
-        id_auteur: parseInt(id_auteur),
-        date_creation: new Date()
-      }
-    })
-
-    revalidatePath("/dashboard")
-    revalidatePath("/dashboard/admin/students")
-    revalidatePath("/dashboard/admin/teachers")
-    return { success: true }
-  } catch (error) {
-    console.error("Error broadcasting announcement:", error)
-    return { success: false, error: "Erreur lors de la diffusion de l'annonce" }
-  }
-}
-
-export async function getShortcutMetaData() {
-  try {
-    const prisma = await getPrismaClient()
-    const [classes, teachers, students] = await Promise.all([
-      prisma.class.findMany({ select: { id: true, nom: true, niveau: true } }),
-      prisma.user.findMany({ where: { role: 'teacher' }, select: { id: true, nom: true } }),
-      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } })
-    ])
-    return { success: true, data: { classes, teachers, students } }
-  } catch (error) {
-    return { success: false, error: "Data fetch failed" }
+    console.error("[addStudentAction] FATAL ERROR:", error)
+    return { success: false, error: error?.message || "Erreur lors de l'ajout" }
   }
 }
 
@@ -223,7 +111,15 @@ export async function getParentsAction() {
       include: {
         parentEleveAsParent: {
           include: {
-            eleve: true
+            eleve: {
+              include: {
+                inscriptions: {
+                  include: {
+                    classe: true
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -277,6 +173,48 @@ export async function getStudentsAction() {
   } catch (error: any) {
     console.error("[getStudentsAction] Error:", error)
     return { success: false, error: error?.message || "Failed to fetch students" }
+  }
+}
+
+export async function linkParentStudentAction(parentId: number, studentId: number) {
+  try {
+    const prisma = await getPrismaClient()
+    
+    const existing = await prisma.parentEleve.findFirst({
+      where: { id_parent: parentId, id_eleve: studentId }
+    })
+
+    if (existing) {
+      return { success: false, error: "Cet élève est déjà rattaché à ce parent." }
+    }
+
+    await prisma.parentEleve.create({
+      data: {
+        id_parent: parentId,
+        id_eleve: studentId
+      }
+    })
+
+    revalidatePath("/dashboard/admin/parents")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[linkParentStudentAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors du raccordement" }
+  }
+}
+
+export async function unlinkParentStudentAction(linkId: number) {
+  try {
+    const prisma = await getPrismaClient()
+    await prisma.parentEleve.delete({
+      where: { id: linkId }
+    })
+
+    revalidatePath("/dashboard/admin/parents")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[unlinkParentStudentAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors du détachement" }
   }
 }
 
@@ -346,6 +284,71 @@ export async function updateUserAction(id: number, data: any) {
   }
 }
 
+export async function issueInvoiceAction(formData: any) {
+  try {
+    const { studentId, amount } = formData
+    const prisma = await getPrismaClient()
+    await prisma.paiement.create({
+      data: {
+        id_utilisateur: parseInt(studentId),
+        montant: parseFloat(amount),
+        status: 'en_attente',
+        type: 'scolarite',
+        date_paiement: new Date()
+      }
+    })
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[issueInvoiceAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors de l'émission de la facture" }
+  }
+}
+
+export async function scheduleClassAction(formData: any) {
+  try {
+    const { classId, teacherId, subject, day, startTime, endTime } = formData
+    const prisma = await getPrismaClient()
+    await prisma.emploiDuTemps.create({
+      data: {
+        id_classe: parseInt(classId),
+        id_enseignant: parseInt(teacherId),
+        matiere: subject,
+        jour: day,
+        heure_debut: startTime,
+        heure_fin: endTime
+      }
+    })
+    revalidatePath("/dashboard")
+    revalidatePath("/dashboard/schedule")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[scheduleClassAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors de la planification" }
+  }
+}
+
+export async function broadcastAnnouncementAction(formData: any) {
+  try {
+    const { title, message, target, authorId } = formData
+    const prisma = await getPrismaClient()
+    await prisma.annonce.create({
+      data: {
+        titre: title,
+        message: message,
+        cible: target || 'tous',
+        id_auteur: parseInt(authorId) || 1,
+        date_creation: new Date()
+      }
+    })
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[broadcastAnnouncementAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors de la diffusion" }
+  }
+}
+
 export async function getAnalyticsData() {
   try {
     const prisma = await getPrismaClient()
@@ -356,7 +359,6 @@ export async function getAnalyticsData() {
       prisma.user.count({ where: { role: 'student' } })
     ])
 
-    // Process subjects
     const subjectMap: any = {}
     subjects.forEach(n => {
       const mat = n.evaluation.matiere
@@ -369,14 +371,10 @@ export async function getAnalyticsData() {
       average: Number((subjectMap[mat].sum / subjectMap[mat].count).toFixed(2))
     }))
 
-    // Process absences by month
     const months = ["Sept", "Oct", "Nov", "Dec", "Jan", "Fév", "Mars", "Avril", "Mai", "Juin"]
     const absenceByMonth = months.map(m => ({ month: m, justified: 0, unjustified: 0 }))
     
     absenceStats.forEach(a => {
-      const monthIdx = new Date(a.date_absence).getMonth()
-      // Map JS month (0-11) to our academic months (assuming Sept is month 8)
-      // For simplicity, just use a generic mapping or actual dates
       const label = new Date(a.date_absence).toLocaleDateString('fr-FR', { month: 'short' })
       const found = absenceByMonth.find(am => am.month.toLowerCase().includes(label.toLowerCase().replace('.', '')))
       if (found) {
@@ -389,7 +387,7 @@ export async function getAnalyticsData() {
       success: true,
       data: {
         globalAverage: Number((avgGrade._avg.valeur || 0).toFixed(2)),
-        attendanceRate: 95, // Mock for now until we have total possible days
+        attendanceRate: 95,
         successRate: subjects.length > 0 ? Math.round((subjects.filter(n => Number(n.valeur) >= 10).length / subjects.length) * 100) : 0,
         subjectAverages,
         absenceData: absenceByMonth,
@@ -399,5 +397,19 @@ export async function getAnalyticsData() {
   } catch (error) {
     console.error(error)
     return { success: false, error: "Failed to fetch analytics" }
+  }
+}
+
+export async function getShortcutMetaData() {
+  try {
+    const prisma = await getPrismaClient()
+    const [classes, teachers, students] = await Promise.all([
+      prisma.class.findMany({ select: { id: true, nom: true, niveau: true } }),
+      prisma.user.findMany({ where: { role: 'teacher' }, select: { id: true, nom: true, matiere: true } }),
+      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } })
+    ])
+    return { success: true, data: { classes, teachers, students } }
+  } catch (error) {
+    return { success: false, error: "Data fetch failed" }
   }
 }
