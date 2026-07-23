@@ -257,9 +257,9 @@ export async function deleteUserAction(id: number) {
     revalidatePath("/dashboard/admin/parents")
     revalidatePath("/dashboard/admin/students")
     return { success: true }
-  } catch (error) {
-    console.error(error)
-    return { success: false, error: "Failed to delete user" }
+  } catch (error: any) {
+    console.error("Error deleting user:", error)
+    return { success: false, error: error?.message || "Erreur lors de la suppression de l'utilisateur" }
   }
 }
 
@@ -271,7 +271,8 @@ export async function updateUserAction(id: number, data: any) {
       data: {
         nom: data.nom,
         email: data.email,
-        matiere: data.matiere
+        role: data.role || undefined,
+        matiere: data.matiere || undefined
       }
     })
     revalidatePath("/dashboard/admin/users")
@@ -279,8 +280,9 @@ export async function updateUserAction(id: number, data: any) {
     revalidatePath("/dashboard/admin/parents")
     revalidatePath("/dashboard/admin/students")
     return { success: true }
-  } catch (error) {
-    return { success: false, error: "Failed to update user" }
+  } catch (error: any) {
+    console.error("updateUserAction Error:", error)
+    return { success: false, error: error?.message || "Erreur de mise à jour" }
   }
 }
 
