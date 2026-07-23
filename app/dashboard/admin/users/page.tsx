@@ -16,9 +16,7 @@ import {
   Trash2,
   Edit,
   Eye,
-  Loader2,
-  Calendar,
-  X
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -169,8 +167,13 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole
   })
 
+  // Computed counts for stats
+  const teachersCount = users.filter(u => u.role === 'teacher').length
+  const studentsCount = users.filter(u => u.role === 'student').length
+  const parentsCount = users.filter(u => u.role === 'parent').length
+
   return (
-    <div className="space-y-6 p-4 md:p-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 md:p-8 animate-in fade-in duration-700 w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Gestion des utilisateurs</h1>
@@ -230,8 +233,8 @@ export default function AdminUsersPage() {
         </Dialog>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats - 4 Full Responsive Columns */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
         <Card className="border-slate-200 rounded-3xl shadow-sm bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total utilisateurs</CardTitle>
@@ -241,24 +244,54 @@ export default function AdminUsersPage() {
             <div className="text-3xl font-black text-slate-900">{users.length}</div>
           </CardContent>
         </Card>
+
+        <Card className="border-slate-200 rounded-3xl shadow-sm bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold text-primary uppercase tracking-widest">Enseignants</CardTitle>
+            <BookOpen className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black text-slate-900">{teachersCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 rounded-3xl shadow-sm bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold text-purple-600 uppercase tracking-widest">Élèves</CardTitle>
+            <GraduationCap className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black text-slate-900">{studentsCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 rounded-3xl shadow-sm bg-white">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Parents</CardTitle>
+            <UserCheck className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black text-slate-900">{parentsCount}</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="border-slate-200 rounded-3xl shadow-sm bg-white">
+      {/* Filters & Actions Bar */}
+      <Card className="border-slate-200 rounded-3xl shadow-sm bg-white w-full">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-1 gap-4 flex-col sm:flex-row">
-              <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between w-full">
+            <div className="flex flex-1 gap-4 flex-col sm:flex-row w-full">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input 
-                  placeholder="Rechercher un utilisateur..." 
-                  className="pl-9 rounded-2xl border-slate-200"
+                  placeholder="Rechercher un utilisateur par nom ou email..." 
+                  className="pl-9 rounded-2xl border-slate-200 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-[200px] rounded-2xl border-slate-200">
+                <SelectTrigger className="w-full sm:w-[220px] rounded-2xl border-slate-200">
                   <Filter className="mr-2 h-4 w-4 text-slate-400" />
                   <SelectValue placeholder="Filtrer par rôle" />
                 </SelectTrigger>
@@ -271,7 +304,7 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" className="gap-2 rounded-2xl border-slate-200 hover:bg-slate-50">
+            <Button variant="outline" className="gap-2 rounded-2xl border-slate-200 hover:bg-slate-50 shrink-0">
               <Download className="h-4 w-4" />
               Exporter
             </Button>
@@ -280,94 +313,96 @@ export default function AdminUsersPage() {
       </Card>
 
       {/* Users Table */}
-      <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white">
+      <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white w-full">
         <CardContent className="p-0">
           {loading ? (
              <div className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent bg-slate-50/50">
-                  <TableHead className="font-bold text-slate-600 text-xs">Utilisateur</TableHead>
-                  <TableHead className="font-bold text-slate-600 text-xs">Rôle</TableHead>
-                  <TableHead className="font-bold text-slate-600 text-xs">Date création</TableHead>
-                  <TableHead className="text-right font-bold text-slate-600 text-xs">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => {
-                  const roleKey = user.role as keyof typeof roleConfig
-                  const config = roleConfig[roleKey] || roleConfig.student
-                  const RoleIcon = config.icon
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent bg-slate-50/50">
+                    <TableHead className="font-bold text-slate-600 text-xs">Utilisateur</TableHead>
+                    <TableHead className="font-bold text-slate-600 text-xs">Rôle</TableHead>
+                    <TableHead className="font-bold text-slate-600 text-xs">Date création</TableHead>
+                    <TableHead className="text-right font-bold text-slate-600 text-xs">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => {
+                    const roleKey = user.role as keyof typeof roleConfig
+                    const config = roleConfig[roleKey] || roleConfig.student
+                    const RoleIcon = config.icon
 
-                  return (
-                    <TableRow key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border border-slate-100">
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                              {user.nom ? user.nom.split(' ').map((n: string) => n[0]).join('') : "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm">{user.nom}</p>
-                            <p className="text-xs text-slate-500 font-medium">{user.email}</p>
+                    return (
+                      <TableRow key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border border-slate-100">
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                                {user.nom ? user.nom.split(' ').map((n: string) => n[0]).join('') : "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">{user.nom}</p>
+                              <p className="text-xs text-slate-500 font-medium">{user.email}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={`gap-1 font-bold text-xs px-2.5 py-0.5 rounded-full ${config.color}`}>
-                          <RoleIcon className="h-3.5 w-3.5" />
-                          {config.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-500 text-xs font-medium">
-                        {new Date(user.created_at).toLocaleDateString('fr-FR')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 rounded-full hover:bg-slate-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 shadow-xl p-1.5 min-w-[170px]">
-                            <DropdownMenuLabel className="text-xs font-bold text-slate-400">Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 cursor-pointer rounded-xl font-medium text-xs text-slate-700 py-2"
-                              onClick={() => setSelectedProfileUser(user)}
-                            >
-                              <Eye className="h-4 w-4 text-primary" /> Voir le profil
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="gap-2 cursor-pointer rounded-xl font-medium text-xs text-slate-700 py-2"
-                              onClick={() => handleOpenEdit(user)}
-                            >
-                              <Edit className="h-4 w-4 text-amber-600" /> Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="gap-2 cursor-pointer rounded-xl font-bold text-xs text-rose-600 focus:bg-rose-50 py-2"
-                              onClick={() => setUserToDelete(user)}
-                            >
-                              <Trash2 className="h-4 w-4" /> Supprimer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={`gap-1 font-bold text-xs px-2.5 py-0.5 rounded-full ${config.color}`}>
+                            <RoleIcon className="h-3.5 w-3.5" />
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-xs font-medium">
+                          {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 rounded-full hover:bg-slate-100">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 shadow-xl p-1.5 min-w-[170px]">
+                              <DropdownMenuLabel className="text-xs font-bold text-slate-400">Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 cursor-pointer rounded-xl font-medium text-xs text-slate-700 py-2"
+                                onClick={() => setSelectedProfileUser(user)}
+                              >
+                                <Eye className="h-4 w-4 text-primary" /> Voir le profil
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="gap-2 cursor-pointer rounded-xl font-medium text-xs text-slate-700 py-2"
+                                onClick={() => handleOpenEdit(user)}
+                              >
+                                <Edit className="h-4 w-4 text-amber-600" /> Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="gap-2 cursor-pointer rounded-xl font-bold text-xs text-rose-600 focus:bg-rose-50 py-2"
+                                onClick={() => setUserToDelete(user)}
+                              >
+                                <Trash2 className="h-4 w-4" /> Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                  {filteredUsers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-16 text-center text-slate-400 italic">
+                        Aucun utilisateur trouvé.
                       </TableCell>
                     </TableRow>
-                  )
-                })}
-                {filteredUsers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-16 text-center text-slate-400 italic">
-                      Aucun utilisateur trouvé.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
