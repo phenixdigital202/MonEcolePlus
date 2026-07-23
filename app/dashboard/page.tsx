@@ -20,8 +20,15 @@ export default async function DashboardPage() {
     redirect("/login")
   }
 
-  // Uses React Cache to avoid multiple DB calls in the render tree
-  const user = await getCachedUser(parseInt(userId))
+  let user = null
+  try {
+    const parsedId = parseInt(userId)
+    if (!isNaN(parsedId)) {
+      user = await getCachedUser(parsedId)
+    }
+  } catch (err) {
+    console.error("[DashboardPage] Error fetching user:", err)
+  }
 
   if (!user) {
     redirect("/login")
@@ -52,8 +59,8 @@ export default async function DashboardPage() {
       />
       
       <main className="p-4 md:p-8">
-        {user.role === 'admin' && user.id_ecole && (
-          <AdminDashboardWrapper adminId={user.id} ecoleId={user.id_ecole} />
+        {user.role === 'admin' && (
+          <AdminDashboardWrapper adminId={user.id} ecoleId={user.id_ecole || 0} />
         )}
         
         {user.role === 'teacher' && (
