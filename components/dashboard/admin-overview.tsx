@@ -81,17 +81,17 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
       {/* Top Stats - Real Database Data */}
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Effectif Total", value: stats.students, icon: Users, color: "blue", trend: "En direct" },
-          { label: "Corps Enseignant", value: stats.teachers, icon: Sparkles, color: "purple", trend: "En direct" },
-          { label: "Classes Actives", value: stats.classes, icon: Activity, color: "emerald", trend: "En direct" },
-          { label: "Revenus (Mensuel)", value: stats.revenue, icon: CreditCard, color: "amber", trend: "En direct" },
+          { label: "Effectif Total", value: stats.students, icon: Users, bg: "bg-blue-500/10", text: "text-blue-600", trend: "En direct" },
+          { label: "Corps Enseignant", value: stats.teachers, icon: Sparkles, bg: "bg-purple-500/10", text: "text-purple-600", trend: "En direct" },
+          { label: "Classes Actives", value: stats.classes, icon: Activity, bg: "bg-emerald-500/10", text: "text-emerald-600", trend: "En direct" },
+          { label: "Revenus (Mensuel)", value: stats.revenue, icon: CreditCard, bg: "bg-amber-500/10", text: "text-amber-600", trend: "En direct" },
         ].map((item, i) => (
           <Card key={i} className="group relative overflow-hidden border-none bg-white/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className={`absolute top-0 right-0 -mr-4 -mt-4 h-24 w-24 rounded-full bg-${item.color}-500/10 blur-2xl group-hover:bg-${item.color}-500/20 transition-colors`} />
+            <div className={`absolute top-0 right-0 -mr-4 -mt-4 h-24 w-24 rounded-full ${item.bg} blur-2xl transition-colors`} />
             <CardContent className="p-4 md:p-6 relative z-10">
               <div className="flex items-center justify-between">
-                <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-${item.color}-500/10 flex items-center justify-center`}>
-                  <item.icon className={`h-5 w-5 md:h-6 md:w-6 text-${item.color}-600`} />
+                <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl ${item.bg} flex items-center justify-center`}>
+                  <item.icon className={`h-5 w-5 md:h-6 md:w-6 ${item.text}`} />
                 </div>
                 <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 md:py-1 rounded-full">
                    <ArrowUpRight className="h-3 w-3" />
