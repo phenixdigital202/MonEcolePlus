@@ -20,6 +20,7 @@ import {
   Loader2,
   AlertTriangle
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -103,7 +104,9 @@ export default function AdminTeachersPage() {
   const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false)
   const [editingTeacher, setEditingTeacher] = useState<any>(null)
   const [teacherToDelete, setTeacherToDelete] = useState<any>(null)
+  const [selectedProfileTeacher, setSelectedProfileTeacher] = useState<any>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const router = useRouter()
 
   const fetchTeachers = async () => {
     setLoading(true)
@@ -253,6 +256,87 @@ export default function AdminTeachersPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Full Teacher Profile Modal */}
+        <Dialog open={!!selectedProfileTeacher} onOpenChange={(open) => !open && setSelectedProfileTeacher(null)}>
+          <DialogContent className="sm:max-w-lg rounded-3xl p-6">
+            {selectedProfileTeacher && (
+              <div className="space-y-6">
+                <DialogHeader>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-md">
+                      <AvatarFallback className="bg-primary/10 text-primary font-black text-xl">
+                        {selectedProfileTeacher.nom ? selectedProfileTeacher.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <DialogTitle className="text-2xl font-black text-slate-800">{selectedProfileTeacher.nom}</DialogTitle>
+                      <DialogDescription className="text-sm text-slate-500 font-medium">
+                        {selectedProfileTeacher.email}
+                      </DialogDescription>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-emerald-500 text-white border-none text-[10px] rounded-full">Enseignant Actif</Badge>
+                        <Badge variant="outline" className="text-[10px] rounded-full font-bold">{selectedProfileTeacher.matiere || "Matière non spécifiée"}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Matière Enseignée</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      {selectedProfileTeacher.matiere || "Non assignée"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Classes Actives</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      0 classe(s)
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Date d&apos;arrivée</p>
+                    <p className="font-bold text-slate-800 text-sm mt-0.5">
+                      {selectedProfileTeacher.created_at ? new Date(selectedProfileTeacher.created_at).toLocaleDateString("fr-FR") : "Récente"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Volume Horaire</p>
+                    <p className="font-bold text-indigo-600 text-sm mt-0.5">-- h / semaine</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions inside Profile */}
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 rounded-xl gap-2 h-11"
+                    onClick={() => {
+                      const teacher = selectedProfileTeacher
+                      setSelectedProfileTeacher(null)
+                      router.push(`/dashboard/messages?to=${teacher.id}`)
+                    }}
+                  >
+                    <Mail className="h-4 w-4 text-primary" />
+                    Envoyer un message
+                  </Button>
+                  <Button 
+                    className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white gap-2 border-none h-11"
+                    onClick={() => {
+                      setSelectedProfileTeacher(null)
+                      router.push(`/dashboard/schedule`)
+                    }}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Emploi du Temps
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
@@ -408,7 +492,7 @@ export default function AdminTeachersPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                             <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                              {teacher.nom.split(' ').map((n: string) => n[0]).join('')}
+                              {teacher.nom ? teacher.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -442,7 +526,7 @@ export default function AdminTeachersPage() {
                             <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-widest px-3 py-2">Options</DropdownMenuLabel>
                             <DropdownMenuItem 
                               className="gap-2 rounded-xl cursor-pointer"
-                              onClick={() => toast.info("Profil enseignant bientôt disponible")}
+                              onClick={() => setSelectedProfileTeacher(teacher)}
                             >
                               <Eye className="h-4 w-4 text-blue-500" /> Voir Profil
                             </DropdownMenuItem>
