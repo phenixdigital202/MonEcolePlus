@@ -27,13 +27,22 @@ export const getCachedSchoolStats = cache(async (schoolId: number) => {
   try {
     const prisma = await getPrisma()
     
+    // Inclusive filter: matches schoolId if present OR null for tenant-wide records
+    const userFilter = schoolId > 0 
+      ? { OR: [{ id_ecole: schoolId }, { id_ecole: null }] } 
+      : {}
+
+    const classFilter = schoolId > 0 
+      ? { OR: [{ id_ecole: schoolId }, { id_ecole: null }] } 
+      : {}
+
     const [studentCount, teacherCount, classCount, revenueData] = await Promise.all([
-      prisma.user.count({ where: { role: 'student', id_ecole: schoolId } }),
-      prisma.user.count({ where: { role: 'teacher', id_ecole: schoolId } }),
-      prisma.class.count({ where: { id_ecole: schoolId } }),
+      prisma.user.count({ where: { role: 'student', ...userFilter } }),
+      prisma.user.count({ where: { role: 'teacher', ...userFilter } }),
+      prisma.class.count({ where: classFilter }),
       prisma.paiement.aggregate({
         _sum: { montant: true },
-        where: { status: 'paye', user: { id_ecole: schoolId } }
+        where: { status: 'paye' }
       })
     ])
     

@@ -8,17 +8,29 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
   try {
     const prisma = await getPrisma()
 
-    // 1. Fetch cached school stats
+    // 1. Fetch real school stats
     const stats = await getCachedSchoolStats(ecoleId)
 
     const totalRevenue = stats.revenueData._sum.montant 
       ? Number(stats.revenueData._sum.montant).toLocaleString() + " FCFA" 
       : "0 FCFA"
 
-    // 2. Parallelize charts and insights
-    const [recentPayments, dbInsights, resShortcut] = await Promise.all([
+    // 2. Fetch real data for charts, insights, and shortcuts in parallel
+    const [allStudents, dbClasses, recentPayments, dbInsights, resShortcut] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: 'student' },
+        select: { created_at: true }
+      }),
+      prisma.class.findMany({
+        select: {
+          id: true,
+          nom: true,
+          niveau: true,
+          _count: { select: { inscriptions: true } }
+        }
+      }),
       prisma.paiement.findMany({
-        where: { status: 'paye', user: { id_ecole: ecoleId } },
+        where: { status: 'paye' },
         take: 20,
         orderBy: { date_paiement: 'desc' },
         select: { montant: true, date_paiement: true, type: true }
@@ -32,13 +44,58 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       import("@/lib/admin-shortcut-actions").then(m => m.getShortcutMetaData())
     ])
 
+    // 3. Compute REAL enrollment growth per month from DB
+    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
+    const enrollmentMap: Record<string, number> = {}
+    monthNames.slice(0, 6).forEach(m => { enrollmentMap[m] = 0 })
+
+    allStudents.forEach(s => {
+      if (s.created_at) {
+        const monthIndex = new Date(s.created_at).getMonth()
+        const monthLabel = monthNames[monthIndex]
+        if (enrollmentMap[monthLabel] !== undefined) {
+          enrollmentMap[monthLabel] += 1
+        }
+      }
+    })
+
+    const realEnrollmentData = monthNames.slice(0, 6).map(m => ({
+      name: m,
+      students: enrollmentMap[m] || 0
+    }))
+
+    // 4. Compute REAL class distribution by level from DB
+    const levelColorMap: Record<string, string> = {
+      'Primaire': '#3b82f6',
+      'Collège': '#8b5cf6',
+      'Lycée': '#ec4899',
+      'Maternelle': '#10b981',
+      'Supérieur': '#f59e0b'
+    }
+    const defaultColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4']
+
+    const levelCounts: Record<string, number> = {}
+    dbClasses.forEach(c => {
+      const level = c.niveau || c.nom || 'Autre'
+      levelCounts[level] = (levelCounts[level] || 0) + (c._count?.inscriptions || 0)
+    })
+
+    const realClassData = Object.keys(levelCounts).length > 0 
+      ? Object.entries(levelCounts).map(([name, value], idx) => ({
+          name,
+          value,
+          color: levelColorMap[name] || defaultColors[idx % defaultColors.length]
+        }))
+      : null
+
+    // 5. Compute REAL financial chart data from DB
     const financeChartData = recentPayments.map(p => ({
       name: new Date(p.date_paiement).toLocaleDateString('fr-FR', { weekday: 'short' }),
       revenue: Number(p.montant),
       target: 200000 
     })).reverse()
 
-    // Explicitly format AI Insights to plain JSON objects for Client Component serialization
+    // 6. Explicitly format AI Insights to plain JSON objects
     const formattedInsights = dbInsights.map(ins => ({
       id: ins.id,
       type: ins.type,
@@ -61,6 +118,8 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
         adminId={adminId}
         chartData={{
           finance: financeChartData.length > 0 ? financeChartData : null,
+          enrollment: realEnrollmentData,
+          distribution: realClassData,
           insights: formattedInsights.length > 0 ? formattedInsights : null
         }}
       />
