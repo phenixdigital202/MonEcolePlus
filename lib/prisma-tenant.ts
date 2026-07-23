@@ -4,16 +4,13 @@ declare global {
   var tenantClients: Record<string, PrismaClient> | undefined
 }
 
-// Cache for Prisma clients to avoid connection leaks in dev
+// ALWAYS use globalThis cache to prevent connection leaks across serverless lambdas in production
 const clients: Record<string, PrismaClient> = globalThis.tenantClients || {}
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.tenantClients = clients
-}
+globalThis.tenantClients = clients
 
 /**
  * Gets a Prisma client for a specific tenant based on their database URL.
- * In a real SaaS, this URL would come from the 'Master' database.
+ * Reuses cached client instance across serverless invocations.
  */
 export function getTenantClient(dbUrl: string): PrismaClient {
   if (!dbUrl) {
@@ -25,13 +22,21 @@ export function getTenantClient(dbUrl: string): PrismaClient {
     return clients[dbUrl]
   }
 
+  // Ensure connection string has reasonable connection limit & timeout parameters for serverless
+  let formattedUrl = dbUrl
+  if (!formattedUrl.includes("connection_limit=")) {
+    const separator = formattedUrl.includes("?") ? "&" : "?"
+    formattedUrl = `${formattedUrl}${separator}connection_limit=5&pool_timeout=15`
+  }
+
   // Create new client with override datasource
   const client = new PrismaClient({
     datasources: {
       db: {
-        url: dbUrl,
+        url: formattedUrl,
       },
     },
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
   })
 
   // Store in cache
@@ -41,11 +46,15 @@ export function getTenantClient(dbUrl: string): PrismaClient {
 }
 
 /**
- * Cleanup function for serverless environments (if needed)
+ * Cleanup function for serverless environments
  */
 export async function cleanupTenantClients() {
   for (const url in clients) {
-    await clients[url].$disconnect()
+    try {
+      await clients[url].$disconnect()
+    } catch (e) {
+      console.error("[cleanupTenantClients] Disconnect error:", e)
+    }
     delete clients[url]
   }
 }

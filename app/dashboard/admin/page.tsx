@@ -5,37 +5,47 @@ import {
   GraduationCap, 
   School, 
   TrendingUp, 
-  ShieldCheck, 
-  FileText, 
-  CreditCard,
-  Bell,
-  Clock,
-  BookOpen
+  CreditCard
 } from "lucide-react"
 import { getPrisma } from "@/lib/tenant-context"
-import { cookies } from "next/headers"
+import { logError } from "@/lib/logger"
 
 export default async function AdminDashboardPage() {
-  const prisma = await getPrisma()
+  let studentCount = 0
+  let teacherCount = 0
+  let classCount = 0
+  let totalAbsences = 0
+  let totalRevenue = 0
+  let recentUsers: any[] = []
 
-  // Real Database Statistics
-  const [studentCount, teacherCount, classCount, totalAbsences, totalRevenueResult, recentUsers] = await Promise.all([
-    prisma.user.count({ where: { role: 'student' } }),
-    prisma.user.count({ where: { role: 'teacher' } }),
-    prisma.class.count(),
-    prisma.absence.count(),
-    prisma.paiement.aggregate({
-      _sum: { montant: true },
-      where: { status: 'paye' }
-    }),
-    prisma.user.findMany({
-      orderBy: { created_at: 'desc' },
-      take: 5,
-      select: { id: true, nom: true, role: true, created_at: true }
-    })
-  ])
+  try {
+    const prisma = await getPrisma()
+    const [sCount, tCount, cCount, absCount, revResult, rUsers] = await Promise.all([
+      prisma.user.count({ where: { role: 'student' } }),
+      prisma.user.count({ where: { role: 'teacher' } }),
+      prisma.class.count(),
+      prisma.absence.count(),
+      prisma.paiement.aggregate({
+        _sum: { montant: true },
+        where: { status: 'paye' }
+      }),
+      prisma.user.findMany({
+        orderBy: { created_at: 'desc' },
+        take: 5,
+        select: { id: true, nom: true, role: true, created_at: true }
+      })
+    ])
 
-  const totalRevenue = Number(totalRevenueResult._sum.montant || 0)
+    studentCount = sCount
+    teacherCount = tCount
+    classCount = cCount
+    totalAbsences = absCount
+    totalRevenue = Number(revResult._sum.montant || 0)
+    recentUsers = rUsers
+  } catch (error) {
+    logError(error, { action: "AdminDashboardPage_fetchData" })
+  }
+
   const presenceRate = studentCount > 0 
     ? Math.min(100, Math.max(0, Math.round(100 - (totalAbsences / (studentCount * 5)) * 100))) 
     : 100

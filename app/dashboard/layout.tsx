@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { getPrisma } from "@/lib/tenant-context"
 import { SidebarWrapper } from "@/components/dashboard/sidebar-wrapper"
+import { logError } from "@/lib/logger"
 
 export default async function DashboardLayout({
   children,
@@ -15,14 +16,17 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  const prisma = await getPrisma()
+  let user = null
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) },
-    include: {
-      ecole: true
-    }
-  })
+  try {
+    const prisma = await getPrisma()
+    user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      include: { ecole: true }
+    })
+  } catch (error) {
+    logError(error, { action: "DashboardLayout_findUser", userId })
+  }
 
   if (!user) {
     redirect("/login")

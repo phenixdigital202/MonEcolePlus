@@ -1,19 +1,14 @@
 import { headers } from "next/headers"
 import masterPrisma from "./prisma"
 import { getTenantClient } from "./prisma-tenant"
-import fs from "fs"
-import path from "path"
-import { domainToUnicode } from "url"
+import { logError } from "./logger"
 
 /**
- * Identifies the current tenant (school) based on the request host (subdomain)
- * or a stored session context.
+ * Identifies the current tenant (school) based on stored session context or domain.
  */
 export async function getCurrentTenant() {
   try {
-    const reqHeaders = await headers()
     const cookieStore = await import("next/headers").then(m => m.cookies())
-    
     const schoolId = cookieStore.get("school_id")?.value
 
     if (schoolId) {
@@ -29,11 +24,9 @@ export async function getCurrentTenant() {
       }
     }
 
-    // Fallback for signup/onboarding when school is in URL (e.g., success page)
-    const host = reqHeaders.get("host") || ""
+    const reqHeaders = await headers()
     const referer = reqHeaders.get("referer") || ""
     
-    // Try to find if referer has a subdomain just as a fallback (optional)
     let subdomain = null
     try {
       if (referer) {
@@ -50,8 +43,10 @@ export async function getCurrentTenant() {
         return school
       }
     }
-  } catch (error) {
-    console.error("[getCurrentTenant] Error retrieving tenant:", error)
+  } catch (error: any) {
+    if (error?.digest !== 'DYNAMIC_SERVER_USAGE' && !error?.message?.includes('Dynamic server usage')) {
+      logError(error, { action: "getCurrentTenant" })
+    }
   }
 
   return null
@@ -59,7 +54,7 @@ export async function getCurrentTenant() {
 
 /**
  * Returns the Prisma client for the current tenant.
- * Defaults to the Master client if no tenant is found (e.g. for landing/signup).
+ * Defaults to the Master client if no tenant is found or on connection error.
  */
 export async function getPrisma() {
   try {
@@ -68,8 +63,10 @@ export async function getPrisma() {
     if (tenant && tenant.database_url) {
       return getTenantClient(tenant.database_url)
     }
-  } catch (e) {
-    console.error("[getPrisma] Error resolving tenant client, fallback to master:", e)
+  } catch (e: any) {
+    if (e?.digest !== 'DYNAMIC_SERVER_USAGE' && !e?.message?.includes('Dynamic server usage')) {
+      logError(e, { action: "getPrisma_fallback_to_master" })
+    }
   }
 
   return masterPrisma
