@@ -55,7 +55,7 @@ export default async function SchedulePage({
     <ScheduleView 
       initialClasses={classes.map(c => ({ id: c.id, nom: c.nom }))}
       initialTeachers={teachers.map(t => ({ id: t.id, nom: t.nom }))}
-      initialSchedule={schedule}
+      initialSchedule={JSON.parse(JSON.stringify(schedule))}
       initialClassId={classId.toString()}
       isReadOnly={isReadOnly}
       userRole={user.role}
