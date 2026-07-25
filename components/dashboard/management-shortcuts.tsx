@@ -103,7 +103,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
               <Select name="id_classe" required>
                  <SelectTrigger><SelectValue placeholder="Choisir une classe" /></SelectTrigger>
                  <SelectContent>
-                    {data.classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.nom} ({c.niveau})</SelectItem>)}
+                    {(data?.classes || []).map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nom} ({c.niveau})</SelectItem>)}
                  </SelectContent>
               </Select>
            </div>
@@ -134,7 +134,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
               <Select name="id_utilisateur" required>
                  <SelectTrigger><SelectValue placeholder="Choisir l'élève" /></SelectTrigger>
                  <SelectContent>
-                    {data.students.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.nom}</SelectItem>)}
+                    {(data?.students || []).map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nom}</SelectItem>)}
                  </SelectContent>
               </Select>
            </div>
@@ -181,7 +181,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
                  <Select name="id_classe" required>
                     <SelectTrigger><SelectValue placeholder="Classe" /></SelectTrigger>
                     <SelectContent>
-                       {data.classes.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>)}
+                       {(data?.classes || []).map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>)}
                     </SelectContent>
                  </Select>
               </div>
@@ -190,7 +190,7 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
                  <Select name="id_enseignant" required>
                     <SelectTrigger><SelectValue placeholder="Prof" /></SelectTrigger>
                     <SelectContent>
-                       {data.teachers.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.nom}</SelectItem>)}
+                       {(data?.teachers || []).map((t: any) => <SelectItem key={t.id} value={t.id.toString()}>{t.nom}</SelectItem>)}
                     </SelectContent>
                  </Select>
               </div>

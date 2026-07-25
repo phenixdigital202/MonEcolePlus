@@ -6,17 +6,26 @@ import { getCachedSchoolStats } from "@/lib/cached-queries"
 
 async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId: number }) {
   try {
+    console.log("[AdminDataFetcher] STEP 1: Resolving Prisma & cached stats...")
     const prisma = await getPrisma()
 
     // 1. Fetch real school stats
     const stats = await getCachedSchoolStats(ecoleId)
 
     const totalRevenue = stats.revenueData._sum.montant 
-      ? Number(stats.revenueData._sum.montant).toLocaleString() + " FCFA" 
+      ? Number(stats.revenueData._sum.montant).toLocaleString("fr-FR") + " FCFA" 
       : "0 FCFA"
 
-    // 2. Fetch real data for charts, insights, and shortcuts in parallel
-    const [allStudents, dbClasses, recentPayments, dbInsights, resShortcut] = await Promise.all([
+    console.log("[AdminDataFetcher] STEP 2: Executing parallel database queries...")
+    const [
+      allStudents, 
+      dbClasses, 
+      recentPayments, 
+      dbInsights, 
+      shortcutClasses, 
+      shortcutTeachers, 
+      shortcutStudents
+    ] = await Promise.all([
       prisma.user.findMany({
         where: { role: 'student' },
         select: { created_at: true }
@@ -41,9 +50,12 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
         orderBy: { created_at: 'desc' },
         select: { id: true, type: true, message: true, score_confiance: true, created_at: true }
       }),
-      import("@/lib/admin-shortcut-actions").then(m => m.getShortcutMetaData())
+      prisma.class.findMany({ select: { id: true, nom: true, niveau: true } }),
+      prisma.user.findMany({ where: { role: 'teacher' }, select: { id: true, nom: true, matiere: true } }),
+      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } })
     ])
 
+    console.log("[AdminDataFetcher] STEP 3: Computing charts and statistics...")
     // 3. Compute REAL enrollment growth per month from DB
     const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
     const enrollmentMap: Record<string, number> = {}
@@ -104,8 +116,13 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       created_at: ins.created_at.toISOString()
     }))
 
-    const shortcutData = resShortcut.success ? resShortcut.data : null
+    const shortcutData = {
+      classes: shortcutClasses || [],
+      teachers: shortcutTeachers || [],
+      students: shortcutStudents || []
+    }
 
+    console.log("[AdminDataFetcher] STEP 4: Rendering AdminOverview successfully.")
     return (
       <AdminOverview 
         stats={{
@@ -125,7 +142,7 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       />
     )
   } catch (error) {
-    console.error("[AdminDataFetcher] Error rendering admin overview:", error)
+    console.error("[AdminDataFetcher] FATAL ERROR during data fetch:", error)
     return (
       <div className="p-6 border rounded-2xl bg-destructive/10 text-destructive text-center space-y-2">
         <h3 className="font-bold text-lg">Données partiellement indisponibles</h3>
