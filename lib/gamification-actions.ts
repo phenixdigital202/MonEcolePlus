@@ -36,16 +36,21 @@ export async function getGamificationStats(userId: number) {
     // Attendance: No absence -> 100 pts bonus
     if (user.absences.length === 0) academicPoints += 100
 
-    // Update user points in DB using raw SQL to bypass Prisma Client lock issues on Windows
-    const currentPoints = (user as any).points || 0
+    const currentPoints = user.points || 0
+    const calculatedLevel = Math.floor(academicPoints / 200) + 1
+
     if (currentPoints !== academicPoints) {
-      const level = Math.floor(academicPoints / 200) + 1
-      await prisma.$executeRawUnsafe(
-        `UPDATE users SET points = , niveau =  WHERE id = `,
-        academicPoints,
-        level,
-        userId
-      )
+      try {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            points: academicPoints,
+            niveau: calculatedLevel
+          }
+        })
+      } catch (e) {
+        console.warn("[getGamificationStats] Non-fatal point update error:", e)
+      }
     }
 
     // 2. Fetch all possible badges
@@ -56,43 +61,57 @@ export async function getGamificationStats(userId: number) {
       success: true,
       data: {
         points: academicPoints,
-        level: Math.floor(academicPoints / 200) + 1,
+        level: calculatedLevel,
         nextLevelXP: 200,
         currentXP: academicPoints % 200,
         earnedBadges: user.eleveBadges.map(eb => ({
-            id: eb.badge.id,
-            name: eb.badge.nom,
-            description: eb.badge.description,
-            icon: eb.badge.icon_name,
-            date: eb.date_obtention
+          id: eb.badge.id,
+          name: eb.badge.nom,
+          description: eb.badge.description,
+          icon: eb.badge.icon_name || "Award",
+          date: eb.date_obtention
         })),
         allBadges: allBadges.map(b => ({
-            ...b,
-            isLocked: !earnedBadgeIds.includes(b.id)
+          ...b,
+          isLocked: !earnedBadgeIds.includes(b.id)
         }))
       }
     }
   } catch (error) {
     console.error("Error in getGamificationStats:", error)
-    return { success: false, error: "Erreur serveur" }
+    return { success: false, error: "Erreur lors du chargement de la gamification" }
   }
 }
 
 export async function getLeaderboard(classId: number) {
   try {
     const prisma = await getPrismaClient()
-    const students: any[] = await prisma.$queryRawUnsafe(
-      `SELECT u.id, u.nom as name, u.points, u.niveau as level 
-       FROM users u 
-       JOIN inscriptions i ON u.id = i.id_eleve 
-       WHERE i.id_classe = ? 
-       ORDER BY u.points DESC`,
-      classId
-    )
+    const inscriptions = await prisma.inscription.findMany({
+      where: { id_classe: classId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nom: true,
+            points: true,
+            niveau: true
+          }
+        }
+      }
+    })
 
-    return { success: true, data: students }
+    const leaderboardData = inscriptions
+      .map(i => ({
+        id: i.user.id,
+        name: i.user.nom,
+        points: i.user.points || 0,
+        level: i.user.niveau || 1
+      }))
+      .sort((a, b) => b.points - a.points)
+
+    return { success: true, data: leaderboardData }
   } catch (error) {
     console.error("Error in getLeaderboard:", error)
-    return { success: false, error: "Erreur serveur" }
+    return { success: true, data: [] }
   }
 }
