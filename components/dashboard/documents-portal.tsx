@@ -22,6 +22,7 @@ import {
 import Link from "next/link"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 interface DocumentsPortalProps {
   userRole: string
