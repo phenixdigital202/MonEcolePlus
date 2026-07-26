@@ -147,3 +147,120 @@ export async function getScheduleData(classId?: number) {
     }
   })
 }
+
+/**
+ * Checks for conflicts in teacher or room assignments for a specific slot
+ */
+export async function checkCourseConflict(
+  excludeCourseId: number | null,
+  teacherId: number,
+  room: string,
+  day: string,
+  hour: string
+) {
+  const prisma = await getPrisma()
+  const targetHourDebut = new Date(`1970-01-01T${hour}:00Z`)
+
+  // Check teacher conflict
+  const teacherConflict = await prisma.emploiDuTemps.findFirst({
+    where: {
+      id_enseignant: teacherId,
+      jour: day as any,
+      heure_debut: targetHourDebut,
+      id: excludeCourseId ? { not: excludeCourseId } : undefined
+    },
+    include: {
+      classe: true,
+      user: true
+    }
+  })
+
+  if (teacherConflict) {
+    return {
+      conflict: true,
+      reason: `L'enseignant ${teacherConflict.user.nom} est déjà affecté à la classe ${teacherConflict.classe.nom} le ${day} à ${hour}.`
+    }
+  }
+
+  // Check room conflict
+  const roomConflict = await prisma.emploiDuTemps.findFirst({
+    where: {
+      salle: room,
+      jour: day as any,
+      heure_debut: targetHourDebut,
+      id: excludeCourseId ? { not: excludeCourseId } : undefined
+    },
+    include: {
+      classe: true
+    }
+  })
+
+  if (roomConflict) {
+    return {
+      conflict: true,
+      reason: `La salle ${room} est déjà occupée par la classe ${roomConflict.classe.nom} le ${day} à ${hour}.`
+    }
+  }
+
+  return { conflict: false }
+}
+
+/**
+ * Automate scheduling optimization (heures, salles et enseignants)
+ */
+export async function optimizeSchedule(classId: number) {
+  const prisma = await getPrisma()
+  try {
+    const courses = await prisma.emploiDuTemps.findMany({
+      where: { id_classe: classId },
+      include: { user: true, classe: true }
+    })
+
+    const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
+    const slots = ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"]
+
+    let resolvedCount = 0
+
+    for (const course of courses) {
+      // Check current slot conflict
+      const hour = new Date(course.heure_debut).toISOString().substring(11, 16)
+      const conflictRes = await checkCourseConflict(course.id, course.id_enseignant, course.salle, course.jour, hour)
+      
+      if (conflictRes.conflict) {
+        // Find a free slot
+        let found = false
+        for (const d of days) {
+          for (const s of slots) {
+            const check = await checkCourseConflict(course.id, course.id_enseignant, course.salle, d, s)
+            if (!check.conflict) {
+              // Move course here
+              const hDebut = new Date(`1970-01-01T${s}:00Z`)
+              const endHour = parseInt(s.split(":")[0]) + 1
+              const hFin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+              await prisma.emploiDuTemps.update({
+                where: { id: course.id },
+                data: {
+                  jour: d,
+                  heure_debut: hDebut,
+                  heure_fin: hFin
+                }
+              })
+              resolvedCount++
+              found = true
+              break
+            }
+          }
+          if (found) break
+        }
+      }
+    }
+
+    revalidatePath("/dashboard/schedule")
+    revalidatePath("/dashboard/schedule/edit")
+    return { success: true, resolvedCount }
+  } catch (error: any) {
+    console.error("Optimization error:", error)
+    return { success: false, error: error.message }
+  }
+}

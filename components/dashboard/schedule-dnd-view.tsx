@@ -20,7 +20,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { updateCoursePosition } from "@/lib/schedule-actions"
+import { updateCoursePosition, checkCourseConflict, optimizeSchedule } from "@/lib/schedule-actions"
 import { toast } from "sonner"
 
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
@@ -48,6 +48,7 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
   const [schedule, setSchedule] = useState(initialSchedule)
   const [isSaving, setIsSaving] = useState(false)
   const [draggedItem, setDraggedItem] = useState<any | null>(null)
+  const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly")
 
   const handleClassChange = (id: string) => {
     router.push(`/dashboard/schedule/edit?classId=${id}`)
@@ -81,6 +82,22 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
     
     if (!draggedItem || draggedItem.id !== courseId) return
 
+    // 1. Check for conflicts before applying updates
+    setIsSaving(true)
+    const conflictCheck = await checkCourseConflict(
+      courseId,
+      draggedItem.id_enseignant,
+      draggedItem.salle || "Salle 101",
+      day,
+      hour
+    )
+
+    if (conflictCheck.conflict) {
+      toast.error(conflictCheck.reason || "Conflit d'affectation détecté !")
+      setIsSaving(false)
+      return
+    }
+
     // Update local state for immediate feedback
     const updatedSchedule = schedule.map(item => {
       if (item.id === courseId) {
@@ -101,7 +118,6 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
     setDraggedItem(null)
 
     // Save to DB
-    setIsSaving(true)
     const res = await updateCoursePosition(courseId, day as any, hour)
     if (res.success) {
       toast.success("Cours déplacé avec succès")
@@ -109,6 +125,19 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
       toast.error("Erreur lors du déplacement")
       // Revert on error
       setSchedule(initialSchedule)
+    }
+    setIsSaving(false)
+  }
+
+  // Handle Automatic Optimization
+  const handleAutoOptimize = async () => {
+    setIsSaving(true)
+    const res = await optimizeSchedule(selectedClassId)
+    if (res.success) {
+      toast.success(`${res.resolvedCount} conflit(s) résolu(s) automatiquement !`)
+      router.refresh()
+    } else {
+      toast.error(res.error || "Erreur de résolution automatique")
     }
     setIsSaving(false)
   }
@@ -128,7 +157,7 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
       
       <main className="p-6">
         <div className="flex flex-col lg:flex-row gap-4 mb-6 items-start lg:items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex flex-col gap-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400 ml-1">Classe à éditer</span>
                 <Select value={selectedClassId.toString()} onValueChange={handleClassChange}>
@@ -142,14 +171,38 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
                 </SelectContent>
                 </Select>
             </div>
-            <div className="h-10 w-[1px] bg-slate-100 mx-2 hidden md:block" />
-            <div className="hidden md:flex items-center gap-3 text-slate-500 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                <AlertCircle className="h-4 w-4 text-primary" />
-                <p className="text-xs font-medium">Déplacez les cartes colorées vers les zones en pointillé.</p>
+            
+            <div className="flex flex-col gap-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 ml-1">Vue</span>
+                <div className="flex rounded-xl bg-slate-100 p-0.5 border">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setViewMode("weekly")}
+                    className={cn("h-7 text-[10px] font-bold rounded-lg px-3", viewMode === "weekly" ? "bg-white text-slate-800 shadow" : "text-slate-500")}
+                  >
+                    Hebdo
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setViewMode("monthly")}
+                    className={cn("h-7 text-[10px] font-bold rounded-lg px-3", viewMode === "monthly" ? "bg-white text-slate-800 shadow" : "text-slate-500")}
+                  >
+                    Mensuelle
+                  </Button>
+                </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 gap-1.5 font-bold" onClick={handleAutoOptimize}>
+              <Sparkles className="h-4 w-4 text-primary" />
+              Résolution IA
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4" onClick={() => window.print()}>
+              Imprimer / PDF
+            </Button>
             <Button variant="outline" size="sm" className="rounded-xl h-10 px-4" onClick={() => router.refresh()}>
               <RotateCcw className="h-4 w-4 mr-2" />
               Réinitialiser
