@@ -433,3 +433,47 @@ model BackupLog {
 
   @@map("backup_logs")
 }
+
+model TransactionComptable {
+  id            Int      @id @default(autoincrement())
+  id_ecole      Int
+  type          String   // "recette", "depense"
+  categorie     String   // "scolarite", "cantine", "transport", "uniformes", "examens", "bibliotheque", "activites", "salaires", "eau", "electricite", "internet", "fournitures", "maintenance", "divers"
+  montant       Decimal
+  mode_paiement String   // "especes", "mobile_money", "banque"
+  date          DateTime @default(now())
+  description   String?
+  reference     String?
+  compte_caisse String?  // "Caisse Principale", "Caisse Secondaire"
+  compte_banque String?  // "SG", "Ecobank", etc.
+
+  @@index([id_ecole])
+  @@index([type, date])
+  @@map("transactions_comptables")
+}
+
+model LivrePedagogique {
+  id            Int      @id @default(autoincrement())
+  titre         String
+  auteur        String
+  type          String   // "pdf", "epub", "document", "video", "exercice", "quiz", "corrige"
+  matiere       String
+  niveau        String
+  url           String?  @default("/books/placeholder.pdf")
+  dateAjout     DateTime @default(now())
+
+  @@map("livres_pedagogiques")
+}
+
+model ExamenNational {
+  id            Int      @id @default(autoincrement())
+  nom           String   // "BAC", "BEPC", "Examen blanc", "Concours interne"
+  dateExamen    DateTime
+  type          String   // "national", "blanc", "interne"
+  jurys         String?  // Jurys assignés
+  salles        String?  // Salles réservées
+
+  @@map("examens_nationaux")
+}
+
+

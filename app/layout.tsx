@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: 'MonÉcole+ est une plateforme SaaS moderne de gestion scolaire propulsée par l\'IA. Connectez administrateurs, enseignants, élèves et parents.',
   generator: 'v0.app',
   keywords: ['école', 'gestion scolaire', 'IA', 'éducation', 'SaaS', 'plateforme éducative'],
+  manifest: '/manifest.json',
   icons: {
     icon: [
       {
@@ -58,6 +59,22 @@ export default function RootLayout({
         {children}
         <Toaster position="top-right" richColors />
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* PWA Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('MonÉcole+ SW registered:', reg.scope);
+                  }).catch(function(err) {
+                    console.log('MonÉcole+ SW registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )

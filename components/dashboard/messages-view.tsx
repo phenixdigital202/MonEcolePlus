@@ -10,6 +10,7 @@ import {
   Search,
   Send,
   Paperclip,
+  Mic,
   MoreVertical,
   Check,
   CheckCheck,
@@ -260,18 +261,41 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
                     )}
                   >
                     <div className={cn(
-                      "max-w-[85%] sm:max-w-[75%] space-y-1",
+                      "max-w-[85%] sm:max-w-[75%] space-y-1 relative",
                       message.sender === "me" ? "items-end" : "items-start"
                     )}>
                        <div
                         className={cn(
-                          "rounded-2xl px-4 py-2.5 shadow-sm text-sm border font-medium",
+                          "rounded-2xl px-4 py-2.5 shadow-sm text-sm border font-medium relative group",
                           message.sender === "me"
                             ? "bg-primary text-white border-primary rounded-br-none"
                             : "bg-white text-slate-900 border-slate-200 rounded-bl-none"
                         )}
                       >
                         {message.content}
+                        
+                        {/* Emoji reaction display inside the bubble */}
+                        {message.reaction && (
+                          <span className="absolute -bottom-2 right-2 bg-white border rounded-full px-1 py-0.5 text-xs shadow-sm">
+                            {message.reaction}
+                          </span>
+                        )}
+
+                        {/* Interactive reaction emojis on hover */}
+                        <div className="absolute hidden group-hover:flex items-center gap-1 bg-white border shadow-lg rounded-full p-1 -top-8 right-0 z-10">
+                          {["❤️", "👍", "😮", "😂"].map(emoji => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                setMessages(prev => prev.map(m => m.id === message.id ? { ...m, reaction: emoji } : m))
+                              }}
+                              className="hover:scale-125 transition-transform text-xs"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div className={cn(
                         "flex items-center gap-1.5 px-1",
@@ -297,6 +321,50 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
             {/* Input area */}
             <div className="p-3 md:p-4 border-t bg-white">
               <form className="flex items-center gap-2" onSubmit={handleSend}>
+                {/* Mock file attachment button */}
+                <Button 
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
+                  onClick={() => {
+                    const tempId = Date.now()
+                    setMessages(prev => [...prev, {
+                      id: tempId,
+                      sender: 'me',
+                      content: "📄 Pièce jointe partagée : Devoir_Maths.pdf",
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      read: false
+                    }])
+                    toast.success("Document partagé avec succès !")
+                  }}
+                  title="Partager un fichier"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </Button>
+
+                {/* Mock voice note button */}
+                <Button 
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
+                  onClick={() => {
+                    const tempId = Date.now()
+                    setMessages(prev => [...prev, {
+                      id: tempId,
+                      sender: 'me',
+                      content: "🎙️ Note vocale envoyée (0:15)",
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      read: false
+                    }])
+                    toast.success("Message vocal enregistré et envoyé !")
+                  }}
+                  title="Enregistrer un message vocal"
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+
                 <Input
                   placeholder="Écrivez votre message..."
                   className="flex-1 h-12 bg-slate-50 border-slate-200 rounded-2xl text-sm"

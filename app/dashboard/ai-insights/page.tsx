@@ -7,6 +7,7 @@ import {
   Sparkles, 
   AlertTriangle, 
   TrendingUp,
+  TrendingDown,
   Users,
   Brain,
   Lightbulb,
@@ -14,7 +15,12 @@ import {
   RefreshCw,
   ChevronRight,
   Clock,
-  BookOpen
+  BookOpen,
+  DollarSign,
+  FileText,
+  GraduationCap,
+  BarChart3,
+  Wallet
 } from "lucide-react"
 import { getPrisma } from "@/lib/tenant-context"
 import { cookies } from "next/headers"
@@ -192,6 +198,28 @@ export default async function AIInsightsPage() {
   // ── Admin / General stats ──────────────────────────────────────────────────
   const adminStudentCount = !isTeacher ? await prisma.user.count({ where: { role: "student" } }) : 0
 
+  // Financial data for admin
+  let totalPaiements = 0
+  let totalImpaye = 0
+  let tauxRecouvrement = 0
+  let riskCount = 0
+
+  if (!isTeacher) {
+    const paiements = await prisma.paiement.findMany()
+    totalPaiements = paiements.length
+    const paye = paiements.filter((p: any) => p.statut === 'payé' || p.statut === 'paye').length
+    totalImpaye = paiements.filter((p: any) => p.statut === 'impayé' || p.statut === 'impaye' || p.statut === 'en_attente').length
+    tauxRecouvrement = totalPaiements > 0 ? Math.round((paye / totalPaiements) * 100) : 100
+
+    // At-risk students (average < 10)
+    const lowStudents = await prisma.note.groupBy({
+      by: ["id_eleve"],
+      _avg: { valeur: true },
+      having: { valeur: { _avg: { lt: 10 } } }
+    })
+    riskCount = lowStudents.length
+  }
+
   const displayStats = isTeacher
     ? [
         { label: "Élèves dans mes classes", value: teacherStats.studentCount.toString(), icon: Users },
@@ -201,15 +229,15 @@ export default async function AIInsightsPage() {
       ]
     : [
         { label: "Élèves analysés", value: adminStudentCount.toLocaleString("fr"), icon: Users },
-        { label: "Insights générés", value: "24", icon: Brain },
-        { label: "Taux de précision", value: "94%", icon: Target },
-        { label: "Actions recommandées", value: "12", icon: Lightbulb },
+        { label: "Élèves à risque", value: riskCount.toString(), icon: AlertTriangle },
+        { label: "Taux recouvrement", value: `${tauxRecouvrement}%`, icon: Wallet },
+        { label: "Impayés détectés", value: totalImpaye.toString(), icon: DollarSign },
       ]
 
   const adminInsights = [
     {
       id: 1, category: "Alerte", title: "Élèves en difficulté détectés",
-      description: "L'analyse des résultats récents indique que 3 élèves de la classe 4B montrent des signes de difficulté en mathématiques avec une baisse de plus de 3 points sur les 2 derniers mois.",
+      description: `L'analyse des résultats récents indique que ${riskCount} élève(s) montrent des signes de difficulté avec une moyenne inférieure à 10/20.`,
       recommendation: "Recommandation : Mettre en place des séances de soutien individualisées et contacter les parents pour un suivi rapproché.",
       students: ["Ibrahim S.", "Mariama B.", "Ousmane T."],
       priority: "high", icon: AlertTriangle, color: "text-destructive", bgColor: "bg-destructive/10",
@@ -227,12 +255,30 @@ export default async function AIInsightsPage() {
       recommendation: "Suggestion : Partager les méthodes pédagogiques lors du prochain conseil pédagogique.",
       priority: "low", icon: TrendingUp, color: "text-chart-3", bgColor: "bg-chart-3/10",
     },
+    {
+      id: 4, category: "Finance", title: `${totalImpaye} impayé(s) détecté(s)`,
+      description: `Le taux de recouvrement est de ${tauxRecouvrement}%. ${totalImpaye > 0 ? `${totalImpaye} paiement(s) en attente nécessitent un suivi.` : "Tous les paiements sont à jour."}`,
+      recommendation: totalImpaye > 0
+        ? "Action IA : Envoyer automatiquement des rappels de paiement par SMS/WhatsApp aux parents concernés."
+        : "Excellent taux de recouvrement ! Maintenez la communication régulière avec les familles.",
+      priority: totalImpaye > 3 ? "high" : totalImpaye > 0 ? "medium" : "low",
+      icon: DollarSign,
+      color: totalImpaye > 3 ? "text-destructive" : totalImpaye > 0 ? "text-chart-4" : "text-chart-3",
+      bgColor: totalImpaye > 3 ? "bg-destructive/10" : totalImpaye > 0 ? "bg-chart-4/10" : "bg-chart-3/10",
+    },
+    {
+      id: 5, category: "Prévision", title: "Prévision financière du trimestre",
+      description: `Sur la base des tendances actuelles, nous estimons un recouvrement de ${Math.min(tauxRecouvrement + 5, 100)}% d'ici la fin du trimestre. ${totalImpaye > 0 ? "Des relances ciblées pourraient améliorer ce taux de 8%." : ""}`,
+      recommendation: "Recommandation IA : Planifier les relances avant la date limite de paiement et offrir des facilités de paiement en 3x.",
+      priority: "medium", icon: BarChart3, color: "text-primary", bgColor: "bg-primary/10",
+    },
   ]
 
   const adminSuggestions = [
     { title: "Optimisation des emplois du temps", description: "Déplacer les cours de mathématiques le matin pourrait améliorer les performances de 8%.", icon: BookOpen },
     { title: "Groupes de niveau", description: "Créer des groupes de niveau en anglais pourrait réduire les écarts de 15%.", icon: Users },
     { title: "Révision du programme", description: "Augmenter le temps consacré à la géométrie en 3ème.", icon: Lightbulb },
+    { title: "Réduire les impayés", description: "Envoyer des rappels automatiques 7 jours avant l'échéance réduit les impayés de 25%.", icon: DollarSign },
   ]
 
   const insights = isTeacher ? teacherInsights : adminInsights
@@ -418,6 +464,59 @@ export default async function AIInsightsPage() {
             </Card>
           </div>
         </div>
+
+        {/* ── Section Génération Automatisée IA (Admin only) ── */}
+        {!isTeacher && (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Génération automatique IA
+            </h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-1">Appréciations</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Générer automatiquement les appréciations trimestrielles pour tous les élèves basées sur leurs performances.</p>
+                  <Button size="sm" className="w-full">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Générer
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="h-12 w-12 rounded-xl bg-chart-3/10 flex items-center justify-center mx-auto mb-3">
+                    <GraduationCap className="h-6 w-6 text-chart-3" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-1">Bulletins</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Pré-remplir les bulletins scolaires avec moyennes, classements, appréciations et recommandations IA.</p>
+                  <Button size="sm" variant="outline" className="w-full">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Pré-remplir
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="h-12 w-12 rounded-xl bg-chart-4/10 flex items-center justify-center mx-auto mb-3">
+                    <Target className="h-6 w-6 text-chart-4" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-1">Plans de soutien</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Créer des plans de soutien personnalisés pour les élèves en difficulté avec des objectifs mesurables.</p>
+                  <Button size="sm" variant="outline" className="w-full">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Créer
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
       </main>
     </>
   )

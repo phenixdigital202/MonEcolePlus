@@ -1,0 +1,33 @@
+{
+  "name": "MonÉcole+ | Gestion Scolaire Intelligente",
+  "short_name": "MonÉcole+",
+  "description": "Plateforme SaaS de gestion scolaire propulsée par l'IA pour l'Afrique",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-light-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

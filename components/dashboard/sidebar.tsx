@@ -26,7 +26,8 @@ import {
   CreditCard,
   Mail,
   Database,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Crown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -83,11 +84,15 @@ const navigationConfig = {
     },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Gestion Utilisateurs", href: "/dashboard/admin/users", icon: Shield },
+    { name: "Comptabilité ERP", href: "/dashboard/admin/compta", icon: CreditCard },
+    { name: "Gestion Examens", href: "/dashboard/admin/examens", icon: Trophy },
+    { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
     { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     { name: "Portail Emails", href: "/dashboard/admin/emails", icon: Mail },
     { name: "Portail WhatsApp", href: "/dashboard/admin/whatsapp", icon: MessageSquare },
     { name: "Sauvegardes DB", href: "/dashboard/admin/backups", icon: Database },
     { name: "Import / Export", href: "/dashboard/admin/import-export", icon: FileSpreadsheet },
+    { name: "Super Admin SaaS", href: "/dashboard/admin/super-admin", icon: Crown },
   ],
   teacher: [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -95,6 +100,7 @@ const navigationConfig = {
     { name: "Emplois du temps", href: "/dashboard/schedule", icon: Calendar },
     { name: "Saisir Notes", href: "/dashboard/grades", icon: FileText },
     { name: "Appel / Absences", href: "/dashboard/absences", icon: Clock },
+    { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
     { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   ],
   student: [
@@ -103,6 +109,7 @@ const navigationConfig = {
     { name: "Mon Emploi du temps", href: "/dashboard/schedule", icon: Calendar },
     { name: "Absences", href: "/dashboard/absences", icon: Clock },
     { name: "Documents", href: "/dashboard/documents", icon: Folder },
+    { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
     { name: "Performance", href: "/dashboard/performance", icon: Trophy },
   ],
   parent: [
@@ -110,6 +117,7 @@ const navigationConfig = {
     { name: "Suivi Enfants", href: "/dashboard/parent", icon: Users },
     { name: "Notes & Bulletins", href: "/dashboard/grades", icon: FileText },
     { name: "Absences", href: "/dashboard/absences", icon: Clock },
+    { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
     { name: "Messages École", href: "/dashboard/messages", icon: MessageSquare },
   ],
 }
