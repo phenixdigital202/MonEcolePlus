@@ -84,6 +84,7 @@ const navigationConfig = {
     { name: "Portail Emails", href: "/dashboard/admin/emails", icon: Mail },
     { name: "Portail WhatsApp", href: "/dashboard/admin/whatsapp", icon: MessageSquare },
     { name: "Sauvegardes DB", href: "/dashboard/admin/backups", icon: Database },
+    { name: "Import / Export", href: "/dashboard/admin/import-export", icon: FileSpreadsheet },
   ],
   teacher: [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
