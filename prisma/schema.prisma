@@ -229,6 +229,10 @@ model Paiement {
   status         PaiementStatus @default(en_attente)
   type           PaiementType
   date_paiement  DateTime       @default(now())
+  provider       String?
+  transactionRef String?
+  phoneNumber    String?
+  receiptUrl     String?
   user           User           @relation(fields: [id_utilisateur], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_utilisateur])

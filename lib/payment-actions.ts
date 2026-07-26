@@ -135,3 +135,122 @@ export async function getStudentPaymentSummaryAction(studentId: number) {
     return { success: false, error: error?.message || "Erreur de chargement" }
   }
 }
+
+/**
+ * Triggers a Mobile Money Payment initiation flow using the adapter pattern
+ */
+export async function initiateMobileMoneyPaymentAction(data: {
+  id_utilisateur: number
+  montant: number
+  type: "scolarite" | "inscription" | "examen"
+  provider: string
+  phoneNumber: string
+}) {
+  try {
+    const prisma = await getPrisma()
+    const { getPaymentProvider } = require("./payment-providers")
+
+    const providerInstance = getPaymentProvider(data.provider)
+    const reference = `MOBI_REF_${Date.now()}`
+
+    // 1. Call API of selected provider
+    const initRes = await providerInstance.initiatePayment(data.montant, data.phoneNumber, reference)
+
+    if (!initRes.success) {
+      return { success: false, error: initRes.message }
+    }
+
+    // 2. Create payment record in DB
+    const newPayment = await prisma.paiement.create({
+      data: {
+        id_utilisateur: data.id_utilisateur,
+        montant: data.montant,
+        type: data.type,
+        status: "paye", // Immediately set to paye since it's a sandbox demo verification success
+        provider: data.provider,
+        transactionRef: initRes.transactionId,
+        phoneNumber: data.phoneNumber,
+        date_paiement: new Date()
+      }
+    })
+
+    revalidatePath("/dashboard/admin/payments")
+    revalidatePath("/dashboard")
+    return { 
+      success: true, 
+      message: initRes.message,
+      data: JSON.parse(JSON.stringify(newPayment)) 
+    }
+  } catch (error: any) {
+    console.error("Mobile Money payment initialization failed:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Request refund for a Mobile Money transaction
+ */
+export async function refundPaymentAction(id: number) {
+  try {
+    const prisma = await getPrisma()
+    const payment = await prisma.paiement.findUnique({ where: { id } })
+
+    if (!payment) {
+      return { success: false, error: "Paiement introuvable" }
+    }
+
+    if (payment.provider && payment.transactionRef) {
+      const { getPaymentProvider } = require("./payment-providers")
+      const providerInstance = getPaymentProvider(payment.provider)
+      await providerInstance.refundPayment(payment.transactionRef, Number(payment.montant))
+    }
+
+    // Update status to annule
+    await prisma.paiement.update({
+      where: { id },
+      data: { status: "annule" }
+    })
+
+    revalidatePath("/dashboard/admin/payments")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Refund failed:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Simulated Bank Reconciliation: compares local records with external gateway log
+ */
+export async function runBankReconciliationAction() {
+  try {
+    const prisma = await getPrisma()
+    const pendingPayments = await prisma.paiement.findMany({
+      where: { status: "en_attente", provider: { not: null } }
+    })
+
+    let reconciledCount = 0
+    const { getPaymentProvider } = require("./payment-providers")
+
+    for (const payment of pendingPayments) {
+      if (payment.provider && payment.transactionRef) {
+        const providerInstance = getPaymentProvider(payment.provider)
+        const check = await providerInstance.verifyPayment(payment.transactionRef)
+        if (check.success && check.status === "paye") {
+          await prisma.paiement.update({
+            where: { id: payment.id },
+            data: { status: "paye" }
+          })
+          reconciledCount++
+        }
+      }
+    }
+
+    revalidatePath("/dashboard/admin/payments")
+    return { success: true, count: reconciledCount }
+  } catch (error: any) {
+    console.error("Reconciliation failed:", error)
+    return { success: false, error: error.message }
+  }
+}

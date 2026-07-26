@@ -16,12 +16,15 @@ import {
   Loader2,
   DollarSign,
   User,
-  ArrowUpRight
+  ArrowUpRight,
+  RefreshCw,
+  RotateCcw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -57,7 +60,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { getPaymentsAction, createPaymentAction, updatePaymentAction, deletePaymentAction } from "@/lib/payment-actions"
+import { 
+  getPaymentsAction, 
+  createPaymentAction, 
+  updatePaymentAction, 
+  deletePaymentAction,
+  initiateMobileMoneyPaymentAction,
+  refundPaymentAction,
+  runBankReconciliationAction
+} from "@/lib/payment-actions"
 import { getAllUsersAction } from "@/lib/admin-shortcut-actions"
 import { toast } from "sonner"
 
@@ -74,11 +85,16 @@ export default function AdminPaymentsPage() {
 
   const [selectedUserForPay, setSelectedUserForPay] = useState("")
   const [amount, setAmount] = useState("")
-  const [paymentType, setPaymentType] = useState<"scolarite" | "inscription" | "examen">("scolarite")
-  const [paymentStatus, setPaymentStatus] = useState<"paye" | "en_attente" | "annule">("paye")
+  const [paymentType, setPaymentType] = useState<"scolarite" | "inscription" | "examen" | any>("scolarite")
+  const [paymentStatus, setPaymentStatus] = useState<"paye" | "en_attente" | "annule" | any>("paye")
+
+  // Mobile Money fields
+  const [paymentMethod, setPaymentMethod] = useState<"classic" | "mobile_money">("classic")
+  const [mmProvider, setMmProvider] = useState("orange_money")
+  const [mmPhone, setMmPhone] = useState("")
 
   const [paymentToEdit, setPaymentToEdit] = useState<any>(null)
-  const [editStatus, setEditStatus] = useState<"paye" | "en_attente" | "annule">("paye")
+  const [editStatus, setEditStatus] = useState<"paye" | "en_attente" | "annule" | any>("paye")
   const [editAmount, setEditAmount] = useState("")
 
   const [paymentToDelete, setPaymentToDelete] = useState<any>(null)
@@ -107,24 +123,79 @@ export default function AdminPaymentsPage() {
     }
 
     setActionLoading(true)
-    const res = await createPaymentAction({
-      id_utilisateur: parseInt(selectedUserForPay),
-      montant: parseFloat(amount),
-      type: paymentType,
-      status: paymentStatus
-    })
 
-    if (res.success) {
-      toast.success("Paiement créé avec succès !")
-      setIsAddPaymentOpen(false)
-      setAmount("")
-      setSelectedUserForPay("")
-      fetchData()
+    if (paymentMethod === "mobile_money") {
+      if (!mmPhone) {
+        toast.error("Veuillez saisir le numéro de téléphone pour le paiement mobile.")
+        setActionLoading(false)
+        return
+      }
+
+      const res = await initiateMobileMoneyPaymentAction({
+        id_utilisateur: parseInt(selectedUserForPay),
+        montant: parseFloat(amount),
+        type: paymentType,
+        provider: mmProvider,
+        phoneNumber: mmPhone
+      })
+
+      if (res.success) {
+        toast.success(res.message || "Paiement Mobile Money validé !")
+        setIsAddPaymentOpen(false)
+        setAmount("")
+        setMmPhone("")
+        setSelectedUserForPay("")
+        fetchData()
+      } else {
+        toast.error(res.error || "Erreur de paiement Mobile Money")
+      }
     } else {
-      toast.error(res.error || "Erreur de création")
+      const res = await createPaymentAction({
+        id_utilisateur: parseInt(selectedUserForPay),
+        montant: parseFloat(amount),
+        type: paymentType,
+        status: paymentStatus
+      })
+
+      if (res.success) {
+        toast.success("Paiement créé avec succès !")
+        setIsAddPaymentOpen(false)
+        setAmount("")
+        setSelectedUserForPay("")
+        fetchData()
+      } else {
+        toast.error(res.error || "Erreur de création")
+      }
     }
     setActionLoading(false)
   }
+
+  // Handle Bank Reconciliation action
+  const handleReconciliation = async () => {
+    setLoading(true)
+    const res = await runBankReconciliationAction()
+    if (res.success) {
+      toast.success(`${res.count} paiement(s) réconcilié(s) automatiquement avec la passerelle !`)
+      fetchData()
+    } else {
+      toast.error(res.error || "Erreur de rapprochement")
+    }
+    setLoading(false)
+  }
+
+  // Handle Mobile Money refund
+  const handleRefund = async (id: number) => {
+    setActionLoading(true)
+    const res = await refundPaymentAction(id)
+    if (res.success) {
+      toast.success("Transaction Mobile Money remboursée avec succès !")
+      fetchData()
+    } else {
+      toast.error(res.error || "Échec du remboursement")
+    }
+    setActionLoading(false)
+  }
+
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -191,82 +262,140 @@ export default function AdminPaymentsPage() {
           <p className="text-sm text-slate-500">Suivi financier des scolarités, inscriptions et reçus d&apos;établissement</p>
         </div>
 
-        <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 rounded-2xl shadow-lg font-bold bg-primary text-white hover:bg-primary/90 border-none">
-              <Plus className="h-4 w-4" />
-              Nouveau paiement
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-3xl p-6">
-            <form onSubmit={handleCreatePayment} className="space-y-4">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Enregistrer un Paiement</DialogTitle>
-                <DialogDescription>
-                  Saisissez les détails du paiement de scolarité ou d&apos;inscription
-                </DialogDescription>
-              </DialogHeader>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleReconciliation} disabled={loading} className="gap-2 rounded-2xl border-slate-200 font-bold hover:bg-slate-50">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Rapprochement bancaire
+          </Button>
 
-              <div className="space-y-4 py-2">
-                <div className="space-y-2">
-                  <Label htmlFor="user-select">Utilisateur / Élève</Label>
-                  <Select value={selectedUserForPay} onValueChange={setSelectedUserForPay} required>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Sélectionner un bénéficiaire" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-[250px]">
-                      {users.map(u => (
-                        <SelectItem key={u.id} value={u.id.toString()}>
-                          {u.nom} ({u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 rounded-2xl shadow-lg font-bold bg-primary text-white hover:bg-primary/90 border-none">
+                <Plus className="h-4 w-4" />
+                Nouveau paiement
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md rounded-3xl p-6">
+              <form onSubmit={handleCreatePayment} className="space-y-4">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Enregistrer un Paiement</DialogTitle>
+                  <DialogDescription>
+                    Saisissez les détails du paiement ou initiez une transaction Mobile Money
+                  </DialogDescription>
+                </DialogHeader>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Montant (FCFA / €)</Label>
-                  <Input 
-                    id="amount" 
-                    type="number" 
-                    placeholder="50000"
-                    className="rounded-xl"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required 
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <Label>Type de paiement</Label>
-                    <Select value={paymentType} onValueChange={(val: any) => setPaymentType(val)}>
+                    <Label htmlFor="user-select">Utilisateur / Élève</Label>
+                    <Select value={selectedUserForPay} onValueChange={setSelectedUserForPay} required>
                       <SelectTrigger className="rounded-xl">
-                        <SelectValue />
+                        <SelectValue placeholder="Sélectionner un bénéficiaire" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="scolarite">Scolarité</SelectItem>
-                        <SelectItem value="inscription">Inscription</SelectItem>
-                        <SelectItem value="examen">Examen</SelectItem>
+                      <SelectContent className="rounded-xl max-h-[250px]">
+                        {users.map(u => (
+                          <SelectItem key={u.id} value={u.id.toString()}>
+                            {u.nom} ({u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Statut</Label>
-                    <Select value={paymentStatus} onValueChange={(val: any) => setPaymentStatus(val)}>
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="paye">Payé</SelectItem>
-                        <SelectItem value="en_attente">En attente</SelectItem>
-                        <SelectItem value="annule">Annulé</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="amount">Montant (FCFA / €)</Label>
+                    <Input 
+                      id="amount" 
+                      type="number" 
+                      placeholder="50000"
+                      className="rounded-xl"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      required 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Méthode de Paiement</Label>
+                    <div className="flex rounded-xl bg-slate-100 p-0.5 border">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setPaymentMethod("classic")}
+                        className={cn("flex-1 h-8 rounded-lg text-xs font-bold", paymentMethod === "classic" ? "bg-white text-slate-800 shadow" : "text-slate-500")}
+                      >
+                        Guichet / Espèces
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setPaymentMethod("mobile_money")}
+                        className={cn("flex-1 h-8 rounded-lg text-xs font-bold", paymentMethod === "mobile_money" ? "bg-white text-slate-800 shadow" : "text-slate-500")}
+                      >
+                        Mobile Money
+                      </Button>
+                    </div>
+                  </div>
+
+                  {paymentMethod === "mobile_money" ? (
+                    <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="space-y-2 col-span-1">
+                        <Label>Opérateur</Label>
+                        <Select value={mmProvider} onValueChange={setMmProvider}>
+                          <SelectTrigger className="rounded-xl bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="orange_money">Orange Money</SelectItem>
+                            <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
+                            <SelectItem value="wave">Wave</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 col-span-1">
+                        <Label>Téléphone</Label>
+                        <Input
+                          placeholder="+225..."
+                          value={mmPhone}
+                          onChange={(e) => setMmPhone(e.target.value)}
+                          className="rounded-xl bg-white"
+                          required={paymentMethod === "mobile_money"}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Type de paiement</Label>
+                      <Select value={paymentType} onValueChange={(val: any) => setPaymentType(val)}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="scolarite">Scolarité</SelectItem>
+                          <SelectItem value="inscription">Inscription</SelectItem>
+                          <SelectItem value="examen">Examen</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {paymentMethod === "classic" && (
+                      <div className="space-y-2">
+                        <Label>Statut</Label>
+                        <Select value={paymentStatus} onValueChange={(val: any) => setPaymentStatus(val)}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="paye">Payé</SelectItem>
+                            <SelectItem value="en_attente">En attente</SelectItem>
+                            <SelectItem value="annule">Annulé</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddPaymentOpen(false)} className="rounded-xl">
@@ -278,7 +407,8 @@ export default function AdminPaymentsPage() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Financial Summary Cards */}
@@ -416,9 +546,16 @@ export default function AdminPaymentsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-bold text-xs uppercase rounded-full">
-                          {p.type}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="font-bold text-[10px] uppercase rounded-full w-fit">
+                            {p.type}
+                          </Badge>
+                          {p.provider && (
+                            <Badge className="bg-primary/10 text-primary border-none font-bold text-[9px] uppercase tracking-wider w-fit">
+                              {p.provider.replace("_", " ")}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="font-black text-slate-900 text-sm">
                         {Number(p.montant).toLocaleString("fr-FR")} FCFA
@@ -434,7 +571,7 @@ export default function AdminPaymentsPage() {
                           </Badge>
                         ) : (
                           <Badge className="bg-rose-500/10 text-rose-600 border-rose-200 gap-1 font-bold text-xs">
-                            <XCircle className="h-3 w-3" /> Annulé
+                            <XCircle className="h-3 w-3" /> Annulé / Remboursé
                           </Badge>
                         )}
                       </TableCell>
@@ -443,6 +580,17 @@ export default function AdminPaymentsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {p.provider && p.status === "paye" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-rose-600 rounded-full hover:bg-rose-50"
+                              onClick={() => handleRefund(p.id)}
+                              title="Rembourser la transaction"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
