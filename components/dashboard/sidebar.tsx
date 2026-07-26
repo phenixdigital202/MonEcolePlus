@@ -23,7 +23,10 @@ import {
   BookOpen,
   UserCheck,
   Shield,
-  CreditCard
+  CreditCard,
+  Mail,
+  Database,
+  FileSpreadsheet
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
