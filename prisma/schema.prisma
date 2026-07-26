@@ -417,3 +417,15 @@ model NotificationWhatsapp {
 
   @@map("notification_whatsapps")
 }
+
+model BackupLog {
+  id            Int       @id @default(autoincrement())
+  filename      String
+  backupType    String    // "database", "documents", "configuration", "full"
+  size          String
+  status        String    // "success", "failed"
+  createdAt     DateTime  @default(now())
+  errorMessage  String?   @db.Text
+
+  @@map("backup_logs")
+}
