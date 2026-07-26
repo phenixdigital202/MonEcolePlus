@@ -403,3 +403,17 @@ model NotificationEmail {
 
   @@map("notification_emails")
 }
+
+model NotificationWhatsapp {
+  id            Int       @id @default(autoincrement())
+  to            String
+  message       String    @db.Text
+  templateName  String
+  status        String    @default("pending") // "sent", "failed", "pending"
+  sentAt        DateTime  @default(now())
+  errorMessage  String?   @db.Text
+  retryCount    Int       @default(0)
+  scheduledFor  DateTime?
+
+  @@map("notification_whatsapps")
+}
