@@ -121,10 +121,10 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 backdrop-blur-lg px-4 md:px-6 shadow-sm">
       {/* Mobile menu button */}
       <button
-        className="lg:hidden -ml-2 p-2 rounded-md hover:bg-muted text-foreground"
+        className="lg:hidden -ml-2 p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"
         onClick={() => setOpen(true)}
       >
         <Menu className="h-5 w-5" />
@@ -132,21 +132,21 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
       </button>
 
       {/* Mobile Logo */}
-      <div className="flex md:hidden lg:hidden">
-         <GraduationCap className="h-6 w-6 text-primary" />
+      <div className="flex md:hidden lg:hidden h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+         <GraduationCap className="h-5 w-5 text-primary" />
       </div>
 
       {/* Title */}
       <div className="flex-1 min-w-0">
-        <h1 className="text-sm md:text-lg font-bold text-foreground truncate">{title}</h1>
+        <h1 className="text-base md:text-lg font-black text-slate-800 tracking-tight">{title}</h1>
         {subtitle && (
-          <p className="text-[10px] md:text-xs text-muted-foreground truncate hidden sm:block">{subtitle}</p>
+          <p className="text-[10px] md:text-xs font-semibold text-slate-400 truncate hidden sm:block">{subtitle}</p>
         )}
       </div>
 
       {/* Children Actions */}
       {children && (
-        <div className="flex-shrink-0 flex items-center gap-1 md:gap-2 ml-auto">
+        <div className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 ml-auto">
           {children}
         </div>
       )}
@@ -154,11 +154,11 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
       {/* Global Interactive Search */}
       <div ref={searchRef} className="hidden md:flex relative max-w-sm">
         <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             type="search"
-            placeholder="Rechercher élève, prof, classe..."
-            className="pl-9 pr-8 w-full rounded-xl border-slate-200 focus:border-primary text-xs"
+            placeholder="Rechercher..."
+            className="pl-9 pr-8 w-full rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-primary text-xs transition-all duration-200 shadow-inner"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => {
@@ -168,7 +168,7 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
             }}
           />
           {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-primary" />
           )}
         </div>
 

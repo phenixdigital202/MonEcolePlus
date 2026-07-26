@@ -19,21 +19,22 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { name: "Mes Classes", value: String(teacherData.classCount || 0), icon: UsersIcon },
-          { name: "Élèves Total", value: String(teacherData.totalStudents || 0), icon: UsersIcon },
-          { name: "Heures Hebdo", value: `${teacherData.weeklyHours || 0}h`, icon: Calendar },
-          { name: "Présence", value: `${teacherData.attendanceRate || 0}%`, icon: TrendingUp },
+          { name: "Mes Classes", value: String(teacherData.classCount || 0), icon: UsersIcon, gradient: "from-blue-600 to-indigo-600" },
+          { name: "Élèves Total", value: String(teacherData.totalStudents || 0), icon: UsersIcon, gradient: "from-purple-600 to-pink-600" },
+          { name: "Heures Hebdo", value: `${teacherData.weeklyHours || 0}h`, icon: Calendar, gradient: "from-emerald-500 to-teal-600" },
+          { name: "Présence", value: `${teacherData.attendanceRate || 0}%`, icon: TrendingUp, gradient: "from-amber-500 to-orange-600" },
         ].map((stat, i) => (
-          <Card key={i} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card key={i} className={`group relative overflow-hidden border-none bg-gradient-to-br ${stat.gradient} text-white shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 rounded-3xl`}>
+            <div className="absolute top-0 right-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-white/10 blur-xl transition-all group-hover:scale-125" />
+            <CardContent className="p-6 relative z-10">
               <div className="flex items-center justify-between">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <stat.icon className="h-5 w-5 text-primary" />
+                <div className="h-11 w-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <stat.icon className="h-5.5 w-5.5 text-white" />
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.name}</p>
+                <p className="text-3xl font-black tracking-tight">{stat.value}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/85 mt-1">{stat.name}</p>
               </div>
             </CardContent>
           </Card>

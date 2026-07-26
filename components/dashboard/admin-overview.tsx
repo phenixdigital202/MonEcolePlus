@@ -81,26 +81,26 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
       {/* Top Stats - Real Database Data */}
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Effectif Total", value: stats.students, icon: Users, bg: "bg-blue-500/10", text: "text-blue-600", trend: "En direct" },
-          { label: "Corps Enseignant", value: stats.teachers, icon: Sparkles, bg: "bg-purple-500/10", text: "text-purple-600", trend: "En direct" },
-          { label: "Classes Actives", value: stats.classes, icon: Activity, bg: "bg-emerald-500/10", text: "text-emerald-600", trend: "En direct" },
-          { label: "Revenus (Mensuel)", value: stats.revenue, icon: CreditCard, bg: "bg-amber-500/10", text: "text-amber-600", trend: "En direct" },
+          { label: "Effectif Total", value: stats.students, icon: Users, gradient: "from-blue-600 to-indigo-600", text: "text-white", bgIcon: "bg-white/20", trend: "En direct" },
+          { label: "Corps Enseignant", value: stats.teachers, icon: Sparkles, gradient: "from-purple-600 to-pink-600", text: "text-white", bgIcon: "bg-white/20", trend: "En direct" },
+          { label: "Classes Actives", value: stats.classes, icon: Activity, gradient: "from-emerald-500 to-teal-600", text: "text-white", bgIcon: "bg-white/20", trend: "En direct" },
+          { label: "Revenus (Mensuel)", value: stats.revenue, icon: CreditCard, gradient: "from-amber-500 to-orange-600", text: "text-white", bgIcon: "bg-white/20", trend: "En direct" },
         ].map((item, i) => (
-          <Card key={i} className="group relative overflow-hidden border-none bg-white/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className={`absolute top-0 right-0 -mr-4 -mt-4 h-24 w-24 rounded-full ${item.bg} blur-2xl transition-colors`} />
-            <CardContent className="p-4 md:p-6 relative z-10">
+          <Card key={i} className={`group relative overflow-hidden border-none bg-gradient-to-br ${item.gradient} text-white shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 rounded-3xl`}>
+            <div className="absolute top-0 right-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-white/10 blur-xl transition-all group-hover:scale-125" />
+            <CardContent className="p-5 md:p-6 relative z-10">
               <div className="flex items-center justify-between">
-                <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl ${item.bg} flex items-center justify-center`}>
-                  <item.icon className={`h-5 w-5 md:h-6 md:w-6 ${item.text}`} />
+                <div className={`h-11 w-11 rounded-2xl ${item.bgIcon} backdrop-blur-md flex items-center justify-center`}>
+                  <item.icon className="h-5.5 w-5.5 text-white" />
                 </div>
-                <div className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 md:py-1 rounded-full">
-                   <ArrowUpRight className="h-3 w-3" />
+                <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-white bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                   <ArrowUpRight className="h-3 w-3 animate-pulse" />
                    {item.trend}
                 </div>
               </div>
-              <div className="mt-3 md:mt-4">
-                <p className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{item.value}</p>
-                <p className="text-[10px] font-bold uppercase text-slate-500 tracking-widest mt-1">{item.label}</p>
+              <div className="mt-5">
+                <p className="text-3xl font-black tracking-tight">{item.value}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/80 mt-1">{item.label}</p>
               </div>
             </CardContent>
           </Card>

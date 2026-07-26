@@ -159,67 +159,60 @@ export function ParentDashboardView({ initialData }: ParentDashboardViewProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Overview Cards */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            <Card className="border-border/50">
+            <Card className="group relative overflow-hidden border-none bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-3xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Moyenne générale</CardTitle>
-                <GraduationCap className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-blue-100">Moyenne générale</CardTitle>
+                <GraduationCap className="h-5 w-5 text-white/80" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{selectedChild.averageGrade.toFixed(2)}</span>
-                  <span className="text-muted-foreground">/20</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black">{selectedChild.averageGrade.toFixed(2)}</span>
+                  <span className="text-xs text-blue-100">/20</span>
                 </div>
-                <div className="mt-1 flex items-center gap-1 text-sm flex-wrap">
+                <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-blue-100 flex-wrap">
                   {selectedChild.averageGrade >= selectedChild.previousAverage ? (
-                    <>
-                      <TrendingUp className="h-3 w-3 text-green-500" />
-                      <span className="text-green-500">
-                        +{(selectedChild.averageGrade - selectedChild.previousAverage).toFixed(2)}
-                      </span>
-                    </>
+                    <span className="text-green-300">
+                      +{(selectedChild.averageGrade - selectedChild.previousAverage).toFixed(2)}
+                    </span>
                   ) : (
-                    <>
-                      <TrendingDown className="h-3 w-3 text-red-500" />
-                      <span className="text-red-500">
-                        {(selectedChild.averageGrade - selectedChild.previousAverage).toFixed(2)}
-                      </span>
-                    </>
+                    <span className="text-rose-300">
+                      {(selectedChild.averageGrade - selectedChild.previousAverage).toFixed(2)}
+                    </span>
                   )}
-                  <span className="text-muted-foreground">vs trimestre précédent</span>
+                  <span>vs préc.</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border/50">
+            <Card className="group relative overflow-hidden border-none bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-3xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Classement</CardTitle>
-                <Award className="h-4 w-4 text-amber-500" />
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-amber-100">Classement</CardTitle>
+                <Award className="h-5 w-5 text-white/80" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{selectedChild.rank}</span>
-                  <span className="text-muted-foreground">/{selectedChild.totalStudents}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black">{selectedChild.rank}e</span>
+                  <span className="text-xs text-amber-100">/ {selectedChild.totalStudents}</span>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Top {Math.round((selectedChild.rank / selectedChild.totalStudents) * 100)}% de la classe
-                </p>
+                <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-amber-100">
+                  <span>Rang dans la classe</span>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border/50">
+            <Card className="group relative overflow-hidden border-none bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-3xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Absences</CardTitle>
-                {selectedChild.absences > 3 ? (
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                ) : (
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                )}
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-rose-100">Absences</CardTitle>
+                <Clock className="h-5 w-5 text-white/80" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{selectedChild.absences}</div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {selectedChild.absences === 0 ? 'Aucune absence' : 'ce trimestre'}
-                </p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black">{selectedChild.absences}</span>
+                  <span className="text-xs text-rose-100">demi-journée(s)</span>
+                </div>
+                <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-rose-100">
+                  <span>Ce trimestre</span>
+                </div>
               </CardContent>
             </Card>
           </div>

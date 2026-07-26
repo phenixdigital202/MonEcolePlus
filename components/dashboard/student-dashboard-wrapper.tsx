@@ -43,21 +43,22 @@ async function StudentDataFetcher({ studentId }: { studentId: number }) {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { name: "Moyenne Général", value: `${studentData.globalAverage} / 20`, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50" },
-          { name: "Rang Classe", value: `${formattedRank} sur ${studentData.totalStudents}`, icon: UsersIcon, color: "text-purple-600", bg: "bg-purple-50" },
-          { name: "Absences", value: `${studentData.absences} heure${studentData.absences > 1 ? 's' : ''}`, icon: Clock, color: "text-rose-600", bg: "bg-rose-50" },
-          { name: "Documents", value: `${studentData.documentCounts.certificates + studentData.documentCounts.reports} récents`, icon: Sparkles, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { name: "Moyenne Générale", value: `${studentData.globalAverage} / 20`, icon: TrendingUp, gradient: "from-blue-600 to-indigo-600" },
+          { name: "Rang Classe", value: `${formattedRank} sur ${studentData.totalStudents}`, icon: UsersIcon, gradient: "from-purple-600 to-pink-600" },
+          { name: "Absences", value: `${studentData.absences} heure${studentData.absences > 1 ? 's' : ''}`, icon: Clock, gradient: "from-rose-500 to-orange-600" },
+          { name: "Documents", value: `${studentData.documentCounts.certificates + studentData.documentCounts.reports} récents`, icon: Sparkles, gradient: "from-emerald-500 to-teal-600" },
         ].map((stat, i) => (
-          <Card key={i} className="hover:shadow-lg transition-all duration-300 border-none bg-white/70 backdrop-blur-md">
-            <CardContent className="p-6">
+          <Card key={i} className={`group relative overflow-hidden border-none bg-gradient-to-br ${stat.gradient} text-white shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 rounded-3xl`}>
+            <div className="absolute top-0 right-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-white/10 blur-xl transition-all group-hover:scale-125" />
+            <CardContent className="p-6 relative z-10">
               <div className="flex items-center justify-between">
-                <div className={`h-12 w-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                <div className="h-11 w-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <stat.icon className="h-5.5 w-5.5 text-white" />
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-black text-slate-800">{stat.value}</p>
-                <p className="text-xs font-bold uppercase text-slate-500 tracking-wider mt-1">{stat.name}</p>
+                <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-white/85 mt-1">{stat.name}</p>
               </div>
             </CardContent>
           </Card>
