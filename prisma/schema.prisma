@@ -388,3 +388,18 @@ enum Role {
 
   @@map("users_role")
 }
+
+model NotificationEmail {
+  id            Int       @id @default(autoincrement())
+  to            String
+  subject       String
+  body          String    @db.Text
+  templateName  String
+  status        String    @default("pending") // "sent", "failed", "pending"
+  sentAt        DateTime  @default(now())
+  errorMessage  String?   @db.Text
+  retryCount    Int       @default(0)
+  scheduledFor  DateTime?
+
+  @@map("notification_emails")
+}
