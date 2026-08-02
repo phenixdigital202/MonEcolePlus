@@ -385,6 +385,7 @@ enum ParcoursResultat {
 }
 
 enum Role {
+  super_admin
   admin
   teacher
   parent

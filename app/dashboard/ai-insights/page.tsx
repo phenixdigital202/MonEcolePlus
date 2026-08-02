@@ -1,5 +1,3 @@
-"use server"
-
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,17 +11,20 @@ import {
   Lightbulb,
   Target,
   RefreshCw,
-  ChevronRight,
   Clock,
   BookOpen,
   DollarSign,
   FileText,
   GraduationCap,
   BarChart3,
-  Wallet
+  Wallet,
+  Activity,
+  Award,
+  AlertCircle
 } from "lucide-react"
 import { getPrisma } from "@/lib/tenant-context"
 import { cookies } from "next/headers"
+import { generateSchoolAIAnalysis } from "@/lib/ai-service"
 
 export default async function AIInsightsPage() {
   const prisma = await getPrisma()
@@ -37,276 +38,47 @@ export default async function AIInsightsPage() {
 
   const isTeacher = user.role === "teacher"
 
-  // ── Teacher-specific data ──────────────────────────────────────────────────
-  let teacherStats = {
-    studentCount: 0,
-    classCount: 0,
-    subjectName: user.matiere || "Matière",
-    avgGrade: 0,
-    atRiskCount: 0,
-    absentCount: 0,
-  }
+  // ── 1. Fetch AI Analysis ───────────────────────────────────────────────────
+  const analysis = await generateSchoolAIAnalysis()
 
-  let teacherInsights: any[] = []
-  let teacherSuggestions: any[] = []
-
-  if (isTeacher) {
-    // 1. Get teacher's classes
-    const schedules = await prisma.emploiDuTemps.findMany({
-      where: { id_enseignant: user.id },
-      include: {
-        classe: {
-          include: {
-            inscriptions: { include: { user: true } }
-          }
-        }
-      },
-      distinct: ["id_classe"]
-    })
-
-    const classIds: number[] = []
-    const studentIdSet = new Set<number>()
-    const classNames: string[] = []
-
-    for (const s of schedules) {
-      if (s.id_classe) classIds.push(s.id_classe)
-      if (s.classes) {
-        if (!classNames.includes(s.classe.nom)) classNames.push(s.classe.nom)
-        for (const ins of s.classe.inscriptions) {
-          studentIdSet.add(ins.id_eleve)
-        }
-      }
-    }
-
-    teacherStats.classCount = classIds.length
-    teacherStats.studentCount = studentIdSet.size
-
-    // Subject from schedule or user
-    const firstScheduleWithSubject = schedules.find(s => s.matiere)
-    if (firstScheduleWithSubject?.matiere) {
-      teacherStats.subjectName = firstScheduleWithSubject.matiere
-    }
-
-    // 2. Average grade for teacher's classes/subject
-    if (classIds.length > 0) {
-      const dbSubjects = await prisma.emploiDuTemps.findMany({
-        where: { id_enseignant: user.id },
-        select: { matiere: true },
-        distinct: ["matiere"]
-      })
-      const subjects = dbSubjects.map(s => s.matiere).filter(Boolean) as string[]
-
-      const notesAgg = await prisma.note.aggregate({
-        _avg: { valeur: true },
-        where: {
-          evaluation: {
-            id_classe: { in: classIds },
-            ...(subjects.length > 0 ? { matiere: { in: subjects } } : {})
-          }
-        }
-      })
-      teacherStats.avgGrade = Math.round((Number(notesAgg._avg.valeur) || 0) * 10) / 10
-
-      // 3. At-risk students (average < 10)
-      const lowNotes = await prisma.note.groupBy({
-        by: ["id_eleve"],
-        _avg: { valeur: true },
-        where: {
-          evaluation: {
-            id_classe: { in: classIds },
-            ...(subjects.length > 0 ? { matiere: { in: subjects } } : {})
-          }
-        },
-        having: { valeur: { _avg: { lt: 10 } } }
-      })
-      teacherStats.atRiskCount = lowNotes.length
-
-      // 4. Recent absences count in the last 7 days for teacher's students
-      const oneWeekAgo = new Date()
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      const recentAbsences = await prisma.absence.count({
-        where: {
-          id_eleve: { in: Array.from(studentIdSet) },
-          date_absence: { gte: oneWeekAgo }
-        }
-      })
-      teacherStats.absentCount = recentAbsences
-    }
-
-    // Build dynamic insights
-    teacherInsights = [
-      ...(teacherStats.atRiskCount > 0 ? [{
-        id: 1,
-        category: "Alerte",
-        title: `${teacherStats.atRiskCount} élève${teacherStats.atRiskCount > 1 ? "s" : ""} en difficulté`,
-        description: `${teacherStats.atRiskCount} élève${teacherStats.atRiskCount > 1 ? "s" : ""} de vos classes ont une moyenne en ${teacherStats.subjectName} inférieure à 10/20. Une attention particulière est recommandée.`,
-        recommendation: "Recommandation IA : Organiser des séances de soutien ciblées et informer les parents concernés pour un suivi rapproché.",
-        priority: "high",
-        icon: AlertTriangle,
-        color: "text-destructive",
-        bgColor: "bg-destructive/10",
-      }] : []),
-      ...(teacherStats.absentCount > 0 ? [{
-        id: 2,
-        category: "Prédiction",
-        title: `${teacherStats.absentCount} absence${teacherStats.absentCount > 1 ? "s" : ""} cette semaine`,
-        description: `${teacherStats.absentCount} absence${teacherStats.absentCount > 1 ? "s" : ""} ont été enregistrées dans vos classes au cours des 7 derniers jours.`,
-        recommendation: "Action suggérée : Vérifier les justificatifs et contacter les familles si nécessaire.",
-        priority: "medium",
-        icon: Clock,
-        color: "text-chart-4",
-        bgColor: "bg-chart-4/10",
-      }] : []),
-      {
-        id: 3,
-        category: "Tendance",
-        title: `Moyenne générale en ${teacherStats.subjectName}`,
-        description: teacherStats.avgGrade > 0
-          ? `La moyenne actuelle de vos élèves en ${teacherStats.subjectName} est de ${teacherStats.avgGrade}/20.`
-          : `Aucune note saisie pour le moment en ${teacherStats.subjectName}.`,
-        recommendation: teacherStats.avgGrade >= 14
-          ? "Excellents résultats ! Maintenez les méthodes pédagogiques en place et identifiez les profils à fort potentiel."
-          : teacherStats.avgGrade >= 10
-          ? "Résultats satisfaisants. Pensez à valoriser les progrès individuels et à organiser des révisions ciblées."
-          : "Résultats à améliorer. Une révision des approches pédagogiques et un soutien renforcé sont conseillés.",
-        priority: teacherStats.avgGrade >= 14 ? "low" : teacherStats.avgGrade >= 10 ? "medium" : "high",
-        icon: TrendingUp,
-        color: "text-chart-3",
-        bgColor: "bg-chart-3/10",
-      }
-    ]
-
-    teacherSuggestions = [
-      {
-        title: "Saisie des notes à jour",
-        description: `Assurez-vous que toutes les évaluations en ${teacherStats.subjectName} sont enregistrées pour un suivi précis.`,
-        icon: BookOpen,
-      },
-      {
-        title: "Suivi des absences",
-        description: "Marquez les présences régulièrement pour des statistiques fiables.",
-        icon: Clock,
-      },
-      {
-        title: "Communication parents",
-        description: "La messagerie vous permet de contacter directement les familles de vos élèves.",
-        icon: Users,
-      },
-    ]
-  }
-
-  // ── Admin / General stats ──────────────────────────────────────────────────
-  const adminStudentCount = !isTeacher ? await prisma.user.count({ where: { role: "student" } }) : 0
-
-  // Financial data for admin
-  let totalPaiements = 0
-  let totalImpaye = 0
-  let tauxRecouvrement = 0
-  let riskCount = 0
-
-  if (!isTeacher) {
-    const paiements = await prisma.paiement.findMany()
-    totalPaiements = paiements.length
-    const paye = paiements.filter((p: any) => p.statut === 'payé' || p.statut === 'paye').length
-    totalImpaye = paiements.filter((p: any) => p.statut === 'impayé' || p.statut === 'impaye' || p.statut === 'en_attente').length
-    tauxRecouvrement = totalPaiements > 0 ? Math.round((paye / totalPaiements) * 100) : 100
-
-    // At-risk students (average < 10)
-    const lowStudents = await prisma.note.groupBy({
-      by: ["id_eleve"],
-      _avg: { valeur: true },
-      having: { valeur: { _avg: { lt: 10 } } }
-    })
-    riskCount = lowStudents.length
-  }
-
+  // ── 2. Display Stats Configuration ─────────────────────────────────────────
   const displayStats = isTeacher
     ? [
-        { label: "Élèves dans mes classes", value: teacherStats.studentCount.toString(), icon: Users },
-        { label: "Classes assignées", value: teacherStats.classCount.toString(), icon: Brain },
-        { label: `Moyenne en ${teacherStats.subjectName}`, value: teacherStats.avgGrade > 0 ? `${teacherStats.avgGrade}/20` : "—", icon: Target },
-        { label: "Élèves en difficulté", value: teacherStats.atRiskCount.toString(), icon: AlertTriangle },
+        { label: "Santé Classe", value: `${analysis.healthIndex}%`, icon: Activity, color: "text-[#6366f1]", bg: "bg-[#6366f1]/10" },
+        { label: "Assiduité", value: analysis.attendanceTrend.split("(")[0].trim(), icon: Clock, color: "text-amber-400", bg: "bg-amber-500/10" },
+        { label: "Moyenne Classes", value: `${analysis.classAnalysis.comparison[0]?.avgGrade || 12}/20`, icon: Target, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+        { label: "Élèves à risque", value: analysis.atRiskStudents.length.toString(), icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
       ]
     : [
-        { label: "Élèves analysés", value: adminStudentCount.toLocaleString("fr"), icon: Users },
-        { label: "Élèves à risque", value: riskCount.toString(), icon: AlertTriangle },
-        { label: "Taux recouvrement", value: `${tauxRecouvrement}%`, icon: Wallet },
-        { label: "Impayés détectés", value: totalImpaye.toString(), icon: DollarSign },
+        { label: "Index de Santé", value: `${analysis.healthIndex}%`, icon: Activity, color: "text-[#6366f1]", bg: "bg-[#6366f1]/10" },
+        { label: "Performance Globale", value: analysis.performanceTrend, icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+        { label: "Recouvrement", value: analysis.financeTrend, icon: Wallet, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+        { label: "Élèves en difficulté", value: analysis.atRiskStudents.length.toString(), icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
       ]
-
-  const adminInsights = [
-    {
-      id: 1, category: "Alerte", title: "Élèves en difficulté détectés",
-      description: `L'analyse des résultats récents indique que ${riskCount} élève(s) montrent des signes de difficulté avec une moyenne inférieure à 10/20.`,
-      recommendation: "Recommandation : Mettre en place des séances de soutien individualisées et contacter les parents pour un suivi rapproché.",
-      students: ["Ibrahim S.", "Mariama B.", "Ousmane T."],
-      priority: "high", icon: AlertTriangle, color: "text-destructive", bgColor: "bg-destructive/10",
-    },
-    {
-      id: 2, category: "Prédiction", title: "Risque d'absentéisme élevé",
-      description: "Basé sur les patterns historiques, nous prévoyons un risque élevé d'absence pour 5 élèves cette semaine.",
-      recommendation: "Action suggérée : Envoyer un rappel préventif aux parents concernés.",
-      students: ["Fatou D.", "Amadou K.", "Aïssatou M.", "Jean P.", "Sophie L."],
-      priority: "medium", icon: Clock, color: "text-chart-4", bgColor: "bg-chart-4/10",
-    },
-    {
-      id: 3, category: "Tendance positive", title: "Amélioration en Français",
-      description: "La moyenne de Français a augmenté de 1.2 points ce trimestre par rapport au précédent.",
-      recommendation: "Suggestion : Partager les méthodes pédagogiques lors du prochain conseil pédagogique.",
-      priority: "low", icon: TrendingUp, color: "text-chart-3", bgColor: "bg-chart-3/10",
-    },
-    {
-      id: 4, category: "Finance", title: `${totalImpaye} impayé(s) détecté(s)`,
-      description: `Le taux de recouvrement est de ${tauxRecouvrement}%. ${totalImpaye > 0 ? `${totalImpaye} paiement(s) en attente nécessitent un suivi.` : "Tous les paiements sont à jour."}`,
-      recommendation: totalImpaye > 0
-        ? "Action IA : Envoyer automatiquement des rappels de paiement par SMS/WhatsApp aux parents concernés."
-        : "Excellent taux de recouvrement ! Maintenez la communication régulière avec les familles.",
-      priority: totalImpaye > 3 ? "high" : totalImpaye > 0 ? "medium" : "low",
-      icon: DollarSign,
-      color: totalImpaye > 3 ? "text-destructive" : totalImpaye > 0 ? "text-chart-4" : "text-chart-3",
-      bgColor: totalImpaye > 3 ? "bg-destructive/10" : totalImpaye > 0 ? "bg-chart-4/10" : "bg-chart-3/10",
-    },
-    {
-      id: 5, category: "Prévision", title: "Prévision financière du trimestre",
-      description: `Sur la base des tendances actuelles, nous estimons un recouvrement de ${Math.min(tauxRecouvrement + 5, 100)}% d'ici la fin du trimestre. ${totalImpaye > 0 ? "Des relances ciblées pourraient améliorer ce taux de 8%." : ""}`,
-      recommendation: "Recommandation IA : Planifier les relances avant la date limite de paiement et offrir des facilités de paiement en 3x.",
-      priority: "medium", icon: BarChart3, color: "text-primary", bgColor: "bg-primary/10",
-    },
-  ]
-
-  const adminSuggestions = [
-    { title: "Optimisation des emplois du temps", description: "Déplacer les cours de mathématiques le matin pourrait améliorer les performances de 8%.", icon: BookOpen },
-    { title: "Groupes de niveau", description: "Créer des groupes de niveau en anglais pourrait réduire les écarts de 15%.", icon: Users },
-    { title: "Révision du programme", description: "Augmenter le temps consacré à la géométrie en 3ème.", icon: Lightbulb },
-    { title: "Réduire les impayés", description: "Envoyer des rappels automatiques 7 jours avant l'échéance réduit les impayés de 25%.", icon: DollarSign },
-  ]
-
-  const insights = isTeacher ? teacherInsights : adminInsights
-  const suggestions = isTeacher ? teacherSuggestions : adminSuggestions
 
   return (
     <>
       <DashboardHeader 
-        title="Insights IA" 
+        title="Insights IA & Analyses" 
         subtitle={isTeacher
-          ? `Recommandations personnalisées pour vos ${teacherStats.classCount} classe${teacherStats.classCount > 1 ? "s" : ""}`
-          : "Recommandations intelligentes basées sur l'analyse des données"
+          ? "Recommandations et prévisions scolaires pour vos classes"
+          : "Tableau de bord prédictif et recommandations stratégiques IA"
         }
       />
       
-      <main className="p-6">
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+      <main className="p-6 space-y-6">
+        {/* Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-4">
           {displayStats.map((stat) => (
             <Card key={stat.label}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <stat.icon className="h-5 w-5 text-primary" />
+                  <div className={`h-10 w-10 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="text-xl font-black text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
                   </div>
                 </div>
               </CardContent>
@@ -314,209 +86,173 @@ export default async function AIInsightsPage() {
           ))}
         </div>
 
-        {/* Refresh Notice */}
-        <div className="mb-6 p-4 rounded-lg bg-muted/50 border border-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-medium text-foreground">Dernière analyse : Il y a 2 heures</p>
-              <p className="text-sm text-muted-foreground">
-                {isTeacher ? "Les insights sont mis à jour à chaque connexion" : "Les insights sont mis à jour automatiquement chaque jour"}
-              </p>
+        {/* AI Executive Summary */}
+        <Card className="border-indigo-500/20 bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
+          <CardContent className="p-6 flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 border border-indigo-500/20">
+              <Brain className="h-6 w-6 text-indigo-500" />
             </div>
-          </div>
-          <form>
-            <Button variant="outline" size="sm" type="submit" formAction="?">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Actualiser
-            </Button>
-          </form>
-        </div>
+            <div className="space-y-1">
+              <h3 className="font-extrabold text-indigo-950 text-base">Synthèse Automatique IA</h3>
+              <p className="text-sm text-indigo-900/80 leading-relaxed font-medium">{analysis.summary}</p>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Insights */}
-          <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              {isTeacher ? "Insights de vos classes" : "Insights prioritaires"}
-            </h2>
+          {/* Main Insights Panel */}
+          <div className="lg:col-span-2 space-y-6">
             
-            {insights.length === 0 && (
-              <Card className="border-dashed">
-                <CardContent className="p-12 text-center text-muted-foreground">
-                  <Sparkles className="h-10 w-10 mx-auto mb-4 opacity-30" />
-                  <p className="font-semibold">Aucun insight disponible</p>
-                  <p className="text-sm mt-1">Commencez par saisir des notes et marquer des présences pour recevoir des recommandations.</p>
+            {/* Section 1: Analyse des Élèves */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Users className="h-5 w-5 text-indigo-500" />
+                  Analyse des Élèves & Alertes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {analysis.atRiskStudents.map((student) => (
+                    <div key={student.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-slate-900">{student.name}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{student.class}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{student.reason}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-rose-600 block">Moyenne: {student.avgGrade}/20</span>
+                        <span className="text-[10px] text-muted-foreground block">{student.absences} absences</span>
+                      </div>
+                    </div>
+                  ))}
+                  {analysis.atRiskStudents.length === 0 && (
+                    <p className="p-6 text-center text-sm text-muted-foreground">Aucun élève en alerte actuellement.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section 2: Analyse Financière (Admin only) */}
+            {!isTeacher && (
+              <Card>
+                <CardHeader className="border-b pb-4">
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-emerald-500" />
+                    Analyse & Prévisions Financières
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                      <span className="text-xs text-emerald-800 font-bold block mb-1">Paiements Reçus</span>
+                      <p className="text-lg font-black text-emerald-700">{analysis.financeAnalysis.received.toLocaleString("fr")} FCFA</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-100">
+                      <span className="text-xs text-amber-800 font-bold block mb-1">Paiements en Retard</span>
+                      <p className="text-lg font-black text-amber-700">{analysis.financeAnalysis.late.toLocaleString("fr")} FCFA</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                      <span className="text-xs text-indigo-800 font-bold block mb-1">Prévision Recouvrement</span>
+                      <p className="text-lg font-black text-indigo-700">{Math.round(analysis.financeAnalysis.forecast).toLocaleString("fr")} FCFA</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {insights.map((insight: any) => {
-              const Icon = insight.icon
-              return (
-                <Card key={insight.id} className={`border-l-4 ${
-                  insight.priority === "high" ? "border-l-destructive" :
-                  insight.priority === "medium" ? "border-l-chart-4" :
-                  insight.priority === "low" ? "border-l-chart-3" :
-                  "border-l-primary"
-                }`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className={`h-10 w-10 rounded-lg ${insight.bgColor} flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`h-5 w-5 ${insight.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${insight.bgColor} ${insight.color}`}>
-                            {insight.category}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-foreground mb-2">{insight.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
-                        
-                        {insight.students && (
-                          <div className="mb-3 flex flex-wrap gap-2">
-                            {insight.students.map((student: string) => (
-                              <span key={student} className="text-xs px-2 py-1 rounded-md bg-muted text-foreground">
-                                {student}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="p-3 rounded-lg bg-muted/50 border border-border">
-                          <p className="text-sm text-foreground">
-                            <span className="font-medium">Recommandation IA :</span> {insight.recommendation}
-                          </p>
-                        </div>
-                        
-                        {!isTeacher && (
-                          <div className="mt-4 flex gap-2">
-                            <Button size="sm">Prendre action</Button>
-                            <Button size="sm" variant="outline">Ignorer</Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Suggestions */}
+            {/* Section 3: Prédictions IA */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-chart-4" />
-                  {isTeacher ? "Conseils pédagogiques" : "Suggestions d'amélioration"}
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-indigo-500" />
+                  Modèles Prédictifs de Réussite Scolaire
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {suggestions.map((suggestion: any, idx: number) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="h-8 w-8 rounded-lg bg-chart-4/10 flex items-center justify-center flex-shrink-0">
-                      <suggestion.icon className="h-4 w-4 text-chart-4" />
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {analysis.predictions.map((pred, i) => (
+                    <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                      <div className="space-y-1">
+                        <p className="font-bold text-sm text-slate-900">{pred.studentName}</p>
+                        <p className="text-xs text-muted-foreground">Classement estimé : {pred.examPrediction}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-indigo-600 block">Réussite: {pred.successProbability}%</span>
+                          <span className={`text-[10px] font-bold uppercase ${
+                            pred.dropoutRisk === "élevé" ? "text-red-500" :
+                            pred.dropoutRisk === "moyen" ? "text-amber-500" : "text-emerald-500"
+                          }`}>Risque abandon: {pred.dropoutRisk}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-foreground">{suggestion.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{suggestion.description}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Sidebar - Recommendations & Classes Comparison */}
+          <div className="space-y-6">
+            
+            {/* Section 4: Recommandations IA */}
+            <Card>
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-amber-500" />
+                  Recommandations Stratégiques
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase text-indigo-500 tracking-wider">Pédagogique</h4>
+                  {analysis.recommendations.pedagogiques.map((rec, i) => (
+                    <p key={i} className="text-xs text-slate-700 leading-relaxed font-medium">💡 {rec}</p>
+                  ))}
+                </div>
+                <div className="space-y-2 pt-2 border-t">
+                  <h4 className="text-xs font-black uppercase text-emerald-500 tracking-wider">Financier</h4>
+                  {analysis.recommendations.financieres.map((rec, i) => (
+                    <p key={i} className="text-xs text-slate-700 leading-relaxed font-medium">💡 {rec}</p>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
-            {/* AI Model Info */}
+            {/* Section 5: Comparaison des Classes */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  À propos de l&apos;IA
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-indigo-500" />
+                  Performances des Classes
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {isTeacher
-                    ? "Le moteur IA analyse vos résultats de classe, les absences et les tendances pour vous fournir des recommandations pédagogiques adaptées."
-                    : "Notre système d'IA analyse quotidiennement les données de votre établissement pour identifier les tendances et suggérer des améliorations."}
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Modèle</span>
-                    <span className="font-medium text-foreground">MonÉcole AI v2.1</span>
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <span className="text-[10px] text-emerald-800 font-bold uppercase block">Top Performance</span>
+                    <span className="text-sm font-extrabold text-emerald-900">{analysis.classAnalysis.best || "3ème"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{isTeacher ? "Élèves suivis" : "Données analysées"}</span>
-                    <span className="font-medium text-foreground">
-                      {isTeacher ? `${teacherStats.studentCount} élèves` : "15,420 points"}
-                    </span>
+                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-100">
+                    <span className="text-[10px] text-rose-800 font-bold uppercase block">En Difficulté</span>
+                    <span className="text-sm font-extrabold text-rose-900">{analysis.classAnalysis.worst || "6ème"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Précision</span>
-                    <span className="font-medium text-chart-3">94.2%</span>
-                  </div>
+                </div>
+                <div className="space-y-2 pt-2 border-t">
+                  {analysis.classAnalysis.comparison.map((c, i) => (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">{c.name}</span>
+                      <span className="text-slate-900 font-bold">Moy. {c.avgGrade}/20 ({c.attendanceRate}% assiduité)</span>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        {/* ── Section Génération Automatisée IA (Admin only) ── */}
-        {!isTeacher && (
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
-              <GraduationCap className="h-5 w-5 text-primary" />
-              Génération automatique IA
-            </h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">Appréciations</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Générer automatiquement les appréciations trimestrielles pour tous les élèves basées sur leurs performances.</p>
-                  <Button size="sm" className="w-full">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Générer
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="h-12 w-12 rounded-xl bg-chart-3/10 flex items-center justify-center mx-auto mb-3">
-                    <GraduationCap className="h-6 w-6 text-chart-3" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">Bulletins</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Pré-remplir les bulletins scolaires avec moyennes, classements, appréciations et recommandations IA.</p>
-                  <Button size="sm" variant="outline" className="w-full">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Pré-remplir
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-dashed hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="h-12 w-12 rounded-xl bg-chart-4/10 flex items-center justify-center mx-auto mb-3">
-                    <Target className="h-6 w-6 text-chart-4" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">Plans de soutien</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Créer des plans de soutien personnalisés pour les élèves en difficulté avec des objectifs mesurables.</p>
-                  <Button size="sm" variant="outline" className="w-full">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Créer
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
       </main>
     </>
   )

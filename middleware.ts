@@ -54,6 +54,21 @@ export function middleware(request: NextRequest) {
     return addSecurityHeaders(NextResponse.next())
   }
 
+  // ── Super Admin Route Protection ───────────────────────────────────────────
+  if (pathname.startsWith("/super-admin")) {
+    if (!userId) {
+      const loginUrl = new URL("/login", request.url)
+      loginUrl.searchParams.set("redirect", pathname)
+      return addSecurityHeaders(NextResponse.redirect(loginUrl))
+    }
+    if (userRole !== "super_admin") {
+      // 403 Forbidden redirect to school dashboard
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/dashboard", request.url))
+      )
+    }
+  }
+
   // ── Dashboard Routes ───────────────────────────────────────────────────────
   if (pathname.startsWith("/dashboard")) {
     // Redirect unauthenticated users
@@ -81,5 +96,5 @@ export function middleware(request: NextRequest) {
 
 // Config to specify matching routes
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"]
+  matcher: ["/dashboard/:path*", "/api/:path*", "/super-admin/:path*"]
 }
