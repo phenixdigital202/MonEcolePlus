@@ -222,13 +222,12 @@ export async function loginUser(formData: FormData) {
       })
     }
 
+    return { success: true, role: user.role }
   } catch (error: any) {
     if (error.message?.includes("NEXT_REDIRECT")) throw error;
     console.error("Login error:", error)
     return { error: "Une erreur est survenue lors de la connexion." }
   }
-
-  return { success: true, role: user.role }
 }
 
 export async function logoutUser() {

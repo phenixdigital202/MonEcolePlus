@@ -12,7 +12,7 @@ export async function getSaasStats() {
   const totalTeachers = await prisma.user.count({ where: { role: "teacher" } })
   const totalParents = await prisma.user.count({ where: { role: "parent" } })
   const totalAdmins = await prisma.user.count({ where: { role: "admin" } })
-  const totalClasses = await prisma.classe.count()
+  const totalClasses = await prisma.class.count()
   const totalPaiements = await prisma.paiement.count()
   
   return {
