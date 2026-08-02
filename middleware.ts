@@ -78,6 +78,13 @@ export function middleware(request: NextRequest) {
       return addSecurityHeaders(NextResponse.redirect(loginUrl))
     }
 
+    // Auto-redirect super_admin to their dedicated dashboard
+    if (userRole === "super_admin") {
+      return addSecurityHeaders(
+        NextResponse.redirect(new URL("/super-admin", request.url))
+      )
+    }
+
     // Role-based access control
     for (const [routePrefix, allowedRoles] of Object.entries(ROLE_ACCESS)) {
       if (pathname.startsWith(routePrefix)) {

@@ -20,10 +20,14 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error)
       setPending(false)
-    } else {
-      // If no error, the server action SHOULD have redirected, 
-      // but we force a client-side push as a fallback for reliability.
-      router.push("/dashboard")
+    } else if (result?.success) {
+      if (result.role === "super_admin") {
+        router.push("/super-admin")
+      } else if (result.role === "parent") {
+        router.push("/dashboard/parent")
+      } else {
+        router.push("/dashboard")
+      }
       router.refresh()
     }
   }
