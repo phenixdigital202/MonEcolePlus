@@ -9,6 +9,13 @@ import { logError } from "./logger"
 export async function getCurrentTenant() {
   try {
     const cookieStore = await import("next/headers").then(m => m.cookies())
+    
+    // Isolation absolue : Aucun traitement de tenant pour le Super Admin
+    const userRole = cookieStore.get("user_role")?.value
+    if (userRole === "super_admin") {
+      return null
+    }
+
     const schoolId = cookieStore.get("school_id")?.value
 
     if (schoolId) {
@@ -58,6 +65,14 @@ export async function getCurrentTenant() {
  */
 export async function getPrisma() {
   try {
+    const cookieStore = await import("next/headers").then(m => m.cookies())
+    const userRole = cookieStore.get("user_role")?.value
+    
+    // Les requêtes Super Admin ne doivent JAMAIS basculer sur une base locataire
+    if (userRole === "super_admin") {
+      return masterPrisma
+    }
+
     const tenant = await getCurrentTenant()
     
     if (tenant && tenant.database_url) {

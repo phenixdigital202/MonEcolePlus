@@ -206,7 +206,14 @@ export async function loginUser(formData: FormData) {
       path: "/",
     })
     
-    if (user.id_ecole) {
+    if (user.role === "super_admin") {
+      // Nettoyage complet de toute trace de tenant
+      cookieStore.delete("school_id")
+      cookieStore.delete("tenant_id")
+      cookieStore.delete("tenant_slug")
+      cookieStore.delete("school_slug")
+      cookieStore.delete("database")
+    } else if (user.id_ecole) {
       cookieStore.set("school_id", user.id_ecole.toString(), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -229,5 +236,9 @@ export async function logoutUser() {
   cookieStore.delete("user_id")
   cookieStore.delete("user_role")
   cookieStore.delete("school_id")
+  cookieStore.delete("tenant_id")
+  cookieStore.delete("tenant_slug")
+  cookieStore.delete("school_slug")
+  cookieStore.delete("database")
   redirect("/login")
 }

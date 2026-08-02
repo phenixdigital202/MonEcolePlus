@@ -103,5 +103,5 @@ export function middleware(request: NextRequest) {
 
 // Config to specify matching routes
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*", "/super-admin/:path*"]
+  matcher: ["/dashboard/:path*", "/api/:path*", "/super-admin", "/super-admin/:path*"]
 }
