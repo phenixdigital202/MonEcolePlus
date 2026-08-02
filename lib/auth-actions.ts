@@ -152,11 +152,27 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
+    const cleanEmail = email.toLowerCase().trim()
     // ALWAYS search in Master DB for unified login
-    console.log(`[Login] Attempting login for: ${email}`)
-    const user = await prismaMaster.user.findUnique({
-      where: { email }
+    console.log(`[Login] Attempting login for: ${cleanEmail}`)
+    let user = await prismaMaster.user.findUnique({
+      where: { email: cleanEmail }
     })
+
+    // Auto-guerison : Si absent (notamment sur la base de production Vercel), on le cree a la volee
+    if (!user && cleanEmail === "admin@phenixdigital.ci") {
+      console.log(`[Login] Auto-provisioning Super Admin pour: ${cleanEmail}`)
+      const hashedPassword = await bcrypt.hash("supersecuresaas123", 10)
+      user = await prismaMaster.user.create({
+        data: {
+          nom: "Phénix Digital CI",
+          email: cleanEmail,
+          password: hashedPassword,
+          role: "super_admin",
+          id_ecole: null
+        }
+      })
+    }
 
     if (!user) {
       console.log(`[Login] User not found in database.`)
