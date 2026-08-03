@@ -165,7 +165,7 @@ export async function generateSchoolAIAnalysis(): Promise<AIAnalysisResult> {
 
   // Teacher analysis
   const teacherAnalysis = teachers.map(t => {
-    const teacherNotes = notes.filter(n => n.evaluation.matiere === (t.matiere || ""))
+    const teacherNotes = notes.filter(n => n.evaluation?.matiere === (t.matiere || ""))
     const avg = teacherNotes.length > 0
       ? teacherNotes.reduce((acc, n) => acc + Number(n.valeur), 0) / teacherNotes.length
       : 12.4
