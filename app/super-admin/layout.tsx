@@ -29,15 +29,15 @@ export default function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
 
   const navItems = [
     { name: "SaaS Dashboard", href: "/super-admin", icon: Activity },
-    { name: "Gestion Écoles", href: "#", icon: Building2 },
-    { name: "Abonnements", href: "#", icon: CreditCard },
-    { name: "Monitoring Système", href: "#", icon: Server },
-    { name: "Sécurité & Rôles", href: "#", icon: Shield },
-    { name: "Portail WhatsApp", href: "#", icon: MessageSquare },
-    { name: "Portail Email", href: "#", icon: Mail },
-    { name: "Tickets Support", href: "#", icon: TicketCheck },
-    { name: "Sauvegardes Globales", href: "#", icon: Database },
-    { name: "Configuration", href: "#", icon: Settings },
+    { name: "Gestion Écoles", href: "/super-admin/ecoles", icon: Building2 },
+    { name: "Abonnements", href: "/super-admin/abonnements", icon: CreditCard },
+    { name: "Monitoring Système", href: "/super-admin/monitoring", icon: Server },
+    { name: "Sécurité & Rôles", href: "/super-admin/roles", icon: Shield },
+    { name: "Portail WhatsApp", href: "/super-admin/whatsapp", icon: MessageSquare },
+    { name: "Portail Email", href: "/super-admin/email", icon: Mail },
+    { name: "Tickets Support", href: "/super-admin/support", icon: TicketCheck },
+    { name: "Sauvegardes Globales", href: "/super-admin/backups", icon: Database },
+    { name: "Configuration", href: "/super-admin/config", icon: Settings },
   ]
 
   const handleLogout = async () => {
