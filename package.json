@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "tenants:migrate": "npx tsx scripts/migrate_tenants_cli.ts",
     "postinstall": "prisma generate && prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql"
   },
   "dependencies": {

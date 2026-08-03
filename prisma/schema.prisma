@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────────
@@ -475,6 +474,19 @@ model ExamenNational {
   salles        String?  // Salles réservées
 
   @@map("examens_nationaux")
+}
+
+model SchemaVersion {
+  id           Int      @id @default(autoincrement())
+  tenant_id    Int
+  version      String
+  migration    String
+  status       String   // "success", "failed"
+  duration     Int      // milliseconds
+  error        String?  @db.Text
+  date         DateTime @default(now())
+
+  @@map("schema_versions")
 }
 
 

@@ -2,6 +2,7 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { EcolePlan } from "@prisma/client"
+import { MigrationManager } from "./migration-manager"
 
 // ── Statistiques globales SaaS ──────────────────────────────────────────────
 export async function getSaasStats() {
@@ -55,6 +56,12 @@ export async function createEcole(nom: string, subdomain: string, plan: EcolePla
         db_status: "ready"
       }
     })
+    
+    // Auto-migrate schema on the newly created tenant DB
+    if (newEcole.database_url) {
+      await MigrationManager.checkAndAutoMigrate(newEcole.id, newEcole.database_url)
+    }
+
     return { success: true, data: newEcole }
   } catch (error: any) {
     return { success: false, error: error.message }
