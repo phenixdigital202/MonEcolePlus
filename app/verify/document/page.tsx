@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { ShieldCheck, ShieldAlert, Loader2, FileText, Calendar, Building, User } from "lucide-react"
 
 export default function VerifyDocumentPage() {
@@ -14,7 +14,14 @@ export default function VerifyDocumentPage() {
           <p className="text-blue-100 text-sm mt-1">Portail d'Authentification des Pièces Officielles</p>
         </div>
         
-        <VerificationContent />
+        <Suspense fallback={
+          <div className="p-12 text-center flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <p className="text-slate-500 font-medium">Chargement du module de vérification...</p>
+          </div>
+        }>
+          <VerificationContent />
+        </Suspense>
         
         <div className="bg-slate-50 p-6 text-center border-t border-slate-100 text-xs text-slate-400">
           <p>© 2026 MonÉcole+. Tous droits réservés.</p>
