@@ -22,22 +22,57 @@ export class MigrationManager {
   static CURRENT_VERSION = "1.0.4" // Incremented schema version tracker
 
   /**
-   * Helper to execute Prisma db push on a specific database URL using direct port 5432 to bypass PgBouncer limits
+   * Helper to execute Prisma db push on a specific database URL overriding both DATABASE_URL and DIRECT_URL
    */
-  private static executeDbPush(databaseUrl: string) {
-    // Transform pooler connection URL (6543) into direct connection URL (5432) for DDL migrations support
+  private static async executeDbPush(databaseUrl: string) {
+    // 1. Extract database name from connection URL
+    const dbName = databaseUrl.split("/").pop()?.split("?")[0]
+    
+    if (dbName && dbName !== "postgres") {
+      console.log(`[MigrationManager] Ensuring database "${dbName}" exists on PostgreSQL cluster...`)
+      
+      // Connect to the master default 'postgres' database to run CREATE DATABASE
+      const defaultDbUrl = process.env.DIRECT_URL || "postgresql://postgres.nfrripylvuzxpuipdrpy:MonEcolePlus@aws-0-eu-west-3.pooler.supabase.com:5432/postgres"
+      const defaultPrisma = new PrismaClient({
+        datasources: { db: { url: defaultDbUrl } }
+      })
+
+      try {
+        await defaultPrisma.$executeRawUnsafe(`CREATE DATABASE "${dbName}"`)
+        console.log(`[MigrationManager] Database "${dbName}" created successfully.`)
+      } catch (err: any) {
+        // Safe to ignore if database already exists (code 42P04 in postgres)
+        if (err.message.includes("already exists") || err.message.includes("42P04")) {
+          console.log(`[MigrationManager] Database "${dbName}" already exists.`)
+        } else {
+          console.warn(`[MigrationManager] Database creation warning: ${err.message}`)
+        }
+      } finally {
+        await defaultPrisma.$disconnect()
+      }
+    }
+
+    // 2. Transform pooler connection URL (6543) into direct connection URL (5432) for DDL migrations support
     const directUrl = databaseUrl
       .replace(":6543/", ":5432/")
       .replace("?pgbouncer=true", "")
 
-    execSync("node node_modules/prisma/build/index.js db push --accept-data-loss --skip-generate", {
-      env: {
-        ...process.env,
-        DATABASE_URL: directUrl,
-        PRISMA_SKIP_ENV_VAR_LOAD: "1" // Bypass loading of .env files
-      },
-      stdio: "ignore"
-    })
+    console.log(`[MigrationManager] Running prisma db push on: ${directUrl.split("@")[1] || "hidden"}`)
+
+    try {
+      execSync("node node_modules/prisma/build/index.js db push --accept-data-loss --skip-generate", {
+        env: {
+          ...process.env,
+          DATABASE_URL: directUrl,
+          PRISMA_SKIP_ENV_VAR_LOAD: "1" // Bypass loading of .env files
+        },
+        stdio: "pipe"
+      })
+    } catch (err: any) {
+      const stderr = err.stderr?.toString() || ""
+      const stdout = err.stdout?.toString() || ""
+      throw new Error(`Prisma Push Failed:\nSTDOUT: ${stdout}\nSTDERR: ${stderr}\nMessage: ${err.message}`)
+    }
   }
 
   /**
@@ -60,7 +95,7 @@ export class MigrationManager {
 
       try {
         // Execute db push with the direct connection URL
-        this.executeDbPush(ecole.database_url)
+        await this.executeDbPush(ecole.database_url)
 
         const duration = Date.now() - startTime
 
@@ -101,21 +136,25 @@ export class MigrationManager {
    */
   static async checkAndAutoMigrate(ecoleId: number, databaseUrl: string) {
     try {
+      // Connect to tenant DB to query version
       const tenantPrisma = new PrismaClient({
         datasources: { db: { url: databaseUrl } }
       })
 
-      // Get latest schema version logged on tenant
-      const latest = await tenantPrisma.schemaVersion.findFirst({
-        orderBy: { date: "desc" }
-      })
+      // Get latest schema version logged on tenant (safely wrap in case table doesn't exist yet)
+      let latest = null
+      try {
+        latest = await tenantPrisma.schemaVersion.findFirst({
+          orderBy: { date: "desc" }
+        })
+      } catch (e) {}
       await tenantPrisma.$disconnect()
 
       if (!latest || latest.version !== this.CURRENT_VERSION) {
         console.log(`[MigrationManager] Tenant ${ecoleId} is outdated (version: ${latest?.version || "none"}). Auto-migrating...`)
         
         const startTime = Date.now()
-        this.executeDbPush(databaseUrl)
+        await this.executeDbPush(databaseUrl)
         const duration = Date.now() - startTime
 
         // Log success
