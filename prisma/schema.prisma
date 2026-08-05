@@ -489,4 +489,17 @@ model SchemaVersion {
   @@map("schema_versions")
 }
 
+model VerifiedDocument {
+  id              String   @id @default(uuid()) // UUID
+  numeroUnique    String   @unique
+  hashSha256      String
+  typeDocument    String   // "bulletin", "recu", "certificat", "attestation"
+  dateGeneration  DateTime @default(now())
+  id_utilisateur  Int
+  id_ecole        Int
+  metadataJson    String   @db.Text
+
+  @@map("verified_documents")
+}
+
 

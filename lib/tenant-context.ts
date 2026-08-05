@@ -8,7 +8,12 @@ import { logError } from "./logger"
  */
 export async function getCurrentTenant() {
   try {
-    const cookieStore = await import("next/headers").then(m => m.cookies())
+    let cookieStore;
+    try {
+      cookieStore = await import("next/headers").then(m => m.cookies())
+    } catch (e) {
+      return null
+    }
     
     // Isolation absolue : Aucun traitement de tenant pour le Super Admin
     const userRole = cookieStore.get("user_role")?.value
@@ -59,13 +64,21 @@ export async function getCurrentTenant() {
   return null
 }
 
-/**
- * Returns the Prisma client for the current tenant.
- * Defaults to the Master client if no tenant is found or on connection error.
- */
 export async function getPrisma() {
+  // If in CLI/script context, we can override targeting using DATABASE_URL env
+  if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("tenant_") || process.env.DATABASE_URL.includes("monecole_abou") || process.env.DATABASE_URL.includes("monecole_lyc") || process.env.DATABASE_URL.includes("monecole_bamba") || process.env.DATABASE_URL.includes("monecole_lycee"))) {
+    return getTenantClient(process.env.DATABASE_URL)
+  }
+
   try {
-    const cookieStore = await import("next/headers").then(m => m.cookies())
+    let cookieStore;
+    try {
+      cookieStore = await import("next/headers").then(m => m.cookies())
+    } catch (e) {
+      // CLI context fallback
+      return masterPrisma
+    }
+
     const userRole = cookieStore.get("user_role")?.value
     
     // Les requêtes Super Admin ne doivent JAMAIS basculer sur une base locataire
