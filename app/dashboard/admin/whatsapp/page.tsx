@@ -240,7 +240,7 @@ export default function WhatsAppAdminPage() {
           <Card className="border-none shadow-xl bg-white rounded-3xl overflow-hidden">
             <CardHeader className="bg-primary/5 border-b pb-4">
               <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
-                <Activity className="h-4.5 w-4.5 text-primary" />
+                <TrendingUp className="h-5 w-5 text-primary" />
                 Diagnostic API en Direct
               </CardTitle>
               <CardDescription className="text-xs">Valider la configuration réelle de l'API WhatsApp Meta</CardDescription>
