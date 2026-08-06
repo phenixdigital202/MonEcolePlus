@@ -2,10 +2,13 @@ import { getPrisma } from "@/lib/tenant-context"
 
 const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID || ""
 const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || ""
-const twilioFromNumber = process.env.TWILIO_WHATSAPP_NUMBER || "whatsapp:+14155238886" // Default Twilio sandbox number
+const twilioFromNumber = process.env.TWILIO_WHATSAPP_NUMBER || "whatsapp:+14155238886"
+
+const metaAccessToken = process.env.WHATSAPP_ACCESS_TOKEN || ""
+const metaPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || ""
 
 /**
- * Core WhatsApp Dispatcher
+ * Core WhatsApp Dispatcher (Supports Meta Cloud API & Twilio Fallback)
  */
 export async function sendWhatsAppMessage({
   to,
@@ -20,8 +23,11 @@ export async function sendWhatsAppMessage({
 }) {
   const prisma = await getPrisma()
 
-  // Format destination number (ensure it has whatsapp: prefix)
+  // Format destination number (ensure it has whatsapp: prefix for database compatibility)
   const formattedTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`
+
+  // Clean number for Meta (digits only, e.g. 2250700000000)
+  const metaCleanNumber = to.replace("whatsapp:", "").replace("+", "").replace(/\s/g, "")
 
   // 1. Create database log entry
   const log = await prisma.notificationWhatsapp.create({
@@ -45,7 +51,30 @@ export async function sendWhatsAppMessage({
 
   // 2. Dispatch message
   try {
-    if (twilioAccountSid && twilioAuthToken) {
+    if (metaAccessToken && metaPhoneNumberId) {
+      console.log(`[WhatsApp API] Dispatching to Meta Cloud API...`)
+      const response = await fetch(`https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${metaAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: metaCleanNumber,
+          type: "text",
+          text: { body: message }
+        })
+      })
+
+      const responseData = await response.json()
+      if (!response.ok) {
+        throw new Error(`Meta API error: ${JSON.stringify(responseData)}`)
+      }
+
+      console.log(`[WhatsApp API] Meta Cloud API Success (HTTP 200). Msg ID: ${responseData.messages?.[0]?.id}`)
+    } else if (twilioAccountSid && twilioAuthToken) {
       // Use dynamic import of twilio library to avoid breaking client/build bundles if not needed
       const twilio = require("twilio")
       const client = twilio(twilioAccountSid, twilioAuthToken)
@@ -58,8 +87,8 @@ export async function sendWhatsAppMessage({
     } else {
       // Console fallback logger
       console.log("=== [WhatsApp Fallback Log] Message Sent ===")
-      console.log(`From: ${twilioFromNumber}`)
-      console.log(`To: ${formattedTo}`)
+      console.log(`From: ${metaPhoneNumberId ? 'Meta:' + metaPhoneNumberId : twilioFromNumber}`)
+      console.log(`To: ${formattedTo} (Meta format: ${metaCleanNumber})`)
       console.log(`Template: ${templateName}`)
       console.log(`Message: ${message}`)
     }
