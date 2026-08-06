@@ -106,18 +106,64 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
   }
 
   const handleExportCSV = () => {
-    const headers = ["ID", "Élève", "Classe", "Matière", "Note", "Commentaire", "Date Évaluation"]
-    const csvData = filteredNotes.map(n => [
-      n.id,
-      n.user?.nom || "Élève",
-      n.evaluation?.classe?.nom || "Non inscrite",
-      n.evaluation?.matiere || "",
-      Number(n.valeur).toFixed(2),
-      n.commentaire || "",
-      n.evaluation?.date_eval ? new Date(n.evaluation.date_eval).toLocaleDateString("fr-FR") : ""
-    ])
+    const headers = [
+      "Date",
+      "Élève",
+      "Classe",
+      "Matière",
+      "Enseignant",
+      "Note /20",
+      "Coefficient",
+      "Moyenne",
+      "Observation",
+      "Statut"
+    ]
 
-    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n")
+    const escapeCsvCell = (val: any) => {
+      const str = val === null || val === undefined ? "" : String(val)
+      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const csvRows = filteredNotes.map(n => {
+      const dateVal = n.evaluation?.date_eval ? new Date(n.evaluation.date_eval).toLocaleDateString("fr-FR") : ""
+      const studentName = n.user?.nom || "Non renseigné"
+      const className = n.evaluation?.classe?.nom || "Non inscrite"
+      const subjectName = n.evaluation?.matiere || ""
+      const teacherName = n.teacherName || "Non assigné"
+      const gradeVal = Number(n.valeur).toFixed(2)
+      const coeffVal = n.coefficient || 2
+      const classAverage = n.classAverage !== undefined ? Number(n.classAverage).toFixed(2) : "N/A"
+      
+      const score = Number(n.valeur)
+      let observation = n.commentaire || ""
+      if (!observation) {
+        if (score >= 16) observation = "Excellent"
+        else if (score >= 14) observation = "Très Bien"
+        else if (score >= 12) observation = "Bien"
+        else if (score >= 10) observation = "Passable"
+        else observation = "Insuffisant"
+      }
+
+      const statut = score >= 10 ? "Validé" : "Alerte"
+
+      return [
+        escapeCsvCell(dateVal),
+        escapeCsvCell(studentName),
+        escapeCsvCell(className),
+        escapeCsvCell(subjectName),
+        escapeCsvCell(teacherName),
+        escapeCsvCell(gradeVal),
+        escapeCsvCell(coeffVal),
+        escapeCsvCell(classAverage),
+        escapeCsvCell(observation),
+        escapeCsvCell(statut)
+      ]
+    })
+
+    const csvContent = "\uFEFF" + [headers, ...csvRows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -127,7 +173,7 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    toast.success("Tableau des notes exporté en CSV")
+    toast.success("Tableau des notes exporté en CSV (Format Excel)")
   }
 
   return (
