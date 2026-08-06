@@ -155,13 +155,13 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
 export function AdminDashboardWrapper({ adminId, ecoleId }: { adminId: number, ecoleId: number }) {
   return (
     <Suspense fallback={
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in-up">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+          {[1,2,3,4].map(i => <div key={i} className={`skeleton h-32 w-full rounded-3xl delay-${i}`} />)}
         </div>
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <Skeleton className="h-[400px] w-full rounded-xl" />
-          <Skeleton className="h-[400px] w-full rounded-xl" />
+          <div className="skeleton h-[400px] w-full rounded-3xl delay-5" />
+          <div className="skeleton h-[400px] w-full rounded-3xl delay-6" />
         </div>
       </div>
     }>

@@ -179,7 +179,7 @@ export default function AdminStudentsPage() {
   })
 
   return (
-    <div className="space-y-6 p-4 md:p-8 animate-in fade-in duration-700">
+    <div className="space-y-6 p-4 md:p-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">Gestion des Élèves</h1>
@@ -381,14 +381,14 @@ export default function AdminStudentsPage() {
           { label: "Classes Actives", value: classes.length, icon: School, color: "text-amber-600", bg: "bg-amber-500/10" },
           { label: "Taux Présence", value: "94%", icon: Calendar, color: "text-rose-600", bg: "bg-rose-500/10" },
         ].map((stat, i) => (
-          <Card key={i} className="border-none bg-white/50 backdrop-blur-md shadow-sm hover:shadow-md transition-all">
+          <Card key={i} className={`animate-fade-in-up delay-${i + 1} border-none bg-white/50 backdrop-blur-md shadow-sm card-hover-premium rounded-2xl`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase text-slate-500 tracking-wider">{stat.label}</p>
-                  <h3 className="text-2xl font-black mt-1 text-slate-800">{stat.value}</h3>
+                  <h3 className="text-2xl font-black mt-1 text-slate-800 stat-number">{stat.value}</h3>
                 </div>
-                <div className={`p-3 rounded-2xl ${stat.bg}`}>
+                <div className={`p-3 rounded-2xl ${stat.bg} transition-transform duration-300 group-hover:scale-110`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </div>

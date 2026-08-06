@@ -54,14 +54,14 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50/30 min-w-0">
+    <div className="flex flex-col min-h-full bg-slate-50/30 min-w-0 custom-scrollbar">
       {/* Shell renders instantly */}
       <DashboardHeader 
         title={displayTitle} 
         subtitle={displaySubtitle}
       />
       
-      <main className="p-4 md:p-8">
+      <main className="p-4 md:p-8 animate-fade-in-up">
         {user.role === 'admin' && (
           <AdminDashboardWrapper adminId={user.id} ecoleId={user.id_ecole || 0} />
         )}
