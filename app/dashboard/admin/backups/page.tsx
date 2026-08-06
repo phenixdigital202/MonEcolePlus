@@ -165,6 +165,17 @@ export default function BackupsAdminPage() {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        <a 
+                          href={`/api/backups/download?filename=${encodeURIComponent(file.filename)}`}
+                          download
+                        >
+                          <Button 
+                            className="h-8 px-3 rounded-xl bg-slate-800 text-white font-bold text-[10px] uppercase gap-1.5 hover:bg-slate-900"
+                          >
+                            <Download className="h-3 w-3" />
+                            Télécharger
+                          </Button>
+                        </a>
                         <Button 
                           onClick={() => setRestoringFile(file.filename)}
                           className="h-8 px-3 rounded-xl bg-amber-600 text-white font-bold text-[10px] uppercase gap-1.5 hover:bg-amber-700"
