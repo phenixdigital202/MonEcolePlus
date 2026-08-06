@@ -152,10 +152,10 @@ export function DashboardSidebar({
   const navigation = navigationConfig[userRole] || navigationConfig.admin
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-slate-900 border-r border-slate-800 text-slate-300 h-full shadow-2xl">
+    <aside className="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-slate-900 border-r border-slate-800/80 text-slate-300 h-full shadow-2xl">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-800">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/20">
+      <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-800/80">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 hover:scale-110 hover:rotate-3">
           <GraduationCap className="h-5 w-5 text-white" />
         </div>
         <span className="text-lg font-black tracking-tight text-white">
@@ -187,7 +187,7 @@ export function DashboardSidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6 custom-scrollbar">
         <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href
@@ -240,7 +240,7 @@ export function DashboardSidebar({
                     : "text-slate-400 hover:bg-slate-800/50 hover:text-white group"
                 )}
               >
-                <item.icon className={cn("h-4.5 w-4.5 transition-transform duration-200 group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
+                <item.icon className={cn("h-4.5 w-4.5 transition-all duration-300 group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
                 {item.name}
               </Link>
             )

@@ -121,5 +121,198 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   PREMIUM ANIMATIONS — Stripe / Notion / Linear
+   ═══════════════════════════════════════════════ */
+
+/* Fade In Up — Staggered entrance for lists & cards */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide In Left — Sidebar & navigation items */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Scale In — Modal & dialog entrance */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Shimmer — Skeleton loading effect */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Pulse Glow — Active states & notifications */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.22 265 / 0.4); }
+  50%      { box-shadow: 0 0 0 8px oklch(0.55 0.22 265 / 0); }
+}
+
+/* Count Up Number — Stat counter fade-in */
+@keyframes countFadeIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Float — Subtle floating animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* Utility Classes */
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+.animate-count-fade-in {
+  animation: countFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Staggered delay utilities — for list entrances */
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }
+.delay-4 { animation-delay: 200ms; }
+.delay-5 { animation-delay: 250ms; }
+.delay-6 { animation-delay: 300ms; }
+.delay-7 { animation-delay: 350ms; }
+.delay-8 { animation-delay: 400ms; }
+
+/* ═══════════════════════════════════════════════
+   PREMIUM TRANSITIONS — Global 300ms ease
+   ═══════════════════════════════════════════════ */
+
+/* Global smooth transitions for interactive elements */
+a, button, input, select, textarea,
+[role="button"], [role="tab"], [role="menuitem"] {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Card hover micro-interaction — Stripe/Linear style */
+.card-hover-premium {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.12),
+              0 4px 12px -4px rgba(0, 0, 0, 0.06);
+}
+
+/* Glassmorphism — Vercel/Linear style */
+.glass {
+  background: oklch(1 0 0 / 0.7);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid oklch(0.92 0.01 265 / 0.5);
+}
+
+.dark .glass {
+  background: oklch(0.14 0.02 265 / 0.7);
+  border-color: oklch(0.25 0.02 265 / 0.5);
+}
+
+/* Skeleton Loader — Premium shimmer effect */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    oklch(0.95 0.005 265) 25%,
+    oklch(0.92 0.005 265) 50%,
+    oklch(0.95 0.005 265) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    oklch(0.2 0.02 265) 25%,
+    oklch(0.24 0.02 265) 50%,
+    oklch(0.2 0.02 265) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* ═══════════════════════════════════════════════
+   PREMIUM SCROLLBAR — Clean minimal style
+   ═══════════════════════════════════════════════ */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.85 0.01 265);
+  border-radius: 100px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.75 0.01 265);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.02 265);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0.02 265);
+}
+
+/* ═══════════════════════════════════════════════
+   STAT CARD — Animated number display
+   ═══════════════════════════════════════════════ */
+
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+/* ═══════════════════════════════════════════════
+   PRINT STYLES — A4 clean output
+   ═══════════════════════════════════════════════ */
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 15mm;
   }
 }

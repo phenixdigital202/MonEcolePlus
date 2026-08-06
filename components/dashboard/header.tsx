@@ -121,7 +121,7 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100 bg-white/80 backdrop-blur-lg px-4 md:px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-100/80 bg-white/80 backdrop-blur-lg px-4 md:px-6 shadow-sm glass">
       {/* Mobile menu button */}
       <button
         className="lg:hidden -ml-2 p-2 rounded-xl hover:bg-slate-100 text-slate-700 transition-colors"

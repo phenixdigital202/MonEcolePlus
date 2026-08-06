@@ -1,16 +1,10 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: '--font-inter'
-});
-const geistMono = Geist_Mono({ 
-  subsets: ["latin"],
-  variable: '--font-geist-mono'
-});
+// Utilisation des polices système natives pour la robustesse du build hors-ligne
+const inter = { variable: 'font-sans' };
+const geistMono = { variable: 'font-mono' };
 
 export const metadata: Metadata = {
   title: 'MonÉcole+ | Plateforme de Gestion Scolaire Intelligente',
