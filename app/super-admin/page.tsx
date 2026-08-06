@@ -52,9 +52,9 @@ export default async function SuperAdminPage() {
 
   const statCards = [
     { label: "Écoles actives", value: stats.totalEcoles.toString(), icon: Building2, color: "text-[#6366f1]", bg: "bg-[#6366f1]/10" },
-    { label: "Utilisateurs", value: stats.totalUsers.toLocaleString("fr"), icon: Users, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-    { label: "Élèves", value: stats.totalStudents.toLocaleString("fr"), icon: GraduationCap, color: "text-amber-400", bg: "bg-amber-500/10" },
-    { label: "Paiements", value: stats.totalPaiements.toLocaleString("fr"), icon: CreditCard, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+    { label: "MRR", value: stats.mrr, icon: CreditCard, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+    { label: "ARR Estime", value: stats.arr, icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10" },
+    { label: "Taux de Churn", value: stats.churn, icon: XCircle, color: "text-rose-400", bg: "bg-rose-500/10" },
     { label: "Stockage", value: stats.storageUsed, icon: HardDrive, color: "text-purple-400", bg: "bg-purple-500/10" },
     { label: "Uptime", value: stats.uptime, icon: Activity, color: "text-rose-400", bg: "bg-rose-500/10" },
   ]

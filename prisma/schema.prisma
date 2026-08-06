@@ -519,4 +519,16 @@ model ResetPasswordToken {
   @@map("reset_password_tokens")
 }
 
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // "info" | "warn" | "error"
+  source    String   // "auth" | "api" | "payment" | "cron"
+  message   String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("system_logs")
+}
+
 

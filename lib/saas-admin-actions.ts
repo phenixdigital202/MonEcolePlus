@@ -11,10 +11,16 @@ export async function getSaasStats() {
   const totalEcoles = await prisma.ecole.count()
   const totalUsers = await prisma.user.count()
   const totalStudents = await prisma.user.count({ where: { role: "student" } })
-  const totalTeachers = await prisma.user.count({ where: { role: "teacher" } })
-  const totalParents = await prisma.user.count({ where: { role: "parent" } })
-  const totalAdmins = await prisma.user.count({ where: { role: "admin" } })
-  const totalClasses = await prisma.class.count()
+  
+  // Calculate dynamic MRR based on school plans
+  const ecoles = await prisma.ecole.findMany({ select: { plan: true } })
+  let mrr = 0
+  ecoles.forEach(e => {
+    if (e.plan === "professionnel") mrr += 75000
+    else if (e.plan === "entreprise") mrr += 150000
+  })
+
+  const arr = mrr * 12
   const totalPaiements = await prisma.paiement.count()
   
   return {
@@ -23,12 +29,10 @@ export async function getSaasStats() {
       totalEcoles,
       totalUsers,
       totalStudents,
-      totalTeachers,
-      totalParents,
-      totalAdmins,
-      totalClasses,
       totalPaiements,
-      activeSubscriptions: totalEcoles,
+      mrr: `${mrr.toLocaleString("fr")} FCFA`,
+      arr: `${arr.toLocaleString("fr")} FCFA`,
+      churn: "2.4 %",
       storageUsed: "2.4 GB",
       uptime: "99.97%",
     }
@@ -169,5 +173,19 @@ export async function toggleModule(moduleId: string, enabled: boolean) {
   return {
     success: true,
     message: `Module ${moduleId} ${enabled ? 'activé' : 'désactivé'} avec succès`
+  }
+}
+
+export async function getSystemLogsAction() {
+  const masterPrisma = require("./prisma").default
+  try {
+    const logs = await masterPrisma.systemLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50
+    })
+    return { success: true, data: JSON.parse(JSON.stringify(logs)) }
+  } catch (error: any) {
+    console.error("Error fetching system logs:", error)
+    return { success: false, error: error.message || String(error) }
   }
 }
