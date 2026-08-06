@@ -11,11 +11,21 @@ const smtpFrom = process.env.SMTP_FROM || "MonÉcole+ <noreply@monecoleplus.com>
 // Cache/Reusable nodemailer transporter
 let transporter: any = null
 
-function getTransporter() {
-  if (transporter) return transporter
+function getTransporter(ecoleSettings?: { smtp_host?: string | null, smtp_port?: number | null, smtp_user?: string | null, smtp_pass?: string | null }) {
+  if (ecoleSettings?.smtp_host && ecoleSettings?.smtp_user && ecoleSettings?.smtp_pass) {
+    return nodemailer.createTransport({
+      host: ecoleSettings.smtp_host,
+      port: ecoleSettings.smtp_port || 587,
+      secure: ecoleSettings.smtp_port === 465,
+      auth: {
+        user: ecoleSettings.smtp_user,
+        pass: ecoleSettings.smtp_pass,
+      },
+    })
+  }
 
   if (smtpHost && smtpUser && smtpPass) {
-    transporter = nodemailer.createTransport({
+    return nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
       secure: smtpPort === 465,
@@ -26,7 +36,7 @@ function getTransporter() {
     })
   } else {
     // Console fallback logger transporter for development/testing
-    transporter = {
+    return {
       sendMail: async (options: any) => {
         console.log("=== [SMTP Fallback Log] Email Sent ===")
         console.log(`From: ${options.from}`)
@@ -37,7 +47,6 @@ function getTransporter() {
       }
     }
   }
-  return transporter
 }
 
 /**
@@ -122,9 +131,14 @@ export async function sendEmail({
 
   // 2. Dispatch email immediately
   try {
-    const mailTransporter = getTransporter()
+    const ecole = await prisma.ecole.findFirst()
+    const mailTransporter = getTransporter(ecole || undefined)
+    
+    // Custom Sender address if configured by school
+    const customFrom = ecole?.smtp_user ? `${ecole.nom} <${ecole.smtp_user}>` : smtpFrom
+
     await mailTransporter.sendMail({
-      from: smtpFrom,
+      from: customFrom,
       to,
       subject,
       html: bodyHtml,

@@ -108,6 +108,12 @@ model Ecole {
   database_url       String?
   db_status          String       @default("ready")
   created_at         DateTime     @default(now())
+  smtp_host          String?
+  smtp_port          Int?
+  smtp_user          String?
+  smtp_pass          String?
+  whatsapp_access_token String?
+  whatsapp_phone_number_id String?
   abonnements        Abonnement[]
   classes            Class[]
   users              User[]

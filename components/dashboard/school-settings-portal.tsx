@@ -19,8 +19,11 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
-  Globe
+  Globe,
+  MessageSquare
 } from "lucide-react"
+
+import { updateSchoolSettingsAction } from "@/lib/school-actions"
 
 interface SchoolSettingsPortalProps {
   userRole: string
@@ -29,14 +32,9 @@ interface SchoolSettingsPortalProps {
 
 export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPortalProps) {
   const [isPending, setIsPending] = useState(false)
+  const [success, setSuccess] = useState(false)
   const isAdmin = userRole === "admin"
   
-  const handleSave = async () => {
-    setIsPending(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsPending(false)
-  }
-
   // Fallback data if DB is empty
   const data = schoolData || {
     nom: "Groupe Scolaire Excellence",
@@ -44,7 +42,54 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     adresse: "Quartier Residentiel, Rue 12, BP 450, Conakry",
     telephone: "+224 620 00 00 00",
     email: "contact@excellence.gn",
-    website: "www.excellence.gn"
+    website: "www.excellence.gn",
+    smtp_host: "",
+    smtp_port: 587,
+    smtp_user: "",
+    smtp_pass: "",
+    whatsapp_access_token: "",
+    whatsapp_phone_number_id: ""
+  }
+
+  // Form states
+  const [nom, setNom] = useState(data.nom)
+  const [directeur, setDirecteur] = useState(data.directeur)
+  const [adresse, setAdresse] = useState(data.adresse)
+  const [telephone, setTelephone] = useState(data.telephone)
+  const [email, setEmail] = useState(data.email)
+  const [website, setWebsite] = useState(data.website)
+
+  const [smtpHost, setSmtpHost] = useState(data.smtp_host || "")
+  const [smtpPort, setSmtpPort] = useState(data.smtp_port || 587)
+  const [smtpUser, setSmtpUser] = useState(data.smtp_user || "")
+  const [smtpPass, setSmtpPass] = useState(data.smtp_pass || "")
+
+  const [waToken, setWaToken] = useState(data.whatsapp_access_token || "")
+  const [waPhoneId, setWaPhoneId] = useState(data.whatsapp_phone_number_id || "")
+
+  const handleSave = async () => {
+    setIsPending(true)
+    setSuccess(false)
+    const result = await updateSchoolSettingsAction({
+      nom,
+      directeur,
+      adresse,
+      telephone,
+      email,
+      website,
+      smtp_host: smtpHost,
+      smtp_port: Number(smtpPort),
+      smtp_user: smtpUser,
+      smtp_pass: smtpPass,
+      whatsapp_access_token: waToken,
+      whatsapp_phone_number_id: waPhoneId
+    })
+    
+    if (result.success) {
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    }
+    setIsPending(false)
   }
 
   return (
@@ -79,9 +124,9 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                        <ShieldCheck className="h-3 w-3" /> Nom Officiel
                     </Label>
                     {isAdmin ? (
-                      <Input defaultValue={data.nom} className="border-primary/10" />
+                      <Input value={nom} onChange={(e) => setNom(e.target.value)} className="border-primary/10" />
                     ) : (
-                      <div className="p-3 rounded-lg bg-muted/30 font-bold text-lg text-primary">{data.nom}</div>
+                      <div className="p-3 rounded-lg bg-muted/30 font-bold text-lg text-primary">{nom}</div>
                     )}
                   </div>
                   <div className="space-y-1.5">
@@ -89,9 +134,9 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                        <User className="h-3 w-3" /> Directeur Général
                     </Label>
                     {isAdmin ? (
-                      <Input defaultValue={data.directeur} className="border-primary/10" />
+                      <Input value={directeur} onChange={(e) => setDirecteur(e.target.value)} className="border-primary/10" />
                     ) : (
-                      <div className="p-3 rounded-lg bg-muted text-foreground font-medium">{data.directeur}</div>
+                      <div className="p-3 rounded-lg bg-muted text-foreground font-medium">{directeur}</div>
                     )}
                   </div>
                 </div>
@@ -101,9 +146,9 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                      <MapPin className="h-3 w-3" /> Adresse du Siège
                   </Label>
                   {isAdmin ? (
-                    <Input defaultValue={data.adresse} className="border-primary/10" />
+                    <Input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="border-primary/10" />
                   ) : (
-                    <div className="p-3 rounded-lg bg-muted text-foreground">{data.adresse}</div>
+                    <div className="p-3 rounded-lg bg-muted text-foreground">{adresse}</div>
                   )}
                 </div>
 
@@ -113,9 +158,9 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                        <Phone className="h-3 w-3" /> Standard Téléphonique
                     </Label>
                     {isAdmin ? (
-                      <Input defaultValue={data.telephone} className="border-primary/10" />
+                      <Input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="border-primary/10" />
                     ) : (
-                      <div className="p-3 rounded-lg bg-muted text-foreground font-mono">{data.telephone}</div>
+                      <div className="p-3 rounded-lg bg-muted text-foreground font-mono">{telephone}</div>
                     )}
                   </div>
                   <div className="space-y-1.5">
@@ -123,11 +168,95 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                        <Mail className="h-3 w-3" /> Email Officiel
                     </Label>
                     {isAdmin ? (
-                      <Input defaultValue={data.email} className="border-primary/10" />
+                      <Input value={email} onChange={(e) => setEmail(e.target.value)} className="border-primary/10" />
                     ) : (
-                      <div className="p-3 rounded-lg bg-muted text-foreground font-medium underline decoration-primary/20">{data.email}</div>
+                      <div className="p-3 rounded-lg bg-muted text-foreground font-medium underline decoration-primary/20">{email}</div>
                     )}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Configuration SMTP */}
+            <Card className="border-primary/20 shadow-xl overflow-hidden">
+              <CardHeader className="bg-primary/5 border-b">
+                <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                  <Mail className="h-5 w-5" />
+                  Moteur SMTP Décentralisé (Gmail, OVH, Hostinger)
+                </CardTitle>
+                <CardDescription>
+                  Configurez vos propres serveurs de messagerie pour l'envoi des reçus, bulletins, et notifications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Serveur SMTP Host / Serveur</Label>
+                    {isAdmin ? (
+                      <Input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} placeholder="smtp.hostinger.com" className="border-primary/10" />
+                    ) : (
+                      <div className="p-3 rounded-lg bg-muted text-foreground font-mono">{smtpHost || "Non configuré"}</div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Port SMTP</Label>
+                    {isAdmin ? (
+                      <Input type="number" value={smtpPort} onChange={(e) => setSmtpPort(Number(e.target.value))} placeholder="587" className="border-primary/10" />
+                    ) : (
+                      <div className="p-3 rounded-lg bg-muted text-foreground font-mono">{smtpPort}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Utilisateur / Adresse Email SMTP</Label>
+                    {isAdmin ? (
+                      <Input value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)} placeholder="ecole@mondomaine.ci" className="border-primary/10" />
+                    ) : (
+                      <div className="p-3 rounded-lg bg-muted text-foreground">{smtpUser || "Non configuré"}</div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase font-bold text-muted-foreground">Mot de passe SMTP</Label>
+                    {isAdmin ? (
+                      <Input type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} placeholder="••••••••••••" className="border-primary/10" />
+                    ) : (
+                      <div className="p-3 rounded-lg bg-muted text-foreground">••••••••••••</div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Configuration Meta WhatsApp */}
+            <Card className="border-primary/20 shadow-xl overflow-hidden">
+              <CardHeader className="bg-primary/5 border-b">
+                <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                  <MessageSquare className="h-5 w-5" />
+                  Meta WhatsApp Cloud API (Commercial)
+                </CardTitle>
+                <CardDescription>
+                  Configurez vos accès officiels WhatsApp Cloud pour envoyer des alertes instantanées de paiement et d'absence.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Jeton d'accès permanent Meta (Access Token)</Label>
+                  {isAdmin ? (
+                    <Input value={waToken} onChange={(e) => setWaToken(e.target.value)} placeholder="EAAG..." className="border-primary/10" />
+                  ) : (
+                    <div className="p-3 rounded-lg bg-muted text-foreground truncate">{waToken ? "••••••••••••" : "Non configuré"}</div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs uppercase font-bold text-muted-foreground">Identifiant du numéro de téléphone (Phone Number ID)</Label>
+                  {isAdmin ? (
+                    <Input value={waPhoneId} onChange={(e) => setWaPhoneId(e.target.value)} placeholder="1059..." className="border-primary/10" />
+                  ) : (
+                    <div className="p-3 rounded-lg bg-muted text-foreground font-mono">{waPhoneId || "Non configuré"}</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -198,6 +327,12 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
 
             {isAdmin && (
                <div className="sticky top-24 space-y-3">
+                  {success && (
+                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 text-sm font-bold animate-bounce">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      Paramètres enregistrés !
+                    </div>
+                  )}
                   <Button size="lg" className="w-full h-14 text-lg shadow-lg shadow-primary/20" onClick={handleSave} disabled={isPending}>
                     {isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
                     Enregistrer Tout

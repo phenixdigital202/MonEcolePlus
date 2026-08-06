@@ -51,12 +51,16 @@ export async function sendWhatsAppMessage({
 
   // 2. Dispatch message
   try {
-    if (metaAccessToken && metaPhoneNumberId) {
+    const ecole = await prisma.ecole.findFirst()
+    const activeToken = ecole?.whatsapp_access_token || metaAccessToken
+    const activePhoneId = ecole?.whatsapp_phone_number_id || metaPhoneNumberId
+
+    if (activeToken && activePhoneId) {
       console.log(`[WhatsApp API] Dispatching to Meta Cloud API...`)
-      const response = await fetch(`https://graph.facebook.com/v18.0/${metaPhoneNumberId}/messages`, {
+      const response = await fetch(`https://graph.facebook.com/v18.0/${activePhoneId}/messages`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${metaAccessToken}`,
+          "Authorization": `Bearer ${activeToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
