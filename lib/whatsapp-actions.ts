@@ -171,3 +171,59 @@ export async function sendSimulatedWhatsApp(formData: FormData) {
     return { success: false, error: err.message || "Failed to dispatch WhatsApp simulation" }
   }
 }
+
+export async function testWhatsAppConnectionAction(toPhone: string) {
+  const { getPrisma } = require("./tenant-context")
+  const prisma = await getPrisma()
+  const ecole = await prisma.ecole.findFirst()
+
+  const token = ecole?.whatsapp_access_token
+  const phoneId = ecole?.whatsapp_phone_number_id
+
+  if (!token || !phoneId) {
+    return {
+      success: false,
+      error: "Configuration manquante. Veuillez d'abord configurer le Jeton d'accès Meta et le Phone ID dans les Paramètres de l'Établissement."
+    }
+  }
+
+  const { logSystem } = require("./logger")
+
+  try {
+    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: toPhone,
+        type: "text",
+        text: { body: "🚨 [MonÉcole+] Message test de diagnostic de connexion WhatsApp Cloud API. Statut : Opérationnel !" }
+      })
+    })
+
+    const status = response.status
+    const data = await response.json()
+
+    await logSystem(
+      status === 200 ? "info" : "error",
+      "whatsapp_diagnostic",
+      `Test sent to ${toPhone}. Meta API Status: ${status}. Response: ${JSON.stringify(data)}`
+    )
+
+    return {
+      success: status === 200,
+      statusCode: status,
+      metaResponse: data
+    }
+  } catch (err: any) {
+    await logSystem("error", "whatsapp_diagnostic", `Exception: ${err.message || String(err)}`)
+    return {
+      success: false,
+      error: err.message || String(err)
+    }
+  }
+}

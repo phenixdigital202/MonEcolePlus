@@ -22,7 +22,7 @@ import {
   PhoneCall
 } from "lucide-react"
 import { toast } from "sonner"
-import { getWhatsAppHistory, getWhatsAppStats, retryFailedWhatsAppMessages, sendSimulatedWhatsApp } from "@/lib/whatsapp-actions"
+import { getWhatsAppHistory, getWhatsAppStats, retryFailedWhatsAppMessages, sendSimulatedWhatsApp, testWhatsAppConnectionAction } from "@/lib/whatsapp-actions"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -55,6 +55,31 @@ export default function WhatsAppAdminPage() {
   const [previewMsg, setPreviewMsg] = useState<any>(null)
   const [simulating, setSimulating] = useState(false)
   const [retrying, setRetrying] = useState(false)
+
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null)
+  const [testPhone, setTestPhone] = useState("")
+
+  async function handleTestWhatsApp(e: React.FormEvent) {
+    e.preventDefault()
+    if (!testPhone) return
+    setTestingConnection(true)
+    setTestResult(null)
+    try {
+      const res = await testWhatsAppConnectionAction(testPhone)
+      setTestResult(res)
+      if (res.success) {
+        toast.success("Message de diagnostic WhatsApp envoyé !")
+        loadData()
+      } else {
+        toast.error(res.error || "Échec du test de connexion")
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, error: err.message || String(err) })
+    } finally {
+      setTestingConnection(false)
+    }
+  }
 
   // Load history and stats from database
   async function loadData() {
@@ -148,7 +173,7 @@ export default function WhatsAppAdminPage() {
         </div>
 
         {/* Action Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-4">
           
           {/* Send Simulator */}
           <Card className="lg:col-span-1 border-none shadow-xl bg-white rounded-3xl overflow-hidden">
@@ -208,6 +233,56 @@ export default function WhatsAppAdminPage() {
                   {simulating ? "Transmission..." : "Envoyer par WhatsApp"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Diagnostic de Connexion */}
+          <Card className="border-none shadow-xl bg-white rounded-3xl overflow-hidden">
+            <CardHeader className="bg-primary/5 border-b pb-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                <Activity className="h-4.5 w-4.5 text-primary" />
+                Diagnostic API en Direct
+              </CardTitle>
+              <CardDescription className="text-xs">Valider la configuration réelle de l'API WhatsApp Meta</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <form onSubmit={handleTestWhatsApp} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Numéro destinataire test</label>
+                  <Input 
+                    type="text" 
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="e.g. +2250700000000" 
+                    required 
+                    className="rounded-xl border-slate-200 text-xs"
+                  />
+                </div>
+
+                <Button type="submit" disabled={testingConnection} className="w-full h-10 rounded-xl bg-indigo-600 text-white font-bold text-xs gap-2 mt-2 hover:bg-indigo-700">
+                  <RefreshCw className={`h-4 w-4 ${testingConnection ? "animate-spin" : ""}`} />
+                  Tester WhatsApp
+                </Button>
+              </form>
+
+              {testResult && (
+                <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Statut Réponse</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${testResult.success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                      {testResult.success ? `HTTP ${testResult.statusCode || 200} (Succès)` : `HTTP ${testResult.statusCode || "Échec"}`}
+                    </span>
+                  </div>
+                  {testResult.metaResponse && (
+                    <pre className="text-[10px] font-mono text-slate-700 bg-white p-3 rounded-xl border border-slate-100 max-h-[150px] overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                      {JSON.stringify(testResult.metaResponse, null, 2)}
+                    </pre>
+                  )}
+                  {testResult.error && (
+                    <p className="text-[10px] text-rose-500 font-medium leading-normal">{testResult.error}</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
