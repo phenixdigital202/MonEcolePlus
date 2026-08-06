@@ -20,7 +20,7 @@ import {
   Play
 } from "lucide-react"
 import { toast } from "sonner"
-import { getEmailHistory, retryFailedEmails, sendSimulatedEmail } from "@/lib/email-actions"
+import { getEmailHistory, retryFailedEmails, sendSimulatedEmail, testSmtpConnectionAction } from "@/lib/email-actions"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +47,31 @@ export default function EmailsAdminPage() {
   const [previewDoc, setPreviewDoc] = useState<any>(null)
   const [simulating, setSimulating] = useState(false)
   const [retrying, setRetrying] = useState(false)
+
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null)
+  const [testEmail, setTestEmail] = useState("")
+
+  async function handleTestSmtp(e: React.FormEvent) {
+    e.preventDefault()
+    if (!testEmail) return
+    setTestingConnection(true)
+    setTestResult(null)
+    try {
+      const res = await testSmtpConnectionAction(testEmail)
+      setTestResult(res)
+      if (res.success) {
+        toast.success("Diagnostic SMTP réussi ! Un email de test a été transmis.")
+        loadHistory()
+      } else {
+        toast.error(res.error || "Échec du test de connexion SMTP")
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, error: err.message || String(err) })
+    } finally {
+      setTestingConnection(false)
+    }
+  }
 
   // Load history from database
   async function loadHistory() {
@@ -100,7 +125,7 @@ export default function EmailsAdminPage() {
       <main className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
         
         {/* Core Settings / Simulation Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-4">
           
           {/* Send Simulation */}
           <Card className="lg:col-span-1 border-none shadow-xl bg-white rounded-3xl overflow-hidden">
@@ -145,6 +170,56 @@ export default function EmailsAdminPage() {
                   {simulating ? "Envoi..." : "Déclencher l'envoi"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Diagnostic SMTP */}
+          <Card className="lg:col-span-1 border-none shadow-xl bg-white rounded-3xl overflow-hidden">
+            <CardHeader className="bg-primary/5 border-b pb-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                <Settings className="h-4.5 w-4.5 text-primary" />
+                Diagnostic SMTP en Direct
+              </CardTitle>
+              <CardDescription className="text-xs">Valider la connexion réseau SMTP réelle</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <form onSubmit={handleTestSmtp} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Email destinataire test</label>
+                  <Input 
+                    type="email" 
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="e.g. admin@ecole.com" 
+                    required 
+                    className="rounded-xl border-slate-200 text-xs"
+                  />
+                </div>
+
+                <Button type="submit" disabled={testingConnection} className="w-full h-10 rounded-xl bg-indigo-600 text-white font-bold text-xs gap-2 mt-2 hover:bg-indigo-700">
+                  <RefreshCw className={`h-4 w-4 ${testingConnection ? "animate-spin" : ""}`} />
+                  Tester SMTP
+                </Button>
+              </form>
+
+              {testResult && (
+                <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Statut SMTP</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${testResult.success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                      {testResult.success ? "Connecté (OK)" : "Erreur Connexion"}
+                    </span>
+                  </div>
+                  {testResult.messageId && (
+                    <pre className="text-[9px] font-mono text-slate-700 bg-white p-3 rounded-xl border border-slate-100 max-h-[120px] overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                      Message-ID: {testResult.messageId}
+                    </pre>
+                  )}
+                  {testResult.error && (
+                    <p className="text-[10px] text-rose-500 font-medium leading-normal whitespace-pre-wrap">{testResult.error}</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

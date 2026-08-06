@@ -217,3 +217,76 @@ export async function sendSimulatedEmail(formData: FormData) {
     return { success: false, error: err.message || "Failed to dispatch simulation" }
   }
 }
+
+export async function testSmtpConnectionAction(toEmail: string) {
+  const { getPrisma } = require("./tenant-context")
+  const prisma = await getPrisma()
+  const ecole = await prisma.ecole.findFirst()
+
+  const host = ecole?.smtp_host
+  const port = ecole?.smtp_port
+  const user = ecole?.smtp_user
+  const pass = ecole?.smtp_pass
+
+  if (!host || !user || !pass) {
+    return {
+      success: false,
+      error: "Configuration manquante. Veuillez d'abord saisir vos coordonnées SMTP dans les Paramètres de l'Établissement."
+    }
+  }
+
+  const { logSystem } = require("./logger")
+  const nodemailer = require("nodemailer")
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port: port || 587,
+      secure: port === 465,
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
+    })
+
+    await transporter.verify()
+
+    const sender = `${ecole.nom} <${user}>`
+    const info = await transporter.sendMail({
+      from: sender,
+      to: toEmail,
+      subject: "[MonÉcole+] Diagnostic de Connexion SMTP Réussi",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 16px; background: #ffffff;">
+          <h2 style="color: #10b981; font-weight: 800; margin-top: 0;">Diagnostic Réussi !</h2>
+          <p style="color: #334155; font-size: 14px; line-height: 1.6;">Le serveur SMTP de votre établissement <b>${ecole.nom}</b> est correctement configuré.</p>
+          <p style="color: #334155; font-size: 14px; line-height: 1.6;"><b>Détails de connexion :</b></p>
+          <ul style="color: #475569; font-size: 13px; font-family: monospace;">
+            <li>Host: ${host}</li>
+            <li>Port: ${port}</li>
+            <li>Utilisateur: ${user}</li>
+          </ul>
+          <p style="color: #64748b; font-size: 11px; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px;">Cet email confirme la bonne transmission réseau de vos notifications.</p>
+        </div>
+      `
+    })
+
+    await logSystem(
+      "info",
+      "smtp_diagnostic",
+      `Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`
+    )
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      envelope: info.envelope
+    }
+  } catch (err: any) {
+    await logSystem("error", "smtp_diagnostic", `Connection failed: ${err.message || String(err)}`)
+    return {
+      success: false,
+      error: err.message || String(err)
+    }
+  }
+}
