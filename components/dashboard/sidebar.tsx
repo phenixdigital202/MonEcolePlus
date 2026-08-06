@@ -88,6 +88,7 @@ const navigationConfig = {
     { name: "Gestion Examens", href: "/dashboard/admin/examens", icon: Trophy },
     { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
     { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+    { name: "Centre de Comm 📣", href: "/dashboard/admin/communication", icon: MessageSquare },
     { name: "Portail Emails", href: "/dashboard/admin/emails", icon: Mail },
     { name: "Portail WhatsApp", href: "/dashboard/admin/whatsapp", icon: MessageSquare },
     { name: "Sauvegardes DB", href: "/dashboard/admin/backups", icon: Database },

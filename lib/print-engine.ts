@@ -109,38 +109,65 @@ export class PrintEngine {
   }
 
   /**
-   * Generates HTML template for a certified receipt
+   * Generates HTML template for a certified receipt (Canva / Stripe premium style)
    */
   static getCertifiedReceiptHtml(cert: DocumentVerificationData, studentName: string, amount: number, paymentType: string) {
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 30px; border: 2px solid #e2e8f0; border-radius: 16px; background: #fff; color: #334155;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3b82f6; padding-bottom: 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 650px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background: #ffffff; color: #0f172a; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);">
+        <!-- Top bar with brand logo & status -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-weight: 900; font-size: 16px;">M</span>
+            </div>
+            <span style="font-weight: 800; font-size: 18px; tracking-tight: -0.03em; color: #1e3a8a;">MonÉcole+</span>
+          </div>
+          <div style="background-color: #ecfdf5; color: #065f46; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid #d1fae5;">
+            Payé
+          </div>
+        </div>
+
+        <!-- School info & serial -->
+        <div style="margin-bottom: 40px;">
+          <h1 style="font-size: 28px; font-weight: 800; tracking-tight: -0.04em; color: #0f172a; margin: 0 0 8px 0;">Reçu de Paiement</h1>
+          <p style="color: #64748b; font-size: 14px; margin: 0;">N° de reçu : <strong style="font-family: monospace; color: #0f172a;">${cert.numeroUnique}</strong></p>
+          <p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Émis par : <strong>${cert.schoolName}</strong></p>
+        </div>
+
+        <!-- Content details grid -->
+        <div style="border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; padding: 24px 0; margin-bottom: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
           <div>
-            <h1 style="color: #1e3a8a; margin: 0; font-size: 24px; font-weight: 800;">REÇU DE PAIEMENT CERTIFIÉ</h1>
-            <p style="margin: 5px 0 0 0; font-size: 13px; color: #64748b; font-weight: bold;">N° unique : ${cert.numeroUnique}</p>
+            <p style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin: 0 0 4px 0; letter-spacing: 0.05em;">Élève</p>
+            <p style="font-weight: 600; font-size: 15px; margin: 0; color: #1e293b;">${studentName}</p>
+          </div>
+          <div>
+            <p style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin: 0 0 4px 0; letter-spacing: 0.05em;">Date de paiement</p>
+            <p style="font-weight: 600; font-size: 15px; margin: 0; color: #1e293b;">${new Date(cert.dateGeneration).toLocaleDateString("fr-FR", { dateStyle: "long" })}</p>
+          </div>
+        </div>
+
+        <!-- Total amount box -->
+        <div style="background: #f8fafc; border-radius: 16px; padding: 24px; margin-bottom: 40px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9;">
+          <div>
+            <p style="font-weight: 600; font-size: 14px; margin: 0; color: #475569;">Frais de ${paymentType}</p>
+            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">Transactions certifiée sans frais</p>
           </div>
           <div style="text-align: right;">
-            <h2 style="margin: 0; color: #3b82f6; font-size: 16px;">${cert.schoolName}</h2>
-            <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">Généré le ${new Date(cert.dateGeneration).toLocaleDateString("fr-FR")}</p>
+            <p style="font-size: 28px; font-weight: 900; margin: 0; color: #2563eb; tracking-tight: -0.04em;">${amount.toLocaleString("fr-FR")} FCFA</p>
           </div>
         </div>
 
-        <div style="margin: 30px 0; line-height: 1.8;">
-          <p>Le secrétariat général de l'établissement atteste avoir reçu de l'élève <strong>${studentName}</strong> la somme de :</p>
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
-            <h3 style="margin: 0; color: #15803d; font-size: 28px; font-weight: 900;">${amount.toLocaleString("fr-FR")} FCFA</h3>
-            <p style="margin: 5px 0 0 0; font-size: 13px; color: #166534; font-weight: bold;">Objet : Frais de ${paymentType}</p>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; border-top: 1px solid #e2e8f0; pt: 20px;">
-          <div style="font-size: 11px; color: #94a3b8; max-width: 400px;">
-            <p style="margin: 0; font-weight: bold; color: #64748b;">🔒 Sécurité & Authenticité</p>
-            <p style="margin: 5px 0 0 0; break-all: yes; font-family: monospace;">SHA256: ${cert.hashSha256}</p>
-            <p style="margin: 5px 0 0 0;">Scannez le QR Code pour vérifier l'originalité de cette pièce sur le portail public.</p>
-          </div>
+        <!-- Verification footer with QR code -->
+        <div style="display: flex; gap: 32px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 32px;">
           <div>
-            <img src="${cert.qrCodeUrl}" style="width: 110px; height: 110px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px;" alt="QR Verification" />
+            <img src="${cert.qrCodeUrl}" style="width: 90px; height: 90px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 4px;" alt="QR Verification" />
+          </div>
+          <div style="flex: 1;">
+            <p style="font-weight: 700; font-size: 12px; color: #3b82f6; text-transform: uppercase; margin: 0 0 4px 0; letter-spacing: 0.05em;">🔒 Sécurité & Authenticité</p>
+            <p style="font-size: 12px; color: #64748b; margin: 0 0 8px 0; line-height: 1.5;">Ce reçu est infalsifiable et enregistré sur la blockchain éducative de MonÉcole+. Empreinte de sécurité :</p>
+            <p style="font-family: monospace; font-size: 10px; color: #475569; word-break: break-all; margin: 0; background-color: #f1f5f9; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              ${cert.hashSha256}
+            </p>
           </div>
         </div>
       </div>
