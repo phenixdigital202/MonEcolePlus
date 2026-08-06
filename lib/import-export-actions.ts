@@ -77,61 +77,54 @@ export async function executeImportData(type: string, validRows: any[]) {
     const defaultPasswordHash = await bcrypt.hash("demo123", 10)
 
     let createdCount = 0
+    // Set a larger timeout for bulk import transaction (e.g. 30 seconds)
     await prisma.$transaction(async (tx) => {
-      for (const row of validRows) {
-        if (type === "students") {
-          // Create User
-          await tx.user.create({
-            data: {
-              nom: row.nom,
-              email: row.email,
-              password: defaultPasswordHash,
-              role: "student",
-            }
-          })
-          createdCount++
-        } else if (type === "teachers") {
-          await tx.user.create({
-            data: {
-              nom: row.nom,
-              email: row.email,
-              password: defaultPasswordHash,
-              role: "teacher"
-            }
-          })
-          createdCount++
-        } else if (type === "parents") {
-          await tx.user.create({
-            data: {
-              nom: row.nom,
-              email: row.email,
-              password: defaultPasswordHash,
-              role: "parent"
-            }
-          })
-          createdCount++
-        } else if (type === "classes") {
-          await tx.classe.create({
-            data: {
-              nom: row.nom,
-              niveau: row.niveau,
-            }
-          })
-          createdCount++
-        } else if (type === "subjects") {
-          await tx.matiere.create({
-            data: {
-              nom: row.nom,
-              code: row.code || row.nom.substring(0, 3).toUpperCase(),
-              coefficient: parseInt(row.coefficient || "2")
-            }
-          })
-          createdCount++
-        }
+      if (type === "students" || type === "teachers" || type === "parents") {
+        const roleMap = { students: "student", teachers: "teacher", parents: "parent" }
+        const role = roleMap[type as "students" | "teachers" | "parents"]
+        
+        const dataToInsert = validRows.map(row => ({
+          nom: row.nom,
+          email: row.email,
+          password: defaultPasswordHash,
+          role: role as any,
+        }))
+
+        // PostgreSQL supports createMany, running in a single query
+        const result = await tx.user.createMany({
+          data: dataToInsert,
+          skipDuplicates: true
+        })
+        createdCount = result.count
+      } else if (type === "classes") {
+        const dataToInsert = validRows.map(row => ({
+          nom: row.nom,
+          niveau: row.niveau,
+        }))
+        const result = await tx.classe.createMany({
+          data: dataToInsert,
+          skipDuplicates: true
+        })
+        createdCount = result.count
+      } else if (type === "subjects") {
+        const dataToInsert = validRows.map(row => ({
+          nom: row.nom,
+          code: row.code || row.nom.substring(0, 3).toUpperCase(),
+          coefficient: parseInt(row.coefficient || "2")
+        }))
+        const result = await tx.matiere.createMany({
+          data: dataToInsert,
+          skipDuplicates: true
+        })
+        createdCount = result.count
       }
+    }, {
+      timeout: 30000 // 30 seconds
     })
 
-    revalidatePath("/dashboard/admin/import-export")
+    try {
+      revalidatePath("/dashboard/admin/import-export")
+    } catch (e) {}
     return { success: true, count: createdCount }
   } catch (error: any) {
     console.error("Import execution error:", error)
