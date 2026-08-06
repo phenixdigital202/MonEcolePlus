@@ -1,6 +1,9 @@
 import { Metadata } from "next"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { cookies } from "next/headers"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 import { redirect } from "next/navigation"
 import { getCachedUser } from "@/lib/cached-queries"
 import { AdminDashboardWrapper } from "@/components/dashboard/admin-dashboard-wrapper"

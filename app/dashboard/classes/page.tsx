@@ -1,5 +1,8 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { 

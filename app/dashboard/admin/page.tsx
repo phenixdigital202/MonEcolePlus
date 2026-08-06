@@ -1,5 +1,8 @@
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 import { 
   Users, 
   GraduationCap, 

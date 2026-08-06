@@ -13,15 +13,19 @@ export async function createClass(formData: FormData) {
   }
 
   try {
+    const { getCurrentTenant } = require("./tenant-context")
+    const tenant = await getCurrentTenant()
+    const schoolId = tenant?.id || null
+
     const newClass = await prisma.class.create({
       data: {
         nom,
         niveau,
-        // Assuming we link it to the first school if id_ecole is null or required
-        // In a real multi-tenant app, we would get the school ID from the session
+        id_ecole: schoolId
       }
     })
 
+    revalidatePath("/dashboard")
     revalidatePath("/dashboard/classes")
     return { success: true, data: newClass }
   } catch (error) {
@@ -60,6 +64,7 @@ export async function deleteClass(id: number) {
     await prisma.class.delete({
       where: { id }
     })
+    revalidatePath("/dashboard")
     revalidatePath("/dashboard/classes")
     return { success: true }
   } catch (error) {
