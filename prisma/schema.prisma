@@ -502,4 +502,15 @@ model VerifiedDocument {
   @@map("verified_documents")
 }
 
+model ResetPasswordToken {
+  id          String   @id @default(uuid())
+  userId      Int
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("reset_password_tokens")
+}
+
 
