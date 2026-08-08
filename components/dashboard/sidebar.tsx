@@ -93,6 +93,7 @@ const navigationConfig = {
     { name: "Portail WhatsApp", href: "/dashboard/admin/whatsapp", icon: MessageSquare },
     { name: "Sauvegardes DB", href: "/dashboard/admin/backups", icon: Database },
     { name: "Import / Export", href: "/dashboard/admin/import-export", icon: FileSpreadsheet },
+    { name: "Configuration Établissement", href: "/dashboard/admin/school", icon: Settings },
   ],
   teacher: [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -294,20 +295,25 @@ export function DashboardSidebar({
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1 ml-9">
-                    {item.subItems.map((sub) => (
-                      <Link
-                        key={sub.name}
-                        href={sub.href}
-                        className={cn(
-                          "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200",
-                          pathname === sub.href
-                            ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
-                            : "text-slate-400 hover:bg-slate-800/30 hover:text-white"
-                        )}
-                      >
-                        {sub.name}
-                      </Link>
-                    ))}
+                    {item.subItems.map((sub) => {
+                      const targetHref = (sub.href === "/dashboard/settings/school" && userRole === "admin") 
+                        ? "/dashboard/admin/school" 
+                        : sub.href
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={targetHref}
+                          className={cn(
+                            "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200",
+                            pathname === targetHref
+                              ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
+                              : "text-slate-400 hover:bg-slate-800/30 hover:text-white"
+                          )}
+                        >
+                          {sub.name}
+                        </Link>
+                      )
+                    })}
                   </CollapsibleContent>
                 </Collapsible>
               )
