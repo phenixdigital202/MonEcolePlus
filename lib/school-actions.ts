@@ -48,38 +48,37 @@ export async function updateSchoolSettingsAction(formData: {
     }
 
     // 2. Update Tenant DB
+    const updateData: any = {
+      nom: formData.nom,
+      directeur: formData.directeur,
+      adresse: formData.adresse,
+      telephone: formData.telephone,
+      email: formData.email,
+      website: formData.website,
+      smtp_host: formData.smtp_host || null,
+      smtp_port: formData.smtp_port ? Number(formData.smtp_port) : null,
+      smtp_user: formData.smtp_user || null,
+      whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
+    }
+
+    // Preserve secrets if not modified
+    if (formData.smtp_pass && formData.smtp_pass !== "••••••••••••") {
+      updateData.smtp_pass = formData.smtp_pass
+    }
+    if (formData.whatsapp_access_token && !formData.whatsapp_access_token.includes("***")) {
+      updateData.whatsapp_access_token = formData.whatsapp_access_token
+    }
+
     const updated = await tenantPrisma.ecole.update({
       where: { id: ecole.id },
-      data: {
-        nom: formData.nom,
-        directeur: formData.directeur,
-        adresse: formData.adresse,
-        telephone: formData.telephone,
-        email: formData.email,
-        website: formData.website,
-        smtp_host: formData.smtp_host || null,
-        smtp_port: formData.smtp_port ? Number(formData.smtp_port) : null,
-        smtp_user: formData.smtp_user || null,
-        smtp_pass: formData.smtp_pass || null,
-        whatsapp_access_token: formData.whatsapp_access_token || null,
-        whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
-      }
+      data: updateData
     })
 
     // 3. Sync to Master DB for global settings consistency
     try {
       await masterPrisma.ecole.update({
         where: { id: ecole.id },
-        data: {
-          nom: formData.nom,
-          logo_url: ecole.logo_url,
-          smtp_host: formData.smtp_host || null,
-          smtp_port: formData.smtp_port ? Number(formData.smtp_port) : null,
-          smtp_user: formData.smtp_user || null,
-          smtp_pass: formData.smtp_pass || null,
-          whatsapp_access_token: formData.whatsapp_access_token || null,
-          whatsapp_phone_number_id: formData.whatsapp_phone_number_id || null,
-        }
+        data: updateData
       })
     } catch (masterErr: any) {
       console.warn("[updateSchoolSettingsAction] Master DB sync warning:", masterErr.message)

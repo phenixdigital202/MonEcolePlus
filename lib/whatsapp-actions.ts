@@ -208,6 +208,19 @@ export async function testWhatsAppConnectionAction(toPhone: string) {
     const status = response.status
     const data = await response.json()
 
+    let errorExplanation = ""
+    if (status === 401) {
+      errorExplanation = "Erreur 401 : Jeton d'accès (token) invalide, expiré ou révoqué."
+    } else if (status === 403) {
+      errorExplanation = "Erreur 403 : Permissions insuffisantes pour envoyer des messages."
+    } else if (status === 404) {
+      errorExplanation = "Erreur 404 : Phone Number ID incorrect ou numéro non enregistré sur Meta Developers."
+    } else if (status === 400) {
+      errorExplanation = `Erreur 400 : Requête invalide. Détails : ${data.error?.message || "Format ou numéro destinataire incorrect."}`
+    } else if (status !== 200) {
+      errorExplanation = `Erreur HTTP ${status} : ${data.error?.message || "Échec API Meta."}`
+    }
+
     await logSystem(
       status === 200 ? "info" : "error",
       "whatsapp_diagnostic",
@@ -217,13 +230,14 @@ export async function testWhatsAppConnectionAction(toPhone: string) {
     return {
       success: status === 200,
       statusCode: status,
+      error: errorExplanation || undefined,
       metaResponse: data
     }
   } catch (err: any) {
     await logSystem("error", "whatsapp_diagnostic", `Exception: ${err.message || String(err)}`)
     return {
       success: false,
-      error: err.message || String(err)
+      error: `Exception réseau/système : ${err.message || String(err)}`
     }
   }
 }

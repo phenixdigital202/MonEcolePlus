@@ -387,10 +387,14 @@ export default function WhatsAppAdminPage() {
                         </td>
                         <td className="py-3.5 px-6">
                           <div className="flex items-center gap-1.5">
+                            {log.status === "read" && <CheckCircle className="h-4 w-4 text-blue-500 fill-blue-50" />}
+                            {log.status === "delivered" && <CheckCircle className="h-4 w-4 text-slate-400" />}
                             {log.status === "sent" && <CheckCircle className="h-4 w-4 text-emerald-500" />}
                             {log.status === "failed" && <XCircle className="h-4 w-4 text-rose-500" />}
                             {log.status === "pending" && <Clock className="h-4 w-4 text-amber-500" />}
                             <span className={`text-[10px] font-black uppercase tracking-widest ${
+                              log.status === "read" ? "text-blue-600" :
+                              log.status === "delivered" ? "text-slate-500" :
                               log.status === "sent" ? "text-emerald-600" :
                               log.status === "failed" ? "text-rose-600" : "text-amber-600"
                             }`}>
@@ -398,7 +402,7 @@ export default function WhatsAppAdminPage() {
                             </span>
                           </div>
                           {log.errorMessage && (
-                            <p className="text-[9px] text-rose-500/80 font-medium mt-0.5 max-w-[150px] truncate">
+                            <p className="text-[9px] text-rose-500/80 font-medium mt-0.5 max-w-[150px] truncate" title={log.errorMessage}>
                               {log.errorMessage}
                             </p>
                           )}

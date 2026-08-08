@@ -419,11 +419,13 @@ model NotificationWhatsapp {
   to            String
   message       String    @db.Text
   templateName  String
-  status        String    @default("pending") // "sent", "failed", "pending"
+  status        String    @default("pending") // "sent", "failed", "pending", "delivered", "read"
   sentAt        DateTime  @default(now())
   errorMessage  String?   @db.Text
   retryCount    Int       @default(0)
   scheduledFor  DateTime?
+  metaMessageId String?
+  httpStatus    Int?
 
   @@map("notification_whatsapps")
 }

@@ -64,7 +64,10 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
   const [smtpUser, setSmtpUser] = useState(data.smtp_user || "")
   const [smtpPass, setSmtpPass] = useState(data.smtp_pass || "")
 
-  const [waToken, setWaToken] = useState(data.whatsapp_access_token || "")
+  const initialWaToken = data.whatsapp_access_token 
+    ? `${data.whatsapp_access_token.substring(0, 4)}***${data.whatsapp_access_token.substring(data.whatsapp_access_token.length - 4)}` 
+    : ""
+  const [waToken, setWaToken] = useState(initialWaToken)
   const [waPhoneId, setWaPhoneId] = useState(data.whatsapp_phone_number_id || "")
 
   const handleSave = async () => {

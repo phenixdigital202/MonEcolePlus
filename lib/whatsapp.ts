@@ -55,8 +55,15 @@ export async function sendWhatsAppMessage({
     const activeToken = ecole?.whatsapp_access_token || metaAccessToken
     const activePhoneId = ecole?.whatsapp_phone_number_id || metaPhoneNumberId
 
+    let metaMsgId: string | null = null
+    let responseStatus: number | null = null
+
     if (activeToken && activePhoneId) {
-      console.log(`[WhatsApp API] Dispatching to Meta Cloud API...`)
+      const maskedToken = activeToken.length > 8 
+        ? `${activeToken.substring(0, 4)}***${activeToken.substring(activeToken.length - 4)}` 
+        : "***";
+      console.log(`[WhatsApp API] Dispatching to Meta Cloud API (PhoneId: ${activePhoneId}, Token: ${maskedToken})...`)
+      
       const response = await fetch(`https://graph.facebook.com/v18.0/${activePhoneId}/messages`, {
         method: "POST",
         headers: {
@@ -72,47 +79,60 @@ export async function sendWhatsAppMessage({
         })
       })
 
+      responseStatus = response.status
       const responseData = await response.json()
+      
       if (!response.ok) {
-        throw new Error(`Meta API error: ${JSON.stringify(responseData)}`)
+        throw new Error(`Meta API error (HTTP ${response.status}): ${JSON.stringify(responseData)}`)
       }
 
-      console.log(`[WhatsApp API] Meta Cloud API Success (HTTP 200). Msg ID: ${responseData.messages?.[0]?.id}`)
+      metaMsgId = responseData.messages?.[0]?.id || null
+      console.log(`[WhatsApp API] Meta Cloud API Success (HTTP ${response.status}). Msg ID: ${metaMsgId}`)
     } else if (twilioAccountSid && twilioAuthToken) {
-      // Use dynamic import of twilio library to avoid breaking client/build bundles if not needed
       const twilio = require("twilio")
       const client = twilio(twilioAccountSid, twilioAuthToken)
 
-      await client.messages.create({
+      const twilioRes = await client.messages.create({
         from: twilioFromNumber,
         to: formattedTo,
         body: message,
       })
+      metaMsgId = twilioRes.sid
+      responseStatus = 200
     } else {
-      // Console fallback logger
       console.log("=== [WhatsApp Fallback Log] Message Sent ===")
       console.log(`From: ${metaPhoneNumberId ? 'Meta:' + metaPhoneNumberId : twilioFromNumber}`)
       console.log(`To: ${formattedTo} (Meta format: ${metaCleanNumber})`)
       console.log(`Template: ${templateName}`)
       console.log(`Message: ${message}`)
+      responseStatus = 200
     }
 
-    // 3. Mark as sent
+    // 3. Mark as sent with Meta metadata
     return await prisma.notificationWhatsapp.update({
       where: { id: log.id },
       data: {
-        status: "sent",
+        status: metaMsgId ? "sent" : "sent", // default status
+        metaMessageId: metaMsgId,
+        httpStatus: responseStatus,
         sentAt: new Date()
       }
     })
   } catch (error: any) {
     console.error(`[WhatsApp Error] Failed to send to ${formattedTo}:`, error)
 
+    // Extract http status if it's a Meta API error
+    let extractedStatus = 400
+    if (error.message.includes("HTTP 401")) extractedStatus = 401
+    else if (error.message.includes("HTTP 403")) extractedStatus = 403
+    else if (error.message.includes("HTTP 404")) extractedStatus = 404
+
     // 4. Mark as failed with error log
     return await prisma.notificationWhatsapp.update({
       where: { id: log.id },
       data: {
         status: "failed",
+        httpStatus: extractedStatus,
         errorMessage: error.message || String(error)
       }
     })
