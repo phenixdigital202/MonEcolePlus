@@ -101,7 +101,7 @@ export async function executeImportData(type: string, validRows: any[]) {
           nom: row.nom,
           niveau: row.niveau,
         }))
-        const result = await tx.classe.createMany({
+        const result = await tx.class.createMany({
           data: dataToInsert,
           skipDuplicates: true
         })
@@ -147,7 +147,7 @@ export async function getExportData(type: string) {
     } else if (type === "parents") {
       data = await prisma.user.findMany({ where: { role: "parent" } })
     } else if (type === "classes") {
-      data = await prisma.classe.findMany()
+      data = await prisma.class.findMany()
     } else if (type === "subjects") {
       data = await prisma.matiere.findMany()
     } else if (type === "emails") {
