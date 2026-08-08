@@ -179,7 +179,7 @@ export default function CertificatePage() {
                        <p><strong className="text-slate-900">Nom & Prénom :</strong> <span className="uppercase font-bold text-primary">{selectedStudent.nom}</span></p>
                        <p><strong className="text-slate-900">Classe :</strong> <strong className="text-slate-800">{selectedStudent.classe}</strong></p>
                        <p><strong className="text-slate-900">Email / Identifiant :</strong> {selectedStudent.email}</p>
-                       <p><strong className="text-slate-900">Année Scolaire :</strong> 2023 - 2024</p>
+                       <p><strong className="text-slate-900">Année Scolaire :</strong> {schoolInfo.activeSchoolYear}</p>
                     </div>
 
                     <p>

@@ -117,6 +117,7 @@ model Ecole {
   abonnements        Abonnement[]
   classes            Class[]
   users              User[]
+  schoolYears        SchoolYear[]
 
   @@map("ecoles")
 }
@@ -531,6 +532,23 @@ model SystemLog {
   createdAt DateTime @default(now())
 
   @@map("system_logs")
+}
+
+model SchoolYear {
+  id            Int       @id @default(autoincrement())
+  id_ecole      Int
+  label         String    // e.g. "2026-2027"
+  startDate     DateTime
+  endDate       DateTime
+  status        String    @default("DRAFT") // "DRAFT", "ACTIVE", "CLOSED"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  ecole         Ecole     @relation(fields: [id_ecole], references: [id], onDelete: Cascade)
+
+  @@index([id_ecole])
+  @@index([status])
+  @@unique([id_ecole, label])
+  @@map("school_years")
 }
 
 

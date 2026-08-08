@@ -54,15 +54,13 @@ export async function getCertificateStudentsAction(search?: string) {
 export async function getSchoolInfoAction() {
   try {
     const prisma = await getPrisma()
-    const cookieStore = await cookies()
-    const schoolId = cookieStore.get("school_id")?.value
+    
+    // Fetch active school year
+    const activeYear = await prisma.schoolYear.findFirst({
+      where: { status: "ACTIVE" }
+    })
 
-    let school = null
-    if (schoolId) {
-      school = await prisma.ecole.findUnique({
-        where: { id: parseInt(schoolId) }
-      })
-    }
+    const school = await prisma.ecole.findFirst()
 
     return {
       success: true,
@@ -71,21 +69,13 @@ export async function getSchoolInfoAction() {
         adresse: school?.adresse || "Abidjan, Côte d'Ivoire",
         telephone: school?.telephone || "+225 07 00 00 00 00",
         email: school?.email || "contact@monecoleplus.ci",
-        directeur: "Le Chef d'Établissement"
+        directeur: school?.directeur || "Le Chef d'Établissement",
+        activeSchoolYear: activeYear?.label || "2026-2027"
       }
     }
   } catch (error: any) {
     console.error("[getSchoolInfoAction] Error:", error)
-    return {
-      success: true,
-      data: {
-        nom: "MonÉcole+ Groupe Scolaire",
-        adresse: "Abidjan, Côte d'Ivoire",
-        telephone: "+225 07 00 00 00 00",
-        email: "contact@monecoleplus.ci",
-        directeur: "Le Chef d'Établissement"
-      }
-    }
+    return { success: false, error: error.message }
   }
 }
 

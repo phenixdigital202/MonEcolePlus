@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select"
 import { updateSchoolSettingsAction } from "@/lib/school-actions"
 import { testWhatsAppConnectionAction } from "@/lib/whatsapp-actions"
+import { saveSchoolYearAction } from "@/lib/school-year-actions"
 import { toast } from "sonner"
 
 interface AdminSchoolPortalProps {
@@ -44,9 +45,10 @@ interface AdminSchoolPortalProps {
     parents: number
     classes: number
   }
+  schoolYears: any[]
 }
 
-export function AdminSchoolPortal({ schoolData, stats }: AdminSchoolPortalProps) {
+export function AdminSchoolPortal({ schoolData, stats, schoolYears: initialSchoolYears }: AdminSchoolPortalProps) {
   const [isPending, setIsPending] = useState(false)
   const [testingWa, setTestingWa] = useState(false)
   const [waTestPhone, setWaTestPhone] = useState("")
@@ -73,6 +75,106 @@ export function AdminSchoolPortal({ schoolData, stats }: AdminSchoolPortalProps)
     ? `${schoolData.whatsapp_access_token.substring(0, 4)}***${schoolData.whatsapp_access_token.substring(schoolData.whatsapp_access_token.length - 4)}`
     : ""
   const [waToken, setWaToken] = useState(initialWaToken)
+
+  // School Year States
+  const [schoolYears, setSchoolYears] = useState<any[]>(initialSchoolYears)
+  const activeYear = schoolYears.find(y => y.status === "ACTIVE")
+  
+  const [syId, setSyId] = useState<number | undefined>(activeYear?.id)
+  const [syStartDate, setSyStartDate] = useState(
+    activeYear?.startDate ? new Date(activeYear.startDate).toISOString().split('T')[0] : ""
+  )
+  const [syEndDate, setSyEndDate] = useState(
+    activeYear?.endDate ? new Date(activeYear.endDate).toISOString().split('T')[0] : ""
+  )
+  const [syStatus, setSyStatus] = useState(activeYear?.status || "ACTIVE")
+  const [savingSy, setSavingSy] = useState(false)
+
+  // Auto calculate label from dates
+  const calculatedLabel = (() => {
+    if (!syStartDate || !syEndDate) return ""
+    const startYear = new Date(syStartDate).getFullYear()
+    const endYear = new Date(syEndDate).getFullYear()
+    if (isNaN(startYear) || isNaN(endYear)) return ""
+    return `${startYear}-${endYear}`
+  })()
+
+  // Auto calculate duration in months
+  const durationInMonths = (() => {
+    if (!syStartDate || !syEndDate) return 0
+    const start = new Date(syStartDate)
+    const end = new Date(syEndDate)
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.round(diffDays / 30.4) // average month duration
+  })()
+
+  const handleSaveSchoolYear = async () => {
+    if (!syStartDate || !syEndDate) {
+      toast.error("Veuillez sélectionner les dates de début et de fin.")
+      return
+    }
+    
+    if (new Date(syEndDate) <= new Date(syStartDate)) {
+      toast.error("La date de fin doit être supérieure à la date de début.")
+      return
+    }
+
+    setSavingSy(true)
+    try {
+      const res = await saveSchoolYearAction({
+        id: syId,
+        label: calculatedLabel,
+        startDate: syStartDate,
+        endDate: syEndDate,
+        status: syStatus
+      })
+
+      if (res.success) {
+        toast.success("Année scolaire enregistrée avec succès !")
+        // Refresh local history list
+        // Simply push or update the item in local schoolYears state
+        const updatedItem = res.data
+        setSchoolYears(prev => {
+          // If status is ACTIVE, set all others to CLOSED
+          let list = [...prev]
+          if (updatedItem.status === "ACTIVE") {
+            list = list.map(y => y.id === updatedItem.id ? updatedItem : { ...y, status: "CLOSED" })
+          } else {
+            const idx = list.findIndex(y => y.id === updatedItem.id)
+            if (idx > -1) list[idx] = updatedItem
+            else list.unshift(updatedItem)
+          }
+          // Sort by startDate desc
+          return list.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+        })
+        setSyId(updatedItem.id)
+      } else {
+        toast.error(res.error || "Échec de l'enregistrement.")
+      }
+    } catch (err: any) {
+      toast.error("Erreur réseau : " + err.message)
+    } finally {
+      setSavingSy(false)
+    }
+  }
+
+  const handleSelectYearFromHistory = (year: any) => {
+    setSyId(year.id)
+    setSyStartDate(new Date(year.startDate).toISOString().split('T')[0])
+    setSyEndDate(new Date(year.endDate).toISOString().split('T')[0])
+    setSyStatus(year.status)
+    toast.info(`Année scolaire ${year.label} sélectionnée pour édition.`)
+  }
+
+  const handleResetForNewYear = () => {
+    setSyId(undefined)
+    setSyStartDate("")
+    setSyEndDate("")
+    setSyStatus("DRAFT")
+    toast.info("Prêt pour la création d'une nouvelle année scolaire.")
+  }
 
   const handleSave = async () => {
     setIsPending(true)
@@ -359,6 +461,98 @@ export function AdminSchoolPortal({ schoolData, stats }: AdminSchoolPortalProps)
                   <span className="text-xl font-black text-slate-800 stat-number">{stat.value}</span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* School Year Card */}
+          <Card className="border-none shadow-xl bg-white/70 backdrop-blur-sm card-hover-premium rounded-3xl overflow-hidden">
+            <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-800">📚 Année scolaire</CardTitle>
+                <CardDescription className="text-xs">Gérez la période scolaire active</CardDescription>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleResetForNewYear} className="h-8 border-slate-200 hover:bg-slate-50 text-[10px] font-bold rounded-lg">
+                Nouvelle
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-500 uppercase">Année scolaire</Label>
+                <Input value={calculatedLabel || "Auto-généré"} readOnly className="font-mono rounded-xl border-slate-200 text-xs bg-slate-50/50 cursor-not-allowed" />
+              </div>
+              <div className="grid gap-4 grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-500 uppercase">Date de début</Label>
+                  <Input type="date" value={syStartDate} onChange={(e) => setSyStartDate(e.target.value)} className="rounded-xl border-slate-200 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-500 uppercase">Date de fin</Label>
+                  <Input type="date" value={syEndDate} onChange={(e) => setSyEndDate(e.target.value)} className="rounded-xl border-slate-200 text-xs" />
+                </div>
+              </div>
+
+              {durationInMonths > 0 && (
+                <p className="text-[10px] text-slate-500 font-bold">Durée calculée : {durationInMonths} mois</p>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-500 uppercase">Statut</Label>
+                <Select value={syStatus} onValueChange={setSyStatus}>
+                  <SelectTrigger className="rounded-xl border-slate-200 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="DRAFT">⚪ Brouillon (DRAFT)</SelectItem>
+                    <SelectItem value="ACTIVE">🟢 Active (ACTIVE)</SelectItem>
+                    <SelectItem value="CLOSED">🔴 Clôturée (CLOSED)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button type="button" onClick={handleSaveSchoolYear} disabled={savingSy} className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-2 mt-2 border-none">
+                {savingSy ? "Enregistrement..." : "Enregistrer l'année scolaire"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Academic Years History */}
+          <Card className="border-none shadow-xl bg-white/70 backdrop-blur-sm card-hover-premium rounded-3xl overflow-hidden">
+            <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+              <CardTitle className="text-base font-bold text-slate-800">Historique des Années Scolaires</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-3">
+              {schoolYears.length > 0 ? (
+                schoolYears.map((year) => {
+                  const isActive = year.status === "ACTIVE"
+                  const isClosed = year.status === "CLOSED"
+                  return (
+                    <div 
+                      key={year.id} 
+                      onClick={() => handleSelectYearFromHistory(year)}
+                      className="p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md cursor-pointer transition-all flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-slate-700">{year.label}</span>
+                          <Badge className={`text-[8px] px-1.5 py-0.5 rounded border-none ${
+                            isActive ? "bg-emerald-500 text-white" :
+                            isClosed ? "bg-rose-500 text-white" : "bg-slate-400 text-white"
+                          }`}>
+                            {year.status}
+                          </Badge>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          {new Date(year.startDate).toLocaleDateString()} → {new Date(year.endDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <p className="text-xs text-slate-400 font-medium italic text-center py-4">
+                  Aucune année scolaire configurée.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

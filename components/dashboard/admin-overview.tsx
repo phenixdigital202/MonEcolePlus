@@ -55,9 +55,10 @@ interface AdminOverviewProps {
     distribution?: any[] | null
     insights?: any[] | null
   }
+  activeYearLabel?: string
 }
 
-export function AdminOverview({ stats, shortcutData, adminId, chartData }: AdminOverviewProps) {
+export function AdminOverview({ stats, shortcutData, adminId, chartData, activeYearLabel = "Non définie" }: AdminOverviewProps) {
   // Use real data from DB if available
   const displayFinanceData = chartData?.finance || defaultFinanceData
   const displayEnrollmentData = chartData?.enrollment || defaultInscriptionData
@@ -75,6 +76,20 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData }: Admin
 
   return (
     <div className="space-y-6 md:space-y-10">
+      {/* Dynamic Active School Year Premium Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-100 shadow-sm animate-fade-in-up">
+        <div>
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <span>🏫 Lycée Moderne de Cocody</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-semibold mt-0.5">Tableau de bord de pilotage académique et financier</p>
+        </div>
+        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100/50 px-4 py-2 rounded-2xl shrink-0 shadow-sm">
+          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Année scolaire :</span>
+          <span className="text-xs font-black text-indigo-700 bg-indigo-100/50 px-2 py-0.5 rounded-lg font-mono">{activeYearLabel}</span>
+        </div>
+      </div>
+
       {/* Management Shortcuts Section */}
       <div className="animate-fade-in-up">
         <ManagementShortcuts data={shortcutData || { classes: [], teachers: [], students: [] }} adminId={adminId} />

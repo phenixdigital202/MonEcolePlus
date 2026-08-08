@@ -24,7 +24,8 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       dbInsights, 
       shortcutClasses, 
       shortcutTeachers, 
-      shortcutStudents
+      shortcutStudents,
+      activeYear
     ] = await Promise.all([
       prisma.user.findMany({
         where: { role: 'student' },
@@ -52,7 +53,8 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       }),
       prisma.class.findMany({ select: { id: true, nom: true, niveau: true } }),
       prisma.user.findMany({ where: { role: 'teacher' }, select: { id: true, nom: true, matiere: true } }),
-      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } })
+      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } }),
+      prisma.schoolYear.findFirst({ where: { status: "ACTIVE" } })
     ])
 
     console.log("[AdminDataFetcher] STEP 3: Computing charts and statistics...")
@@ -139,6 +141,7 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
           distribution: realClassData,
           insights: formattedInsights.length > 0 ? formattedInsights : null
         }}
+        activeYearLabel={activeYear?.label || "Non définie"}
       />
     )
   } catch (error) {

@@ -363,7 +363,7 @@ export default function BulletinBatchPage() {
 
                         <div className="text-center my-4">
                           <h1 className="text-xl font-black uppercase tracking-wider text-slate-900 decoration-double underline underline-offset-4">BULLETIN DE NOTES DU {selectedSemester}er TRIMESTRE</h1>
-                          <p className="text-[10px] font-bold text-slate-500 mt-1">ANNÉE SCOLAIRE : 2023-2024</p>
+                          <p className="text-[10px] font-bold text-slate-500 mt-1">ANNÉE SCOLAIRE : {schoolInfo.activeSchoolYear}</p>
                         </div>
 
                         {/* Student Details */}
