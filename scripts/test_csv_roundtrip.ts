@@ -2,7 +2,8 @@ import { getExportData, validateImportData, executeImportData } from "../lib/imp
 import { PrismaClient } from "@prisma/client"
 
 async function main() {
-  const dbUrl = "postgresql://postgres.nfrripylvuzxpuipdrpy:MonEcolePlus@aws-0-eu-west-3.pooler.supabase.com:5432/tenant_cocody_1785950690672"
+  const dbUrl = process.env.DATABASE_URL || "postgresql://postgres.nfrripylvuzxpuipdrpy:MonEcolePlus@aws-0-eu-west-3.pooler.supabase.com:5432/tenant_cocody_1785950690672"
+  process.env.DATABASE_URL = dbUrl
   const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } })
 
   console.log("=== TEST DE RECETTE : ROUND-TRIP CSV CLASSES ===\n")

@@ -124,6 +124,11 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
       students: shortcutStudents || []
     }
 
+    // Get school name
+    const schoolObj = await prisma.ecole.findFirst({
+      select: { nom: true }
+    })
+
     console.log("[AdminDataFetcher] STEP 4: Rendering AdminOverview successfully.")
     return (
       <AdminOverview 
@@ -131,7 +136,8 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
           students: stats.studentCount,
           teachers: stats.teacherCount,
           classes: stats.classCount,
-          revenue: totalRevenue
+          revenue: totalRevenue,
+          schoolName: schoolObj?.nom || "Mon Établissement"
         }} 
         shortcutData={shortcutData}
         adminId={adminId}

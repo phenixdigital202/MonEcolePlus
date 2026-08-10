@@ -46,6 +46,7 @@ interface AdminOverviewProps {
     teachers: number
     classes: number
     revenue: string
+    schoolName?: string
   }
   shortcutData: any
   adminId: number
@@ -80,7 +81,7 @@ export function AdminOverview({ stats, shortcutData, adminId, chartData, activeY
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-100 shadow-sm animate-fade-in-up">
         <div>
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <span>🏫 Lycée Moderne de Cocody</span>
+            <span>🏫 {stats.schoolName || "Mon Établissement"}</span>
           </h2>
           <p className="text-xs text-slate-500 font-semibold mt-0.5">Tableau de bord de pilotage académique et financier</p>
         </div>
