@@ -23,10 +23,9 @@ export default async function ClassesPage() {
   }
 
   const prisma = await getPrisma()
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
-
+  const { getCachedUser } = require("@/lib/cached-queries")
+  const user = await getCachedUser(parseInt(userId))
+ 
   if (!user) {
     redirect("/login")
   }

@@ -8,7 +8,7 @@ export const getCachedUser = cache(async (userId: number) => {
     // 1. Try direct lookup by ID (works for Cocody & matching IDs)
     let user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, id_ecole: true, nom: true, email: true, role: true, matiere: true, niveau: true, created_at: true }
+      include: { ecole: true }
     })
 
     // 2. If not found in tenant DB, fetch master user by ID to get the email, then search the tenant DB by email
@@ -21,7 +21,7 @@ export const getCachedUser = cache(async (userId: number) => {
       if (masterUser?.email) {
         user = await prisma.user.findUnique({
           where: { email: masterUser.email },
-          select: { id: true, id_ecole: true, nom: true, email: true, role: true, matiere: true, niveau: true, created_at: true }
+          include: { ecole: true }
         })
       }
     }

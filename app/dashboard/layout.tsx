@@ -19,11 +19,8 @@ export default async function DashboardLayout({
   let user = null
 
   try {
-    const prisma = await getPrisma()
-    user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-      include: { ecole: true }
-    })
+    const { getCachedUser } = require("@/lib/cached-queries")
+    user = await getCachedUser(parseInt(userId))
   } catch (error) {
     logError(error, { action: "DashboardLayout_findUser", userId })
   }
