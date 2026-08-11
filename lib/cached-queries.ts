@@ -4,19 +4,29 @@ import { getPrisma } from './tenant-context'
 export const getCachedUser = cache(async (userId: number) => {
   try {
     const prisma = await getPrisma()
-    return await prisma.user.findUnique({
+    
+    // 1. Try direct lookup by ID (works for Cocody & matching IDs)
+    let user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        id_ecole: true,
-        nom: true,
-        email: true,
-        role: true,
-        matiere: true,
-        niveau: true,
-        created_at: true
-      }
+      select: { id: true, id_ecole: true, nom: true, email: true, role: true, matiere: true, niveau: true, created_at: true }
     })
+
+    // 2. If not found in tenant DB, fetch master user by ID to get the email, then search the tenant DB by email
+    if (!user) {
+      const master = require("./prisma").default
+      const masterUser = await master.user.findUnique({
+        where: { id: userId },
+        select: { email: true }
+      })
+      if (masterUser?.email) {
+        user = await prisma.user.findUnique({
+          where: { email: masterUser.email },
+          select: { id: true, id_ecole: true, nom: true, email: true, role: true, matiere: true, niveau: true, created_at: true }
+        })
+      }
+    }
+
+    return user
   } catch (error) {
     console.error(`[getCachedUser] Error fetching user ${userId}:`, error)
     return null

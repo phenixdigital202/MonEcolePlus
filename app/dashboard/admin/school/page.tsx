@@ -16,10 +16,9 @@ export default async function AdminSchoolPage() {
 
   const prisma = await getPrisma()
 
-  // 1. Fetch current user role & verify permissions
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  // 1. Fetch current user role & verify permissions stably using getCachedUser helper
+  const { getCachedUser } = require("@/lib/cached-queries")
+  const user = await getCachedUser(parseInt(userId))
 
   if (!user || user.role !== "admin") {
     // block access for teachers, students and parents
