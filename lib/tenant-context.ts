@@ -64,38 +64,37 @@ export async function getCurrentTenant() {
   return null
 }
 
+export function getMasterPrisma() {
+  return masterPrisma
+}
+
 export async function getPrisma() {
   // If in CLI/script context, we can override targeting using DATABASE_URL env
   if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("tenant_") || process.env.DATABASE_URL.includes("monecole_abou") || process.env.DATABASE_URL.includes("monecole_lyc") || process.env.DATABASE_URL.includes("monecole_bamba") || process.env.DATABASE_URL.includes("monecole_lycee"))) {
     return getTenantClient(process.env.DATABASE_URL)
   }
 
+  let cookieStore;
+  let userRole: string | undefined;
+
   try {
-    let cookieStore;
-    try {
-      cookieStore = await import("next/headers").then(m => m.cookies())
-    } catch (e) {
-      // CLI context fallback
-      return masterPrisma
-    }
-
-    const userRole = cookieStore.get("user_role")?.value
-    
-    // Les requêtes Super Admin ne doivent JAMAIS basculer sur une base locataire
-    if (userRole === "super_admin") {
-      return masterPrisma
-    }
-
-    const tenant = await getCurrentTenant()
-    
-    if (tenant && tenant.database_url) {
-      return getTenantClient(tenant.database_url)
-    }
-  } catch (e: any) {
-    if (e?.digest !== 'DYNAMIC_SERVER_USAGE' && !e?.message?.includes('Dynamic server usage')) {
-      logError(e, { action: "getPrisma_fallback_to_master" })
-    }
+    cookieStore = await import("next/headers").then(m => m.cookies())
+    userRole = cookieStore.get("user_role")?.value
+  } catch (e) {
+    // CLI context fallback: return master DB client safely
+    return masterPrisma
   }
 
-  return masterPrisma
+  // Les requêtes Super Admin ne doivent JAMAIS basculer sur une base locataire
+  if (userRole === "super_admin") {
+    return masterPrisma
+  }
+
+  const tenant = await getCurrentTenant()
+  if (tenant && tenant.database_url) {
+    return getTenantClient(tenant.database_url)
+  }
+
+  // Interdiction absolue du fallback silencieux vers la Master DB pour un utilisateur d'établissement
+  throw new Error("Impossible de déterminer l'établissement de l'utilisateur.")
 }
