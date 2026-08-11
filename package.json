@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "audit:multitenant": "npx tsx scripts/audit-multitenant.ts",
     "tenants:migrate": "npx tsx scripts/migrate_tenants_cli.ts",
+    "tenants:sync": "npx tsx scripts/sync-tenants-schema.ts",
+    "tenants:verify": "npx tsx scripts/verify-tenants-schema.ts",
     "postinstall": "prisma generate && prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql"
   },
   "dependencies": {

@@ -206,6 +206,19 @@ async function main() {
   })
   console.log("✅ Recommandation IA enregistrée.")
 
+  // 12. Validation stricte de la structure finale
+  console.log("\n[Step 11] Validation de l'intégrité du schéma et des tables critiques...")
+  const criticalModels = ["ecole", "user", "class", "schoolYear"]
+  for (const model of criticalModels) {
+    try {
+      await (tenantPrisma as any)[model].findFirst()
+      console.log(`  🔍 Table pour le modèle [${model}] : OK`)
+    } catch (e: any) {
+      throw new Error(`CRITICAL DRIFT: Le modèle critique [${model}] n'est pas accessible après provisioning : ${e.message}`)
+    }
+  }
+  console.log("✅ Toutes les tables critiques sont présentes et accessibles.")
+
   await tenantPrisma.$disconnect()
   await masterPrisma.$disconnect()
 
