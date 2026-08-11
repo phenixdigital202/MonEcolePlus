@@ -5,10 +5,10 @@ async function main() {
   const prisma = getTenantClient(url)
   console.log("Connecting to Abou Tenant...")
   try {
-    const ecoles = await prisma.ecole.findMany()
-    console.log("Ecoles in Abou DB:", ecoles)
+    const years = await prisma.schoolYear.findMany()
+    console.log("School years in Abou DB:", years)
   } catch (err: any) {
-    console.log("Error querying ecole table in Abou DB:", err.message)
+    console.log("Error querying SchoolYear table in Abou DB:", err.message)
   }
 }
 
