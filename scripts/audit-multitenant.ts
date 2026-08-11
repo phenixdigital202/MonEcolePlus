@@ -18,7 +18,8 @@ const FORBIDDEN = [
 ]
 
 const TARGET_DIRECTORIES = ["app", "components", "lib"]
-let hasProductionViolation = false
+let productionViolations: string[] = []
+let scriptWarnings: string[] = []
 
 function scanDirectory(dir: string, isProduction: boolean) {
   if (!fs.existsSync(dir)) return
@@ -30,15 +31,18 @@ function scanDirectory(dir: string, isProduction: boolean) {
 
     if (stat.isDirectory()) {
       scanDirectory(fullPath, isProduction)
-    } else if (file.endsWith(".ts") || file.endsWith(".tsx")) {
+    } else if (file.endsWith(".ts") || file.endsWith(".tsx") || file.endsWith(".js")) {
       const content = fs.readFileSync(fullPath, "utf8")
       FORBIDDEN.forEach((regex) => {
         if (regex.test(content)) {
+          // Exclude self reference to avoid false positive in the guard itself
+          if (file === "audit-multitenant.ts") return
+
+          const relativePath = path.relative(process.cwd(), fullPath)
           if (isProduction) {
-            console.error(`❌ [PRODUCTION VIOLATION] Hardcoded tenant reference found in: ${fullPath} (Pattern: ${regex})`)
-            hasProductionViolation = true
+            productionViolations.push(`- ${relativePath} (Pattern: ${regex})`)
           } else {
-            console.warn(`⚠️ [TEST/SCRIPT REFERENCE] Reference found in script: ${fullPath} (Pattern: ${regex})`)
+            scriptWarnings.push(`- ${relativePath} (Pattern: ${regex})`)
           }
         }
       })
@@ -46,16 +50,36 @@ function scanDirectory(dir: string, isProduction: boolean) {
   }
 }
 
-console.log("🔍 [Multi-Tenant Guard] Starting scan of production codebase...")
+console.log("🔍 [Multi-Tenant Guard] Starting scan of codebase...")
 TARGET_DIRECTORIES.forEach(dir => scanDirectory(path.join(process.cwd(), dir), true))
-
-console.log("\n🔍 [Multi-Tenant Guard] Scanning scripts and test directory (warnings only)...")
 scanDirectory(path.join(process.cwd(), "scripts"), false)
 
-if (hasProductionViolation) {
-  console.error("\n❌ [Multi-Tenant Guard] Failed: Production code contains forbidden hardcoded tenant references.")
-  process.exit(1)
+console.log("\n=== MULTI-TENANT GUARD ===")
+
+console.log("\nPRODUCTION:")
+if (productionViolations.length === 0) {
+  console.log("✅ No hardcoded tenant detected.")
 } else {
-  console.log("\n✅ [Multi-Tenant Guard] Passed successfully. No production violations found.")
+  console.log("❌ Production violations found:")
+  productionViolations.forEach(v => console.error(v))
+}
+
+console.log("\nSCRIPTS / TESTS:")
+if (scriptWarnings.length === 0) {
+  console.log("✅ No tenant references found in scripts or tests.")
+} else {
+  console.log(`⚠️ ${scriptWarnings.length} references found in test/maintenance scripts.`)
+  console.log("ℹ️ These references are allowed because they are outside production runtime.")
+}
+
+console.log("\nCRITICAL:")
+console.log(`❌ ${productionViolations.length} production violations.`)
+
+console.log("\nFINAL:")
+if (productionViolations.length === 0) {
+  console.log("✅ PASS")
   process.exit(0)
+} else {
+  console.log("❌ FAIL")
+  process.exit(1)
 }
