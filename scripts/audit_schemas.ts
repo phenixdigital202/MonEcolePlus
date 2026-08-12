@@ -17,8 +17,12 @@ async function main() {
   for (const ecole of ecoles) {
     if (!ecole.database_url) continue
 
+    const directUrl = ecole.database_url
+      .replace(":6543/", ":5432/")
+      .replace("?pgbouncer=true", "")
+
     const tenantPrisma = new PrismaClient({
-      datasources: { db: { url: ecole.database_url } }
+      datasources: { db: { url: directUrl } }
     })
 
     try {

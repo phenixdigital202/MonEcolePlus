@@ -76,9 +76,13 @@ export function getMasterPrisma() {
 
 export async function getPrisma() {
   // If in CLI/script context, we can override targeting using DATABASE_URL env
-  if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("tenant_") || process.env.DATABASE_URL.includes("monecole_abou") || process.env.DATABASE_URL.includes("monecole_lyc") || process.env.DATABASE_URL.includes("monecole_bamba") || process.env.DATABASE_URL.includes("monecole_lycee"))) {
-    console.log(`[getPrisma] CLI/Script Context override URL matched -> routing to tenant client.`)
-    return getTenantClient(process.env.DATABASE_URL)
+  if (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes("tenant_") || process.env.DATABASE_URL.includes("monecole_abou") || process.env.DATABASE_URL.includes("monecole_lyc") || process.env.DATABASE_URL.includes("monecole_bamba") || process.env.DATABASE_URL.includes("monecole_lycee") || process.env.DATABASE_URL.includes(":5432/"))) {
+    // Avoid routing to tenant client if DATABASE_URL is pointing specifically to the master "postgres" database
+    const dbName = process.env.DATABASE_URL.split("/").pop()?.split("?")[0]
+    if (dbName !== "postgres") {
+      console.log(`[getPrisma] CLI/Script Context override URL matched -> routing to tenant client.`)
+      return getTenantClient(process.env.DATABASE_URL)
+    }
   }
 
   let cookieStore;

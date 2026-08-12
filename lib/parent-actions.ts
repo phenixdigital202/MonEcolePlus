@@ -7,9 +7,29 @@ export async function getParentDashboardData(parentId: number) {
   try {
     const prisma = await getPrisma()
 
-    // 1. Fetch parent's children
+    // 1. Fetch local parent user from Tenant DB using master email lookup if ID fails
+    let localParent = await prisma.user.findUnique({
+      where: { id: parentId }
+    })
+
+    if (!localParent) {
+      const master = require("./prisma").default
+      const masterUser = await master.user.findUnique({
+        where: { id: parentId },
+        select: { email: true }
+      }).catch(() => null)
+      if (masterUser?.email) {
+        localParent = await prisma.user.findUnique({
+          where: { email: masterUser.email }
+        })
+      }
+    }
+
+    const resolvedParentId = localParent ? localParent.id : parentId
+
+    // 2. Fetch parent's children
     const links = await prisma.parentEleve.findMany({
-      where: { id_parent: parentId },
+      where: { id_parent: resolvedParentId },
       include: {
         eleve: {
           include: {

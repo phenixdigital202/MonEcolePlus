@@ -15,9 +15,29 @@ export async function getTeacherDashboardData(teacherId: number) {
   try {
     const prisma = await getPrisma()
 
-    // 1. Get all schedule entries for this teacher (with select projection)
+    // 1. Fetch local teacher user from Tenant DB using master email lookup if ID fails
+    let localTeacher = await prisma.user.findUnique({
+      where: { id: teacherId }
+    })
+
+    if (!localTeacher) {
+      const master = require("./prisma").default
+      const masterUser = await master.user.findUnique({
+        where: { id: teacherId },
+        select: { email: true }
+      }).catch(() => null)
+      if (masterUser?.email) {
+        localTeacher = await prisma.user.findUnique({
+          where: { email: masterUser.email }
+        })
+      }
+    }
+
+    const resolvedTeacherId = localTeacher ? localTeacher.id : teacherId
+
+    // 2. Get all schedule entries for this teacher (with select projection)
     const allScheduleEntries = await prisma.emploiDuTemps.findMany({
-      where: { id_enseignant: teacherId },
+      where: { id_enseignant: resolvedTeacherId },
       select: {
         id: true,
         id_classe: true,

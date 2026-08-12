@@ -7,7 +7,7 @@ export async function getStudentAcademicData(userId: number) {
     const prisma = await getPrisma()
 
     // 1. Fetch Student Details & Inscription
-    const student = await prisma.user.findUnique({
+    let student = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -29,9 +29,44 @@ export async function getStudentAcademicData(userId: number) {
       }
     })
 
+    // Fallback search by email if IDs differ between Master and Tenant DBs
+    if (!student) {
+      const master = require("./prisma").default
+      const masterUser = await master.user.findUnique({
+        where: { id: userId },
+        select: { email: true }
+      }).catch(() => null)
+      if (masterUser?.email) {
+        student = await prisma.user.findUnique({
+          where: { email: masterUser.email },
+          select: {
+            id: true,
+            nom: true,
+            email: true,
+            inscriptions: {
+              take: 1,
+              orderBy: { id: 'desc' },
+              select: {
+                classe: {
+                  select: {
+                    id: true,
+                    nom: true,
+                    niveau: true
+                  }
+                }
+              }
+            }
+          }
+        })
+      }
+    }
+
     if (!student) {
       return { success: false, error: "Élève introuvable en base de données." }
     }
+
+    // Assign the local tenant user ID for accurate query mapping
+    const localUserId = student.id;
 
     const inscription = student.inscriptions[0]
     const currentClass = inscription?.classe || null
@@ -42,7 +77,7 @@ export async function getStudentAcademicData(userId: number) {
     // 2. Concurrently fetch Notes, Class Notes (for ranking & class avg), Absences, and Schedule
     const [studentNotes, allClassNotes, absenceCount, schedule] = await Promise.all([
       prisma.note.findMany({
-        where: { id_eleve: userId },
+        where: { id_eleve: localUserId },
         select: {
           id: true,
           valeur: true,
@@ -61,7 +96,7 @@ export async function getStudentAcademicData(userId: number) {
         }
       }) : Promise.resolve([]),
       prisma.absence.count({
-        where: { id_eleve: userId }
+        where: { id_eleve: localUserId }
       }),
       classId ? prisma.emploiDuTemps.findMany({
         where: { id_classe: classId },
@@ -145,7 +180,7 @@ export async function getStudentAcademicData(userId: number) {
       }))
       .sort((a, b) => b.avg - a.avg)
 
-    const studentRankIndex = sortedRanks.findIndex(r => r.id === userId)
+    const studentRankIndex = sortedRanks.findIndex(r => r.id === localUserId)
     const rank = studentRankIndex !== -1 ? studentRankIndex + 1 : 1
     const totalStudentsInClass = sortedRanks.length > 0 ? sortedRanks.length : 1
 
