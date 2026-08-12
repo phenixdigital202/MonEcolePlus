@@ -3,6 +3,7 @@ import { ScheduleDndView } from "@/components/dashboard/schedule-dnd-view"
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
 import { notFound } from "next/navigation"
+import { getCachedUser } from "@/lib/cached-queries"
 
 export default async function ScheduleEditPage({
   searchParams,
@@ -16,9 +17,7 @@ export default async function ScheduleEditPage({
   
   if (!userId) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const user = await getCachedUser(parseInt(userId))
 
   if (!user || user.role !== 'admin') {
     return (

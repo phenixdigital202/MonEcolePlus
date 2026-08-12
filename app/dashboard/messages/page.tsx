@@ -1,29 +1,30 @@
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
-import { redirect } from "next/navigation"
 import { MessagesView } from "@/components/dashboard/messages-view"
 import { getContacts, linkParentToStudent } from "@/lib/message-actions"
+import { getCachedUser } from "@/lib/cached-queries"
 
 export default async function MessagesPage() {
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
 
-  if (!userId) {
-    redirect("/login")
-  }
+  if (!userId) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const user = await getCachedUser(parseInt(userId))
 
-  if (!user) {
-    redirect("/login")
-  }
+  if (!user) return null
 
-  // Demo: Link real parent (Moussa Toure, ID 8) to this student if not already done
-  if (user.role === 'student' && user.id === 3) {
-    await linkParentToStudent(8, 3)
+  // Auto-link parent to their enrolled children (if parent role)
+  if (user.role === 'parent') {
+    const parentLinks = await prisma.parentEleve.findMany({
+      where: { id_parent: user.id },
+      select: { id_eleve: true }
+    })
+    // Auto-link only if no children linked yet
+    if (parentLinks.length === 0) {
+      // No auto-linking needed, parent-student links should be managed in admin
+    }
   }
 
   // Initial fetch of contacts

@@ -2,6 +2,7 @@ import { getClasses, getTeachers, getScheduleData } from "@/lib/schedule-actions
 import { ScheduleView } from "@/components/dashboard/schedule-view"
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
+import { getCachedUser } from "@/lib/cached-queries"
 
 export default async function SchedulePage({
   searchParams,
@@ -15,8 +16,12 @@ export default async function SchedulePage({
   
   if (!userId) return null
 
+  const cachedUser = await getCachedUser(parseInt(userId))
+  if (!cachedUser) return null
+
+  // Fetch full user with inscriptions from tenant DB using resolved local ID
   const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) },
+    where: { id: cachedUser.id },
     include: {
       inscriptions: true
     }

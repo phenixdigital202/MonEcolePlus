@@ -19,7 +19,8 @@ import {
   Play,
   TrendingUp,
   Sliders,
-  PhoneCall
+  PhoneCall,
+  Activity
 } from "lucide-react"
 import { toast } from "sonner"
 import { getWhatsAppHistory, getWhatsAppStats, retryFailedWhatsAppMessages, sendSimulatedWhatsApp, testWhatsAppConnectionAction } from "@/lib/whatsapp-actions"

@@ -1,24 +1,18 @@
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
-import { redirect } from "next/navigation"
 import { DocumentsPortal } from "@/components/dashboard/documents-portal"
+import { getCachedUser } from "@/lib/cached-queries"
 
 export default async function DocumentsPage() {
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
 
-  if (!userId) {
-    redirect("/login")
-  }
+  if (!userId) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const user = await getCachedUser(parseInt(userId))
 
-  if (!user) {
-    redirect("/login")
-  }
+  if (!user) return null
 
   let documentCounts = undefined
   if (user.role === 'student') {

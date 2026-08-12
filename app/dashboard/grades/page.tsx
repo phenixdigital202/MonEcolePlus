@@ -6,6 +6,7 @@ import { cookies } from "next/headers"
 import { getStudentAcademicData } from "@/lib/student-actions"
 import { StudentGradebook } from "@/components/dashboard/student-gradebook"
 import { ParentGradebookView } from "@/components/dashboard/parent-gradebook-view"
+import { getCachedUser } from "@/lib/cached-queries"
 
 export default async function GradesPage() {
   const prisma = await getPrisma()
@@ -14,9 +15,7 @@ export default async function GradesPage() {
   
   if (!userId) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const user = await getCachedUser(parseInt(userId))
 
   if (!user) return null
 
