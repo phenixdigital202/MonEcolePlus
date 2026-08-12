@@ -44,6 +44,7 @@ export default function BibliothequePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [matiereFilter, setMatiereFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [userRole, setUserRole] = useState<string>("")
 
   // Form state
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -68,6 +69,10 @@ export default function BibliothequePage() {
 
   useEffect(() => {
     fetchData()
+    const role = document.cookie.split('; ').find(row => row.startsWith('user_role='))?.split('=')[1]
+    if (role) {
+      setUserRole(decodeURIComponent(role))
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,118 +136,119 @@ export default function BibliothequePage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </Button>
+          {(userRole === 'admin' || userRole === 'teacher') && (
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 rounded-2xl shadow-lg font-bold bg-primary text-white hover:bg-primary/90 border-none">
+                  <Plus className="h-4 w-4" />
+                  Ajouter un document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md rounded-3xl p-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold">Publier un document</DialogTitle>
+                    <DialogDescription>
+                      Ajoutez une ressource pédagogique à la bibliothèque
+                    </DialogDescription>
+                  </DialogHeader>
 
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 rounded-2xl shadow-lg font-bold bg-primary text-white hover:bg-primary/90 border-none">
-                <Plus className="h-4 w-4" />
-                Ajouter un document
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md rounded-3xl p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold">Publier un document</DialogTitle>
-                  <DialogDescription>
-                    Ajoutez une ressource pédagogique à la bibliothèque
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <Label>Titre du document</Label>
-                    <Input
-                      placeholder="Ex: Mathématiques Terminale C - Algèbre"
-                      value={titre}
-                      onChange={(e) => setTitre(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4 py-2">
                     <div className="space-y-2">
-                      <Label>Auteur / Enseignant</Label>
+                      <Label>Titre du document</Label>
                       <Input
-                        placeholder="M. Touré"
-                        value={auteur}
-                        onChange={(e) => setAuteur(e.target.value)}
+                        placeholder="Ex: Mathématiques Terminale C - Algèbre"
+                        value={titre}
+                        onChange={(e) => setTitre(e.target.value)}
                         required
                       />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Auteur / Enseignant</Label>
+                        <Input
+                          placeholder="M. Touré"
+                          value={auteur}
+                          onChange={(e) => setAuteur(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Format / Type</Label>
+                        <Select value={type} onValueChange={setType}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="pdf">Livre PDF</SelectItem>
+                            <SelectItem value="epub">EPUB</SelectItem>
+                            <SelectItem value="video">Vidéo / Cours</SelectItem>
+                            <SelectItem value="exercice">Exercice</SelectItem>
+                            <SelectItem value="corrige">Corrigé</SelectItem>
+                            <SelectItem value="quiz">Quiz</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Matière</Label>
+                        <Select value={matiere} onValueChange={setMatiere}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="Mathematiques">Mathématiques</SelectItem>
+                            <SelectItem value="Physique">Physique-Chimie</SelectItem>
+                            <SelectItem value="SVT">SVT</SelectItem>
+                            <SelectItem value="Francais">Français</SelectItem>
+                            <SelectItem value="Anglais">Anglais</SelectItem>
+                            <SelectItem value="Histoire-Geo">Histoire-Géo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Niveau cible</Label>
+                        <Select value={niveau} onValueChange={setNiveau}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="Terminale">Terminale</SelectItem>
+                            <SelectItem value="Premiere">Première</SelectItem>
+                            <SelectItem value="Seconde">Seconde</SelectItem>
+                            <SelectItem value="Troisieme">Troisième</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label>Format / Type</Label>
-                      <Select value={type} onValueChange={setType}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="pdf">Livre PDF</SelectItem>
-                          <SelectItem value="epub">EPUB</SelectItem>
-                          <SelectItem value="video">Vidéo / Cours</SelectItem>
-                          <SelectItem value="exercice">Exercice</SelectItem>
-                          <SelectItem value="corrige">Corrigé</SelectItem>
-                          <SelectItem value="quiz">Quiz</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>Lien / URL du document</Label>
+                      <Input
+                        placeholder="https://drive.google.com/..."
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                      />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Matière</Label>
-                      <Select value={matiere} onValueChange={setMatiere}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="Mathematiques">Mathématiques</SelectItem>
-                          <SelectItem value="Physique">Physique-Chimie</SelectItem>
-                          <SelectItem value="SVT">SVT</SelectItem>
-                          <SelectItem value="Francais">Français</SelectItem>
-                          <SelectItem value="Anglais">Anglais</SelectItem>
-                          <SelectItem value="Histoire-Geo">Histoire-Géo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Niveau cible</Label>
-                      <Select value={niveau} onValueChange={setNiveau}>
-                        <SelectTrigger className="rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="Terminale">Terminale</SelectItem>
-                          <SelectItem value="Premiere">Première</SelectItem>
-                          <SelectItem value="Seconde">Seconde</SelectItem>
-                          <SelectItem value="Troisieme">Troisième</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Lien / URL du document</Label>
-                    <Input
-                      placeholder="https://drive.google.com/..."
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
-                    Annuler
-                  </Button>
-                  <Button type="submit" disabled={actionLoading} className="rounded-xl bg-primary text-white font-bold border-none">
-                    {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publier"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">
+                      Annuler
+                    </Button>
+                    <Button type="submit" disabled={actionLoading} className="rounded-xl bg-primary text-white font-bold border-none">
+                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publier"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -332,9 +338,11 @@ export default function BibliothequePage() {
                     Télécharger
                   </a>
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 rounded-full hover:bg-rose-50" onClick={() => handleDelete(b.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {(userRole === 'admin' || userRole === 'teacher') && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 rounded-full hover:bg-rose-50" onClick={() => handleDelete(b.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </Card>
           ))}

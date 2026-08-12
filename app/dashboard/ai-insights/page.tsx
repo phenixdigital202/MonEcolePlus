@@ -27,6 +27,8 @@ import { getPrisma } from "@/lib/tenant-context"
 import { cookies } from "next/headers"
 import { generateSchoolAIAnalysis } from "@/lib/ai-service"
 
+import { getCachedUser } from "@/lib/cached-queries"
+
 export default async function AIInsightsPage() {
   const prisma = await getPrisma()
   const cookieStore = await cookies()
@@ -34,7 +36,7 @@ export default async function AIInsightsPage() {
 
   if (!userId) return null
 
-  const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } })
+  const user = await getCachedUser(parseInt(userId))
   if (!user) return null
 
   const isTeacher = user.role === "teacher"

@@ -13,8 +13,15 @@ export default async function SettingsPage() {
   }
 
   const prisma = await getPrisma()
+  const { getCachedUser } = require("@/lib/cached-queries")
+  const cachedUser = await getCachedUser(parseInt(userId))
+
+  if (!cachedUser) {
+    redirect("/login")
+  }
+
   const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) },
+    where: { id: cachedUser.id },
     include: {
       inscriptions: {
         include: {
