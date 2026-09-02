@@ -63,7 +63,11 @@ export default function LoginPage() {
               </div>
             )}
             
-            <form className="space-y-6" action={handleSubmit}>
+            <form className="space-y-6" onSubmit={async (e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              await handleSubmit(formData)
+            }}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                   Adresse email
