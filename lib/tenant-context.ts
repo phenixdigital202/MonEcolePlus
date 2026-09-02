@@ -62,7 +62,7 @@ export async function getCurrentTenant() {
     }
   } catch (error: any) {
     if (error?.digest !== 'DYNAMIC_SERVER_USAGE' && !error?.message?.includes('Dynamic server usage')) {
-      logError(error, { action: "getCurrentTenant" })
+      logError("getCurrentTenant", error?.message || String(error))
     }
   }
 

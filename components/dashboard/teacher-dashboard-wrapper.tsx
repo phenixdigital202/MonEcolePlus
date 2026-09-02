@@ -128,10 +128,10 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
           <Card>
             <CardHeader><CardTitle className="text-lg">Actions Rapides</CardTitle></CardHeader>
             <CardContent className="grid gap-2">
-                <Button variant="outline" className="w-full justify-start" asChild prefetch={true}><Link href="/dashboard/absences">Marquer les absences</Link></Button>
-                <Button variant="outline" className="w-full justify-start" asChild prefetch={true}><Link href="/dashboard/grades">Saisir des notes</Link></Button>
-                <Button variant="outline" className="w-full justify-start" asChild prefetch={true}><Link href="/dashboard/messages">Messagerie</Link></Button>
-                <Button variant="outline" className="w-full justify-start" asChild prefetch={false}><Link href="/dashboard/settings">Mon Profil</Link></Button>
+                <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/absences" prefetch={true}>Marquer les absences</Link></Button>
+                <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/grades" prefetch={true}>Saisir des notes</Link></Button>
+                <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/messages" prefetch={true}>Messagerie</Link></Button>
+                <Button variant="outline" className="w-full justify-start" asChild><Link href="/dashboard/settings" prefetch={false}>Mon Profil</Link></Button>
             </CardContent>
           </Card>
         </div>

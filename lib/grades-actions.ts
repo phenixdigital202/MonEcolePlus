@@ -189,9 +189,8 @@ export async function getEvaluationsByClass(classId: number) {
     return []
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const { getCachedUser } = require("@/lib/cached-queries")
+  const user = await getCachedUser(parseInt(userId))
 
   if (!user) {
     return []

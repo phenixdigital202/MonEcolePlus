@@ -39,10 +39,8 @@ export async function saveSchoolYearAction(formData: {
 
   const prisma = await getPrisma()
 
-  // 1. Verify user role
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt(userId) }
-  })
+  const { getCachedUser } = require("@/lib/cached-queries")
+  const user = await getCachedUser(parseInt(userId))
 
   if (!user || user.role !== "admin") {
     return { success: false, error: "Permissions insuffisantes (Admin requis)" }

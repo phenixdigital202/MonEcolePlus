@@ -16,8 +16,8 @@ export async function getSaasStats() {
   const ecoles = await prisma.ecole.findMany({ select: { plan: true } })
   let mrr = 0
   ecoles.forEach(e => {
-    if (e.plan === "professionnel") mrr += 75000
-    else if (e.plan === "entreprise") mrr += 150000
+    if ((e.plan as string) === "professionnel") mrr += 75000
+    else if ((e.plan as string) === "entreprise") mrr += 150000
   })
 
   const arr = mrr * 12

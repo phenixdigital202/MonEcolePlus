@@ -182,7 +182,7 @@ export async function generateSchoolAIAnalysis(): Promise<AIAnalysisResult> {
   })
 
   // Finance analysis
-  const received = payments.filter(p => p.status === "paye" || p.status === "payé").reduce((acc, p) => acc + Number(p.montant), 0)
+  const received = payments.filter(p => p.status === "paye" || (p.status as string) === "payé").reduce((acc, p) => acc + Number(p.montant), 0)
   const late = payments.filter(p => p.status === "en_attente").reduce((acc, p) => acc + Number(p.montant), 0)
   const forecast = received + late * 0.85 // 85% collection prediction
 

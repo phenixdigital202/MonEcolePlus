@@ -66,15 +66,88 @@ export async function getSchoolInfoAction() {
       success: true,
       data: {
         nom: school?.nom || "MonÉcole+ Groupe Scolaire",
-        adresse: school?.adresse || "Abidjan, Côte d'Ivoire",
-        telephone: school?.telephone || "+225 07 00 00 00 00",
-        email: school?.email || "contact@monecoleplus.ci",
-        directeur: school?.directeur || "Le Chef d'Établissement",
+        adresse: (school as any)?.adresse || "Abidjan, Côte d'Ivoire",
+        telephone: (school as any)?.telephone || "+225 07 00 00 00 00",
+        email: (school as any)?.email || "contact@monecoleplus.ci",
+        directeur: (school as any)?.directeur || "Le Chef d'Établissement",
         activeSchoolYear: activeYear?.label || "2026-2027"
       }
     }
   } catch (error: any) {
     console.error("[getSchoolInfoAction] Error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function getBulletinDataAction(classeId: number, period: string) {
+  try {
+    const prisma = await getPrisma()
+    
+    // Fetch all students in class with their notes & absences
+    const students = await prisma.user.findMany({
+      where: {
+        role: 'student',
+        inscriptions: {
+          some: { id_classe: classeId }
+        }
+      },
+      include: {
+        notes: {
+          include: { evaluation: true }
+        },
+        absences: true
+      }
+    })
+
+    const computedReport = students.map(student => {
+      const studentNotes = student.notes || []
+      const studentAbsences = student.absences || []
+
+      // Group notes by subject
+      const subjectMap: Record<string, { notes: number[], type: string }> = {}
+      studentNotes.forEach(n => {
+        const mat = n.evaluation.matiere || "Général"
+        if (!subjectMap[mat]) {
+          subjectMap[mat] = { notes: [], type: n.evaluation.type_eval || "Devoir" }
+        }
+        subjectMap[mat].notes.push(Number(n.valeur))
+      })
+
+      const subjects = Object.keys(subjectMap).map(mat => {
+        const list = subjectMap[mat].notes
+        const avg = list.reduce((a, b) => a + b, 0) / list.length
+        return {
+          name: mat,
+          coef: 2, // Standard coefficient
+          notesCount: list.length,
+          avg: Number(avg.toFixed(2)),
+          feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
+                    avg >= 14 ? "Très bon travail. Continuez ainsi." : 
+                    avg >= 12 ? "Bon travail dans l'ensemble." : 
+                    avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
+                    "Insuffisant. Travail régulier exigé."
+        }
+      })
+
+      const overallAvg = subjects.length > 0
+        ? subjects.reduce((acc, s) => acc + s.avg, 0) / subjects.length
+        : 0
+
+      return {
+        id: student.id,
+        nom: student.nom,
+        email: student.email,
+        classNom: "Classe",
+        overallAvg: Number(overallAvg.toFixed(2)),
+        totalAbsences: studentAbsences.length,
+        subjects: subjects.length > 0 ? subjects : [],
+        decision: overallAvg >= 10 ? "Tableau d'Honneur / Admis" : "Avertissement du Conseil"
+      }
+    })
+
+    return { success: true, data: computedReport }
+  } catch (error: any) {
+    console.error("[getBulletinDataAction] Error:", error)
     return { success: false, error: error.message }
   }
 }
