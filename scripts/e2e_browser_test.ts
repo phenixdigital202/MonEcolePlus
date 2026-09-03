@@ -132,24 +132,28 @@ async function simulateDashboard(login: LoginResult): Promise<DashboardResult | 
   const { getTenantClient } = require("../lib/prisma-tenant")
   const tenantPrisma = getTenantClient(tenant.database_url)
   
-  // Step C: getCachedUser (find user by ID, then by email fallback)
+  // Step C: getCachedUser (find master user first, then tenant user by email)
   console.log(`\n[getCachedUser] Looking up user_id=${login.userId} in tenant DB`)
-  let tenantUser = await tenantPrisma.user.findUnique({
+  const masterUser = await masterPrisma.user.findUnique({
     where: { id: login.userId },
-    include: { ecole: true }
+    select: { email: true }
   })
   
-  if (!tenantUser) {
-    console.log(`[getCachedUser] ID lookup failed, trying email fallback...`)
-    const masterUser = await masterPrisma.user.findUnique({
-      where: { id: login.userId },
-      select: { email: true }
+  let tenantUser = null
+  if (masterUser?.email) {
+    tenantUser = await tenantPrisma.user.findUnique({
+      where: { email: masterUser.email },
+      include: { ecole: true }
     })
-    if (masterUser?.email) {
-      tenantUser = await tenantPrisma.user.findUnique({
-        where: { email: masterUser.email },
-        include: { ecole: true }
-      })
+  }
+  
+  if (!tenantUser) {
+    const userById = await tenantPrisma.user.findUnique({
+      where: { id: login.userId },
+      include: { ecole: true }
+    })
+    if (userById && userById.email === masterUser?.email) {
+      tenantUser = userById
     }
   }
   
