@@ -88,13 +88,18 @@ model Class {
   id_ecole       Int?
   nom            String
   niveau         String
+  capacite       Int             @default(60)
+  id_level       Int?
+  id_annee_scolaire Int?
   created_at     DateTime        @default(now())
   ecole          Ecole?          @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  schoolLevel    SchoolLevel?    @relation(fields: [id_level], references: [id], onUpdate: Restrict)
   emploisDuTemps EmploiDuTemps[]
   evaluations    Evaluation[]
   inscriptions   Inscription[]
 
   @@index([id_ecole])
+  @@index([id_level])
   @@map("classes")
 }
 
@@ -118,6 +123,8 @@ model Ecole {
   classes            Class[]
   users              User[]
   schoolYears        SchoolYear[]
+  pedagogicalSettings PedagogicalSettings?
+  schoolLevels       SchoolLevel[]
 
   @@map("ecoles")
 }
@@ -183,16 +190,22 @@ model Evaluation {
 }
 
 model Inscription {
-  id             Int    @id @default(autoincrement())
-  id_eleve       Int
-  id_classe      Int
-  annee_scolaire String
-  user           User   @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  classe         Class  @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  id                Int               @id @default(autoincrement())
+  id_eleve          Int
+  id_classe         Int
+  annee_scolaire    String
+  statut            InscriptionStatut @default(active)
+  startDate         DateTime          @default(now())
+  endDate           DateTime?
+  reason            String?
+  id_annee_scolaire Int?
+  user              User              @relation(fields: [id_eleve], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  classe            Class             @relation(fields: [id_classe], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([id_classe])
   @@index([id_eleve])
   @@index([annee_scolaire, id_classe])
+  @@index([id_eleve, annee_scolaire, statut])
   @@map("inscriptions")
 }
 
@@ -287,39 +300,115 @@ model Setting {
 }
 
 model User {
-  id                  Int                @id @default(autoincrement())
+  id                  Int                   @id @default(autoincrement())
   id_ecole            Int?
   nom                 String
-  email               String             @unique
+  email               String                @unique
   password            String
   role                Role
   matiere             String?
-  points              Int                @default(0)
-  niveau              Int                @default(1)
-  created_at          DateTime           @default(now())
+  points              Int                   @default(0)
+  niveau              Int                   @default(1)
+  created_at          DateTime              @default(now())
   absences            Absence[]
   aiInsights          AIInsight[]
   annonces            Annonce[]
   eleveBadges         EleveBadge[]
   emploisDuTemps      EmploiDuTemps[]
   inscriptions        Inscription[]
-  messagesRecus       Message[]          @relation("MessageDestinataire")
-  messagesEnvoyes     Message[]          @relation("MessageExpediteur")
+  messagesRecus       Message[]             @relation("MessageDestinataire")
+  messagesEnvoyes     Message[]             @relation("MessageExpediteur")
   notes               Note[]
   paiements           Paiement[]
   parcoursScolaires   ParcoursScolaire[]
-  parentEleveAsEleve  ParentEleve[]      @relation("ParentEleveEleve")
-  parentEleveAsParent ParentEleve[]      @relation("ParentEleveParent")
-  ecole               Ecole?             @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  parentEleveAsEleve  ParentEleve[]         @relation("ParentEleveEleve")
+  parentEleveAsParent ParentEleve[]         @relation("ParentEleveParent")
+  teacherSubjects     TeacherSubject[]
+  teacherAvailabilities TeacherAvailability[]
+  ecole               Ecole?                @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
 
   @@index([id_ecole])
   @@index([role, id_ecole])
   @@map("users")
 }
 
+model TeacherSubject {
+  id            Int      @id @default(autoincrement())
+  id_enseignant Int
+  matiere       String
+  user          User     @relation(fields: [id_enseignant], references: [id], onDelete: Cascade)
+
+  @@index([id_enseignant])
+  @@unique([id_enseignant, matiere])
+  @@map("teacher_subjects")
+}
+
+model TeacherAvailability {
+  id            Int      @id @default(autoincrement())
+  id_enseignant Int
+  jour          Jour
+  heure_debut   DateTime
+  heure_fin     DateTime
+  est_disponible Boolean @default(true)
+  user          User     @relation(fields: [id_enseignant], references: [id], onDelete: Cascade)
+
+  @@index([id_enseignant])
+  @@index([id_enseignant, jour])
+  @@map("teacher_availabilities")
+}
+
+model SchoolLevel {
+  id       Int            @id @default(autoincrement())
+  id_ecole Int?
+  nom      String
+  ordre    Int            @default(1)
+  ecole    Ecole?         @relation(fields: [id_ecole], references: [id], onDelete: Cascade)
+  classes  Class[]
+  levelSubjects LevelSubject[]
+
+  @@index([id_ecole])
+  @@map("school_levels")
+}
+
+model LevelSubject {
+  id                  Int          @id @default(autoincrement())
+  id_level            Int
+  matiere             String
+  volume_horaire_hebdo Int          @default(4)
+  est_obligatoire     Boolean      @default(true)
+  salle_specifique    String?
+  schoolLevel         SchoolLevel  @relation(fields: [id_level], references: [id], onDelete: Cascade)
+
+  @@index([id_level])
+  @@map("level_subjects")
+}
+
+model PedagogicalSettings {
+  id                     Int    @id @default(autoincrement())
+  id_ecole               Int    @unique
+  max_heures_jour_eleve  Int    @default(7)
+  duree_pause_min        Int    @default(30)
+  heures_cours_debut     String @default("08:00")
+  heures_cours_fin       String @default("18:00")
+  jours_ouvres           String @default("Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi")
+  ecole                  Ecole  @relation(fields: [id_ecole], references: [id], onDelete: Cascade)
+
+  @@map("pedagogical_settings")
+}
+
 // ─────────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────────
+
+enum InscriptionStatut {
+  active
+  transferred
+  redoublant
+  exclu
+  terminee
+
+  @@map("inscriptions_statut")
+}
 
 enum AbsenceStatut {
   justifie

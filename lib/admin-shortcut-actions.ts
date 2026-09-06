@@ -11,6 +11,8 @@ async function getPrismaClient() {
   return await getPrisma()
 }
 
+import { validateStudentEnrollment } from "@/lib/pedagogical-constraints-engine"
+
 export async function addStudentAction(formData: any) {
   try {
     console.log("[addStudentAction] Received formData:", formData)
@@ -28,6 +30,23 @@ export async function addStudentAction(formData: any) {
     const parsedSchoolId = schoolId ? parseInt(schoolId) : null
 
     const prisma = await getPrismaClient()
+
+    // Pedagogical constraint validation if class is selected
+    if (id_classe && id_classe !== "") {
+      const classIdNum = parseInt(id_classe)
+      if (!isNaN(classIdNum)) {
+        const validation = await validateStudentEnrollment({
+          email,
+          nom,
+          id_classe: classIdNum,
+          annee_scolaire: '2025-2026'
+        })
+        if (!validation.valid) {
+          const blockingMsg = validation.violations.find(v => v.severity === "BLOCKING")?.message
+          return { success: false, error: blockingMsg || "Contrainte d'inscription non respectée." }
+        }
+      }
+    }
 
     // 1. Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } })
@@ -77,7 +96,9 @@ export async function addStudentAction(formData: any) {
           data: {
             id_eleve: newUser.id,
             id_classe: classIdNum,
-            annee_scolaire: '2025-2026'
+            annee_scolaire: '2025-2026',
+            statut: 'active',
+            startDate: new Date()
           }
         })
       }

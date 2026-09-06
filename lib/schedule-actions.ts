@@ -2,6 +2,12 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
+import {
+  validateTeacherAssignment,
+  validateTimetable,
+  preAuditTimetable,
+  TimetableSlot
+} from "@/lib/pedagogical-constraints-engine"
 
 export async function addCourse(formData: FormData) {
   const prisma = await getPrisma()
@@ -13,10 +19,27 @@ export async function addCourse(formData: FormData) {
   const heure_fin_str = formData.get("heure_fin") as string
   const salle = formData.get("salle") as string
 
-  // Simple formatting of time strings to Date objects (Times in Prisma MySQL are tricky)
-  // We'll use a dummy date and just the time part
+  if (!id_classe || !id_enseignant || !matiere || !jour || !heure_debut_str || !heure_fin_str) {
+    return { success: false, error: "Veuillez remplir tous les champs obligatoires du cours." }
+  }
+
   const heure_debut = new Date(`1970-01-01T${heure_debut_str}:00Z`)
   const heure_fin = new Date(`1970-01-01T${heure_fin_str}:00Z`)
+
+  // Validate teacher assignment & availability (RP-020, RP-021, RP-023)
+  const validation = await validateTeacherAssignment({
+    teacherId: id_enseignant,
+    subject: matiere,
+    day: jour,
+    startTime: heure_debut,
+    endTime: heure_fin,
+    classId: id_classe
+  })
+
+  if (!validation.valid) {
+    const blockingMsg = validation.violations.find(v => v.severity === "BLOCKING")?.message
+    return { success: false, error: blockingMsg || "Contrainte pédagogique non respectée." }
+  }
 
   try {
     await prisma.emploiDuTemps.create({
@@ -33,67 +56,134 @@ export async function addCourse(formData: FormData) {
 
     revalidatePath("/dashboard/schedule")
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error adding course:", error)
-    return { success: false, error: "Failed to add course" }
+    return { success: false, error: "Erreur lors de l'ajout du cours" }
   }
 }
 
 export async function generateAIScheduleAll() {
   const prisma = await getPrisma()
   try {
-    const classes = await prisma.class.findMany()
-    const teachers = await prisma.user.findMany({ where: { role: 'teacher' } })
-    
-    if (classes.length === 0 || teachers.length === 0) {
-      return { success: false, error: "No classes or teachers available" }
+    // 1. Pre-Audit before generation
+    const audit = await preAuditTimetable()
+    if (!audit.canGenerate) {
+      return {
+        success: false,
+        error: `Pré-audit bloquant : ${audit.blockingIssues.join(" | ")}`
+      }
     }
 
-    // Clear all existing schedules
-    await prisma.emploiDuTemps.deleteMany()
+    const classes = await prisma.class.findMany()
+    const teachers = await prisma.user.findMany({
+      where: { role: 'teacher' },
+      include: { teacherSubjects: true }
+    })
 
     const subjects = ["Mathématiques", "Français", "Anglais", "SVT", "Physique-Chimie", "Histoire-Géo", "EPS", "Arts Plastiques"]
     const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
     const slots = ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"]
     
-    const newEntries = []
+    // Track occupied teacher slots: "teacherId_day_slot"
+    const busyTeacherSlots = new Set<string>()
+    // Track occupied room slots: "room_day_slot"
+    const busyRoomSlots = new Set<string>()
 
+    const newEntries: TimetableSlot[] = []
+
+    // CSP Slot Allocation
     for (const classe of classes) {
+      // Pick 4 subjects per day, distributed
       for (const day of days) {
-        // Generate 3-5 random courses per day
-        const daySlots = [...slots].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 3) + 3)
-        
-        for (const slot of daySlots) {
-          const subject = subjects[Math.floor(Math.random() * subjects.length)]
-          const teacher = teachers[Math.floor(Math.random() * teachers.length)]
-          
+        // Pick 4 slots for this class on this day (avoiding overload RP-035: max 5h)
+        const daySlots = ["08:00", "09:00", "10:00", "11:00"].slice(0, Math.floor(Math.random() * 2) + 3)
+        if (day !== "Samedi") {
+          daySlots.push("14:00")
+        }
+
+        for (let idx = 0; idx < daySlots.length; idx++) {
+          const slot = daySlots[idx]
+          const subject = subjects[(classes.indexOf(classe) + days.indexOf(day) + idx) % subjects.length]
+
+          // Find an available teacher who is authorized to teach this subject
+          let selectedTeacher = teachers.find(t => {
+            const allowed = new Set<string>()
+            if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
+            t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
+            
+            const matchesSubject = allowed.size === 0 || allowed.has(subject.toLowerCase())
+            const isFree = !busyTeacherSlots.has(`${t.id}_${day}_${slot}`)
+            return matchesSubject && isFree
+          })
+
+          // Fallback to any free teacher if strict match fails
+          if (!selectedTeacher) {
+            selectedTeacher = teachers.find(t => !busyTeacherSlots.has(`${t.id}_${day}_${slot}`))
+          }
+
+          if (!selectedTeacher) continue // Skip slot if no teacher free
+
+          // Room selection (RP-038)
+          let roomNum = (classes.indexOf(classe) % 10) + 101
+          let roomName = `Salle ${roomNum}`
+          while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
+            roomNum++
+            roomName = `Salle ${roomNum}`
+          }
+
+          busyTeacherSlots.add(`${selectedTeacher.id}_${day}_${slot}`)
+          busyRoomSlots.add(`${roomName}_${day}_${slot}`)
+
           const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
           const endHour = parseInt(slot.split(":")[0]) + 1
           const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
 
           newEntries.push({
             id_classe: classe.id,
-            id_enseignant: teacher.id,
+            id_enseignant: selectedTeacher.id,
             matiere: subject,
             jour: day,
             heure_debut,
             heure_fin,
-            salle: `Salle ${Math.floor(Math.random() * 20) + 100}`
+            salle: roomName
           })
         }
       }
     }
 
-    // Bulk creation
+    // 2. Validate proposed timetable against all pedagogical rules
+    const validation = await validateTimetable(newEntries)
+    if (!validation.valid) {
+      const blocking = validation.violations.filter(v => v.severity === "BLOCKING")
+      return {
+        success: false,
+        error: `Emploi du temps rejeté par le moteur de contraintes (${blocking.length} violation(s) bloquante(s)) : ${blocking[0]?.message}`
+      }
+    }
+
+    // 3. Clear existing and create verified entries
+    await prisma.emploiDuTemps.deleteMany()
     await prisma.emploiDuTemps.createMany({
-        data: newEntries
+      data: newEntries.map(e => ({
+        id_classe: e.id_classe,
+        id_enseignant: e.id_enseignant,
+        matiere: e.matiere,
+        jour: e.jour as any,
+        heure_debut: e.heure_debut as Date,
+        heure_fin: e.heure_fin as Date,
+        salle: e.salle
+      }))
     })
 
     revalidatePath("/dashboard/schedule")
-    return { success: true, count: newEntries.length }
-  } catch (error) {
+    return {
+      success: true,
+      count: newEntries.length,
+      qualityScore: validation.qualityScore
+    }
+  } catch (error: any) {
     console.error("Error generating AI schedule:", error)
-    return { success: false, error: "Failed to generate schedule" }
+    return { success: false, error: error?.message || "Failed to generate schedule" }
   }
 }
 
@@ -107,9 +197,28 @@ export async function getClasses() {
 export async function updateCoursePosition(courseId: number, day: any, hour: string) {
   const prisma = await getPrisma()
   try {
+    const course = await prisma.emploiDuTemps.findUnique({ where: { id: courseId } })
+    if (!course) return { success: false, error: "Cours introuvable." }
+
     const heure_debut = new Date(`1970-01-01T${hour}:00Z`)
     const endHour = parseInt(hour.split(":")[0]) + 1
     const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+    // Validate proposed position
+    const validation = await validateTeacherAssignment({
+      teacherId: course.id_enseignant,
+      subject: course.matiere,
+      day: day,
+      startTime: heure_debut,
+      endTime: heure_fin,
+      classId: course.id_classe,
+      excludeCourseId: courseId
+    })
+
+    if (!validation.valid) {
+      const blockingMsg = validation.violations.find(v => v.severity === "BLOCKING")?.message
+      return { success: false, error: blockingMsg || "Déplacement impossible (conflit de créneau)." }
+    }
 
     await prisma.emploiDuTemps.update({
       where: { id: courseId },

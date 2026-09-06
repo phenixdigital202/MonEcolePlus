@@ -2,17 +2,29 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { validateGradeEntry } from "@/lib/pedagogical-constraints-engine"
 
 export async function saveGrades(evaluationId: number, grades: { studentId: number, value: number, comment?: string }[]) {
   try {
     const prisma = await getPrisma()
 
-    // Validate grades: must be numbers between 0 and 20
-    const validGrades = grades.filter(g => typeof g.value === 'number' && !isNaN(g.value) && g.value >= 0 && g.value <= 20)
+    // Validate each grade with pedagogical constraints engine
+    for (const g of grades) {
+      const validation = await validateGradeEntry({
+        studentId: g.studentId,
+        evaluationId: evaluationId,
+        value: g.value
+      })
+      if (!validation.valid) {
+        const blockingMsg = validation.violations.find(v => v.severity === "BLOCKING")?.message
+        return { success: false, error: blockingMsg || "Note invalide selon le barème ou la période." }
+      }
+    }
+
+    const validGrades = grades.filter(g => typeof g.value === 'number' && !isNaN(g.value))
     
     if (validGrades.length === 0) {
-      return { success: false, error: "Aucune note valide (entre 0 et 20) à enregistrer." }
+      return { success: false, error: "Aucune note valide à enregistrer." }
     }
 
     const studentIds = validGrades.map(g => g.studentId)
