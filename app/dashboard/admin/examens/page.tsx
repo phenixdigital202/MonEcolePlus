@@ -363,7 +363,7 @@ export default function ExamensAdminPage() {
             </form>
 
             {generatedDoc && (
-              <div className="mt-6 border border-slate-100 p-5 rounded-2xl bg-slate-50 space-y-4">
+              <div id="printable-document" className="printable-area mt-6 border border-slate-100 p-5 rounded-2xl bg-slate-50 space-y-4 print:border-none print:bg-white print:p-0 print:m-0">
                 <div className="text-center space-y-1 pb-3 border-b">
                   {docType === "convocation" ? (
                     <>
@@ -386,7 +386,7 @@ export default function ExamensAdminPage() {
                   <p>Date d&apos;impression : <span>{generatedDoc.date}</span></p>
                 </div>
 
-                <Button variant="outline" className="w-full gap-2 rounded-xl font-bold border-slate-200 hover:bg-slate-100" onClick={() => window.print()}>
+                <Button variant="outline" className="w-full gap-2 rounded-xl font-bold border-slate-200 hover:bg-slate-100 print:hidden no-print" onClick={() => window.print()}>
                   <Printer className="h-4 w-4" />
                   Imprimer / PDF
                 </Button>

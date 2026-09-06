@@ -195,7 +195,7 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap print:hidden no-print">
             <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 gap-1.5 font-bold" onClick={handleAutoOptimize}>
               <Sparkles className="h-4 w-4 text-primary" />
               Résolution IA
@@ -210,7 +210,7 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
           </div>
         </div>
 
-        <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white/40 backdrop-blur-md">
+        <Card id="printable-document" className="printable-area border-none shadow-xl rounded-3xl overflow-hidden bg-white/40 backdrop-blur-md print:shadow-none print:rounded-none print:bg-white">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1000px]">

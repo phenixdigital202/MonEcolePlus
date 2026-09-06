@@ -197,7 +197,7 @@ export default function BulletinPDFPage() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-6">
           {selectedStudentForPDF && (
             <div>
-              <div className="flex justify-between items-center pb-4 border-b">
+              <div className="flex justify-between items-center pb-4 border-b print:hidden no-print">
                 <DialogTitle className="text-xl font-bold">Aperçu du Bulletin Officiel</DialogTitle>
                 <div className="flex gap-2">
                   <Button className="rounded-xl bg-primary text-white font-bold gap-2" onClick={triggerWindowPrint}>
@@ -207,7 +207,7 @@ export default function BulletinPDFPage() {
               </div>
 
               {/* Printable Official Document */}
-              <div ref={printRef} className="p-8 bg-white text-slate-900 font-sans space-y-6 border rounded-2xl mt-4 shadow-sm print:shadow-none print:border-none">
+              <div id="printable-document" ref={printRef} className="printable-area p-8 bg-white text-slate-900 font-sans space-y-6 border rounded-2xl mt-4 shadow-sm print:shadow-none print:border-none print:m-0 print:p-0 print:w-full">
                 {/* Header */}
                 <div className="flex justify-between items-start border-b pb-4">
                   <div>

@@ -131,12 +131,12 @@ export default function CertificatePage() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-3 items-start">
             <div className="lg:col-span-2 space-y-4">
-              <Button variant="ghost" onClick={() => setStep("select")} className="rounded-xl font-bold">
+              <Button variant="ghost" onClick={() => setStep("select")} className="rounded-xl font-bold print:hidden no-print">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Retour à la recherche d&apos;élèves
               </Button>
               
               {/* High-Fidelity Printable Certificate Template */}
-              <Card className="border-4 border-slate-200 shadow-2xl overflow-hidden bg-white text-slate-900 font-serif p-8 md:p-12 relative rounded-3xl print:shadow-none print:border-none">
+              <Card id="printable-document" className="printable-area border-4 border-slate-200 shadow-2xl overflow-hidden bg-white text-slate-900 font-serif p-8 md:p-12 relative rounded-3xl print:shadow-none print:border-none print:p-0 print:m-0 print:w-full">
                  {/* Security Background Pattern */}
                  <div className="absolute inset-0 opacity-[0.02] pointer-events-none flex flex-wrap gap-4 p-4">
                     {Array.from({length: 80}).map((_, i) => <ShieldCheck key={i} className="h-12 w-12" />)}
@@ -219,7 +219,7 @@ export default function CertificatePage() {
               </Card>
             </div>
 
-            <div className="space-y-6 pt-12">
+            <div className="space-y-6 pt-12 print:hidden no-print">
                <Card className="border-primary/20 bg-primary/5 rounded-3xl shadow-lg">
                  <CardHeader>
                    <CardTitle className="text-lg font-bold">Actions & Export</CardTitle>

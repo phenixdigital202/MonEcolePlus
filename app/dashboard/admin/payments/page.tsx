@@ -642,7 +642,7 @@ export default function AdminPaymentsPage() {
       <Dialog open={!!receiptPayment} onOpenChange={(open) => !open && setReceiptPayment(null)}>
         <DialogContent className="sm:max-w-lg rounded-3xl p-6">
           {receiptPayment && (
-            <div className="space-y-6 print:p-0">
+            <div id="printable-document" className="printable-area space-y-6 print:p-0 print:m-0 print:w-full">
               <div className="text-center space-y-1 pb-4 border-b border-slate-100">
                 <h2 className="text-xl font-black text-primary">MonÉcole+ Groupe Scolaire</h2>
                 <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Reçu Officiel de Règlement</p>
@@ -676,7 +676,7 @@ export default function AdminPaymentsPage() {
                 Ce document constitue une preuve officielle de paiement enregistrée en base de données.
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0">
+              <DialogFooter className="gap-2 sm:gap-0 print:hidden no-print">
                 <Button variant="outline" className="rounded-xl" onClick={() => setReceiptPayment(null)}>Fermer</Button>
                 <Button className="rounded-xl bg-primary text-white font-bold border-none gap-2" onClick={() => window.print()}>
                   <Printer className="h-4 w-4" /> Imprimer le reçu

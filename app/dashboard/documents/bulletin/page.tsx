@@ -215,7 +215,7 @@ export default function BulletinBatchPage() {
 
                 {/* High-Fidelity Printable Bulletin Template */}
                 {currentStudent ? (
-                  <div className="relative">
+                  <div id="printable-document" className="relative printable-area print:w-full print:max-w-none print:m-0 print:p-0">
                     {/* 1. MODEL PREMIUM (Stripe / Canva style) */}
                     {selectedTemplateStyle === "premium" && (
                       <Card className="relative overflow-hidden border border-slate-100 shadow-2xl bg-white text-slate-800 p-8 md:p-12 rounded-[2rem] font-sans print:shadow-none print:border-none print:p-0">
@@ -587,7 +587,7 @@ export default function BulletinBatchPage() {
              </div>
 
              {/* Students Batch Selector Sidebar */}
-             <div className="space-y-4">
+             <div className="space-y-4 print:hidden no-print">
                 <Card className="border-slate-200 bg-white rounded-3xl shadow-lg overflow-hidden">
                    <CardHeader className="bg-slate-50 border-b">
                       <CardTitle className="text-sm font-bold uppercase text-slate-600">Élèves de la Classe ({reportData?.students?.length || 0})</CardTitle>
