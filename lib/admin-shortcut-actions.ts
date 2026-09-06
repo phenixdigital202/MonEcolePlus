@@ -14,7 +14,10 @@ async function getPrismaClient() {
 export async function addStudentAction(formData: any) {
   try {
     console.log("[addStudentAction] Received formData:", formData)
-    const { nom, email, password, id_classe } = formData
+    const nom = formData.nom || formData.name
+    const email = formData.email
+    const password = formData.password
+    const id_classe = formData.id_classe || formData.classId
     
     if (!nom || !email || !password) {
       return { success: false, error: "Veuillez remplir tous les champs obligatoires (nom, email, mot de passe)." }
@@ -74,7 +77,7 @@ export async function addStudentAction(formData: any) {
           data: {
             id_eleve: newUser.id,
             id_classe: classIdNum,
-            annee_scolaire: '2023-2024'
+            annee_scolaire: '2025-2026'
           }
         })
       }
@@ -86,7 +89,7 @@ export async function addStudentAction(formData: any) {
     return { success: true }
   } catch (error: any) {
     console.error("[addStudentAction] FATAL ERROR:", error)
-    return { success: false, error: error?.message || "Erreur lors de l'ajout" }
+    return { success: false, error: error?.message || "Erreur lors de l'ajout de l'élève" }
   }
 }
 
@@ -288,18 +291,35 @@ export async function updateUserAction(id: number, data: any) {
 
 export async function issueInvoiceAction(formData: any) {
   try {
-    const { studentId, amount } = formData
+    console.log("[issueInvoiceAction] Received:", formData)
+    const studentId = formData.id_utilisateur || formData.studentId
+    const amount = formData.montant || formData.amount
+    const type = formData.type || "scolarite"
+
+    if (!studentId || !amount) {
+      return { success: false, error: "Veuillez sélectionner un élève et indiquer un montant valide." }
+    }
+
+    const parsedStudentId = parseInt(studentId)
+    const parsedAmount = parseFloat(amount)
+
+    if (isNaN(parsedStudentId) || isNaN(parsedAmount) || parsedAmount <= 0) {
+      return { success: false, error: "Le montant ou l'identifiant élève est invalide." }
+    }
+
     const prisma = await getPrismaClient()
     await prisma.paiement.create({
       data: {
-        id_utilisateur: parseInt(studentId),
-        montant: parseFloat(amount),
+        id_utilisateur: parsedStudentId,
+        montant: parsedAmount,
         status: 'en_attente',
-        type: 'scolarite',
+        type: (type as any) || 'scolarite',
         date_paiement: new Date()
       }
     })
+
     revalidatePath("/dashboard")
+    revalidatePath("/dashboard/admin/payments")
     return { success: true }
   } catch (error: any) {
     console.error("[issueInvoiceAction] Error:", error)
@@ -309,45 +329,88 @@ export async function issueInvoiceAction(formData: any) {
 
 export async function scheduleClassAction(formData: any) {
   try {
-    const { classId, teacherId, subject, day, startTime, endTime } = formData
+    console.log("[scheduleClassAction] Received:", formData)
+    const classId = formData.id_classe || formData.classId
+    const teacherId = formData.id_enseignant || formData.teacherId
+    const subject = formData.matiere || formData.subject
+    const day = formData.jour || formData.day || "Lundi"
+    const startTimeStr = formData.heure_debut || formData.startTime || "08:00"
+    const endTimeStr = formData.heure_fin || formData.endTime || "10:00"
+    const salle = formData.salle || "Salle 1"
+
+    if (!classId || !teacherId || !subject) {
+      return { success: false, error: "Veuillez sélectionner une classe, un professeur et renseigner une matière." }
+    }
+
+    const parsedClassId = parseInt(classId)
+    const parsedTeacherId = parseInt(teacherId)
+
+    if (isNaN(parsedClassId) || isNaN(parsedTeacherId)) {
+      return { success: false, error: "Identifiant de classe ou d'enseignant invalide." }
+    }
+
+    const today = new Date()
+    const [startH, startM] = startTimeStr.split(":").map((n: string) => parseInt(n) || 0)
+    const [endH, endM] = endTimeStr.split(":").map((n: string) => parseInt(n) || 0)
+
+    const startDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM))
+    const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM))
+
     const prisma = await getPrismaClient()
     await prisma.emploiDuTemps.create({
       data: {
-        id_classe: parseInt(classId),
-        id_enseignant: parseInt(teacherId),
+        id_classe: parsedClassId,
+        id_enseignant: parsedTeacherId,
         matiere: subject,
-        jour: day,
-        heure_debut: startTime,
-        heure_fin: endTime
+        jour: (day as any) || 'Lundi',
+        heure_debut: startDate,
+        heure_fin: endDate,
+        salle: salle
       }
     })
+
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/schedule")
     return { success: true }
   } catch (error: any) {
     console.error("[scheduleClassAction] Error:", error)
-    return { success: false, error: error?.message || "Erreur lors de la planification" }
+    return { success: false, error: error?.message || "Erreur lors de la planification du cours" }
   }
 }
 
 export async function broadcastAnnouncementAction(formData: any) {
   try {
-    const { title, message, target, authorId } = formData
+    console.log("[broadcastAnnouncementAction] Received:", formData)
+    const title = formData.titre || formData.title
+    const message = formData.message
+    const target = formData.cible || formData.target || 'tous'
+    const authorId = formData.id_auteur || formData.authorId
+
+    if (!title || !message) {
+      return { success: false, error: "Le titre et le message de l'annonce sont requis." }
+    }
+
+    const cookieStore = await cookies()
+    const sessionUserId = cookieStore.get("user_id")?.value
+    const parsedAuthorId = authorId ? parseInt(authorId) : (sessionUserId ? parseInt(sessionUserId) : 1)
+
     const prisma = await getPrismaClient()
     await prisma.annonce.create({
       data: {
         titre: title,
         message: message,
-        cible: target || 'tous',
-        id_auteur: parseInt(authorId) || 1,
+        cible: (target as any) || 'tous',
+        id_auteur: parsedAuthorId,
         date_creation: new Date()
       }
     })
+
     revalidatePath("/dashboard")
+    revalidatePath("/dashboard/admin/communication")
     return { success: true }
   } catch (error: any) {
     console.error("[broadcastAnnouncementAction] Error:", error)
-    return { success: false, error: error?.message || "Erreur lors de la diffusion" }
+    return { success: false, error: error?.message || "Erreur lors de la diffusion de l'annonce" }
   }
 }
 

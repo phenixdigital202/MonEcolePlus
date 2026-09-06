@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { 
   UserPlus, 
@@ -36,7 +36,8 @@ import {
   addStudentAction, 
   issueInvoiceAction, 
   scheduleClassAction, 
-  broadcastAnnouncementAction 
+  broadcastAnnouncementAction,
+  getShortcutMetaData
 } from "@/lib/admin-shortcut-actions"
 import { cn } from "@/lib/utils"
 
@@ -52,21 +53,184 @@ interface ManagementShortcutsProps {
 export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState<string | null>(null)
+  const [metaData, setMetaData] = useState(data)
 
-  const handleAction = async (actionName: string, formData: any, fn: Function) => {
-    setLoading(actionName)
+  // Fetch fresh metadata if initial data arrays are empty
+  useEffect(() => {
+    if (!data || !data.classes || data.classes.length === 0 || !data.students || data.students.length === 0) {
+      getShortcutMetaData().then(res => {
+        if (res.success && res.data) {
+          setMetaData(res.data)
+        }
+      }).catch(err => console.error("[ManagementShortcuts] metadata fetch error:", err))
+    } else {
+      setMetaData(data)
+    }
+  }, [data])
+
+  // Controlled states for forms
+  // 1. Student Form State
+  const [studentNom, setStudentNom] = useState("")
+  const [studentEmail, setStudentEmail] = useState("")
+  const [studentPassword, setStudentPassword] = useState("")
+  const [studentClassId, setStudentClassId] = useState("")
+
+  // 2. Invoice Form State
+  const [invoiceStudentId, setInvoiceStudentId] = useState("")
+  const [invoiceAmount, setInvoiceAmount] = useState("")
+  const [invoiceType, setInvoiceType] = useState("scolarite")
+
+  // 3. Schedule Form State
+  const [scheduleClassId, setScheduleClassId] = useState("")
+  const [scheduleTeacherId, setScheduleTeacherId] = useState("")
+  const [scheduleSubject, setScheduleSubject] = useState("")
+  const [scheduleDay, setScheduleDay] = useState("Lundi")
+  const [scheduleStartTime, setScheduleStartTime] = useState("08:00")
+  const [scheduleEndTime, setScheduleEndTime] = useState("10:00")
+  const [scheduleSalle, setScheduleSalle] = useState("Salle 1")
+
+  // 4. Announcement Form State
+  const [announceTitle, setAnnounceTitle] = useState("")
+  const [announceCible, setAnnounceCible] = useState("tous")
+  const [announceMessage, setAnnounceMessage] = useState("")
+
+  const resetForms = () => {
+    setStudentNom("")
+    setStudentEmail("")
+    setStudentPassword("")
+    setStudentClassId("")
+    setInvoiceStudentId("")
+    setInvoiceAmount("")
+    setInvoiceType("scolarite")
+    setScheduleClassId("")
+    setScheduleTeacherId("")
+    setScheduleSubject("")
+    setScheduleDay("Lundi")
+    setScheduleStartTime("08:00")
+    setScheduleEndTime("10:00")
+    setScheduleSalle("Salle 1")
+    setAnnounceTitle("")
+    setAnnounceCible("tous")
+    setAnnounceMessage("")
+  }
+
+  const handleStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!studentNom || !studentEmail || !studentPassword) {
+      toast.error("Veuillez remplir tous les champs obligatoires.")
+      return
+    }
+    setLoading("student")
     try {
-      const res = await fn(formData)
+      const res = await addStudentAction({
+        nom: studentNom,
+        email: studentEmail,
+        password: studentPassword,
+        id_classe: studentClassId
+      })
       if (res.success) {
-        toast.success("Opération réussie !", {
-            description: "Les données ont été mises à jour dans la base."
+        toast.success("Élève inscrit avec succès !", {
+          description: `${studentNom} a été ajouté à la base de données.`
         })
+        resetForms()
         setOpenDialog(null)
       } else {
-        toast.error("Erreur", { description: res.error })
+        toast.error("Erreur d'inscription", { description: res.error })
       }
-    } catch (e) {
-      toast.error("Erreur critique", { description: "Une erreur inattendue est survenue." })
+    } catch (err: any) {
+      toast.error("Erreur critique", { description: err?.message || "Une erreur est survenue." })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleInvoiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!invoiceStudentId || !invoiceAmount) {
+      toast.error("Veuillez sélectionner un élève et indiquer un montant.")
+      return
+    }
+    setLoading("invoice")
+    try {
+      const res = await issueInvoiceAction({
+        id_utilisateur: invoiceStudentId,
+        montant: invoiceAmount,
+        type: invoiceType
+      })
+      if (res.success) {
+        toast.success("Facture émise avec succès !", {
+          description: `Facture de ${Number(invoiceAmount).toLocaleString("fr-FR")} FCFA enregistrée.`
+        })
+        resetForms()
+        setOpenDialog(null)
+      } else {
+        toast.error("Erreur d'émission", { description: res.error })
+      }
+    } catch (err: any) {
+      toast.error("Erreur critique", { description: err?.message || "Une erreur est survenue." })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!scheduleClassId || !scheduleTeacherId || !scheduleSubject) {
+      toast.error("Veuillez sélectionner une classe, un professeur et renseigner une matière.")
+      return
+    }
+    setLoading("schedule")
+    try {
+      const res = await scheduleClassAction({
+        id_classe: scheduleClassId,
+        id_enseignant: scheduleTeacherId,
+        matiere: scheduleSubject,
+        jour: scheduleDay,
+        heure_debut: scheduleStartTime,
+        heure_fin: scheduleEndTime,
+        salle: scheduleSalle
+      })
+      if (res.success) {
+        toast.success("Cours planifié avec succès !", {
+          description: `Cours de ${scheduleSubject} programmé pour le ${scheduleDay}.`
+        })
+        resetForms()
+        setOpenDialog(null)
+      } else {
+        toast.error("Erreur de planification", { description: res.error })
+      }
+    } catch (err: any) {
+      toast.error("Erreur critique", { description: err?.message || "Une erreur est survenue." })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleAnnounceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!announceTitle || !announceMessage) {
+      toast.error("Le titre et le message de l'annonce sont obligatoires.")
+      return
+    }
+    setLoading("announce")
+    try {
+      const res = await broadcastAnnouncementAction({
+        titre: announceTitle,
+        message: announceMessage,
+        cible: announceCible,
+        id_auteur: adminId
+      })
+      if (res.success) {
+        toast.success("Annonce diffusée avec succès !", {
+          description: "L'annonce a été transmise aux destinataires ciblés."
+        })
+        resetForms()
+        setOpenDialog(null)
+      } else {
+        toast.error("Erreur de diffusion", { description: res.error })
+      }
+    } catch (err: any) {
+      toast.error("Erreur critique", { description: err?.message || "Une erreur est survenue." })
     } finally {
       setLoading(null)
     }
@@ -81,35 +245,53 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
       color: "text-blue-500", 
       bg: "bg-blue-50",
       form: (
-        <form className="grid gap-4 py-4" onSubmit={async (e) => {
-           e.preventDefault()
-           const fd = new FormData(e.currentTarget)
-           await handleAction("student", Object.fromEntries(fd), addStudentAction)
-        }}>
+        <form className="grid gap-4 py-4" onSubmit={handleStudentSubmit}>
            <div className="grid gap-2">
-              <Label htmlFor="nom">Nom complet</Label>
-              <Input id="nom" name="nom" placeholder="Ex: Jean Dupont" required />
+              <Label htmlFor="nom">Nom complet *</Label>
+              <Input 
+                id="nom" 
+                value={studentNom}
+                onChange={(e) => setStudentNom(e.target.value)}
+                placeholder="Ex: KOUASSI Jean" 
+                required 
+              />
            </div>
            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="jean@exemple.com" required />
+              <Label htmlFor="email">Email *</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={studentEmail}
+                onChange={(e) => setStudentEmail(e.target.value)}
+                placeholder="jean.kouassi@exemple.ci" 
+                required 
+              />
            </div>
            <div className="grid gap-2">
-              <Label htmlFor="password">Mot de passe provisoire</Label>
-              <Input id="password" name="password" type="password" required />
+              <Label htmlFor="password">Mot de passe provisoire *</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                value={studentPassword}
+                onChange={(e) => setStudentPassword(e.target.value)}
+                placeholder="••••••••" 
+                required 
+              />
            </div>
            <div className="grid gap-2">
               <Label>Classe d&apos;affectation</Label>
-              <Select name="id_classe" required>
+              <Select value={studentClassId} onValueChange={setStudentClassId}>
                  <SelectTrigger><SelectValue placeholder="Choisir une classe" /></SelectTrigger>
                  <SelectContent>
-                    {(data?.classes || []).map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nom} ({c.niveau})</SelectItem>)}
+                    {(metaData?.classes || []).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>{c.nom} ({c.niveau})</SelectItem>
+                    ))}
                  </SelectContent>
               </Select>
            </div>
            <DialogFooter>
-              <Button type="submit" disabled={loading === 'student'}>
-                 {loading === 'student' ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />} 
+              <Button type="submit" className="w-full rounded-xl font-bold gap-2" disabled={loading === 'student'}>
+                 {loading === 'student' ? <Loader2 className="animate-spin h-4 w-4" /> : <PlusCircle className="h-4 w-4" />} 
                  Inscrire l&apos;élève
               </Button>
            </DialogFooter>
@@ -124,27 +306,32 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
       color: "text-emerald-500", 
       bg: "bg-emerald-50",
       form: (
-        <form className="grid gap-4 py-4" onSubmit={async (e) => {
-           e.preventDefault()
-           const fd = new FormData(e.currentTarget)
-           await handleAction("invoice", Object.fromEntries(fd), issueInvoiceAction)
-        }}>
+        <form className="grid gap-4 py-4" onSubmit={handleInvoiceSubmit}>
            <div className="grid gap-2">
-              <Label>Élève concerné</Label>
-              <Select name="id_utilisateur" required>
+              <Label>Élève concerné *</Label>
+              <Select value={invoiceStudentId} onValueChange={setInvoiceStudentId} required>
                  <SelectTrigger><SelectValue placeholder="Choisir l'élève" /></SelectTrigger>
                  <SelectContent>
-                    {(data?.students || []).map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nom}</SelectItem>)}
+                    {(metaData?.students || []).map((s: any) => (
+                      <SelectItem key={s.id} value={s.id.toString()}>{s.nom}</SelectItem>
+                    ))}
                  </SelectContent>
               </Select>
            </div>
            <div className="grid gap-2">
-              <Label htmlFor="montant">Montant (FCFA)</Label>
-              <Input id="montant" name="montant" type="number" placeholder="50000" required />
+              <Label htmlFor="montant">Montant (FCFA) *</Label>
+              <Input 
+                id="montant" 
+                type="number" 
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="Ex: 50000" 
+                required 
+              />
            </div>
            <div className="grid gap-2">
-              <Label>Type de frais</Label>
-              <Select name="type" defaultValue="scolarite" required>
+              <Label>Type de frais *</Label>
+              <Select value={invoiceType} onValueChange={setInvoiceType} required>
                  <SelectTrigger><SelectValue /></SelectTrigger>
                  <SelectContent>
                     <SelectItem value="scolarite">Scolarité</SelectItem>
@@ -154,8 +341,8 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
               </Select>
            </div>
            <DialogFooter>
-              <Button type="submit" variant="default" disabled={loading === 'invoice'}>
-                 {loading === 'invoice' ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />} 
+              <Button type="submit" className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2" disabled={loading === 'invoice'}>
+                 {loading === 'invoice' ? <Loader2 className="animate-spin h-4 w-4" /> : <Receipt className="h-4 w-4" />} 
                  Générer la facture
               </Button>
            </DialogFooter>
@@ -170,64 +357,89 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
       color: "text-sky-500", 
       bg: "bg-sky-50",
       form: (
-        <form className="grid gap-4 py-4" onSubmit={async (e) => {
-           e.preventDefault()
-           const fd = new FormData(e.currentTarget)
-           await handleAction("schedule", Object.fromEntries(fd), scheduleClassAction)
-        }}>
+        <form className="grid gap-4 py-4" onSubmit={handleScheduleSubmit}>
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                 <Label>Classe</Label>
-                 <Select name="id_classe" required>
+                 <Label>Classe *</Label>
+                 <Select value={scheduleClassId} onValueChange={setScheduleClassId} required>
                     <SelectTrigger><SelectValue placeholder="Classe" /></SelectTrigger>
                     <SelectContent>
-                       {(data?.classes || []).map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>)}
+                       {(metaData?.classes || []).map((c: any) => (
+                         <SelectItem key={c.id} value={c.id.toString()}>{c.nom}</SelectItem>
+                       ))}
                     </SelectContent>
                  </Select>
               </div>
               <div className="grid gap-2">
-                 <Label>Professeur</Label>
-                 <Select name="id_enseignant" required>
-                    <SelectTrigger><SelectValue placeholder="Prof" /></SelectTrigger>
+                 <Label>Professeur *</Label>
+                 <Select value={scheduleTeacherId} onValueChange={setScheduleTeacherId} required>
+                    <SelectTrigger><SelectValue placeholder="Professeur" /></SelectTrigger>
                     <SelectContent>
-                       {(data?.teachers || []).map((t: any) => <SelectItem key={t.id} value={t.id.toString()}>{t.nom}</SelectItem>)}
+                       {(metaData?.teachers || []).map((t: any) => (
+                         <SelectItem key={t.id} value={t.id.toString()}>{t.nom}</SelectItem>
+                       ))}
                     </SelectContent>
                  </Select>
               </div>
            </div>
            <div className="grid gap-2">
-              <Label htmlFor="matiere">Matière</Label>
-              <Input id="matiere" name="matiere" placeholder="Ex: Mathématiques" required />
+              <Label htmlFor="matiere">Matière *</Label>
+              <Input 
+                id="matiere" 
+                value={scheduleSubject}
+                onChange={(e) => setScheduleSubject(e.target.value)}
+                placeholder="Ex: Mathématiques" 
+                required 
+              />
            </div>
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                 <Label>Jour</Label>
-                 <Select name="jour" defaultValue="Lundi" required>
+                 <Label>Jour *</Label>
+                 <Select value={scheduleDay} onValueChange={setScheduleDay} required>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                       {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(j => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+                       {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(j => (
+                         <SelectItem key={j} value={j}>{j}</SelectItem>
+                       ))}
                     </SelectContent>
                  </Select>
               </div>
               <div className="grid gap-2">
                  <Label htmlFor="salle">Salle</Label>
-                 <Input id="salle" name="salle" placeholder="Ex: 204" />
+                 <Input 
+                   id="salle" 
+                   value={scheduleSalle}
+                   onChange={(e) => setScheduleSalle(e.target.value)}
+                   placeholder="Ex: Salle 204" 
+                 />
               </div>
            </div>
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                 <Label htmlFor="heure_debut">Début</Label>
-                 <Input id="heure_debut" name="heure_debut" type="time" required />
+                 <Label htmlFor="heure_debut">Début *</Label>
+                 <Input 
+                   id="heure_debut" 
+                   type="time" 
+                   value={scheduleStartTime}
+                   onChange={(e) => setScheduleStartTime(e.target.value)}
+                   required 
+                 />
               </div>
               <div className="grid gap-2">
-                 <Label htmlFor="heure_fin">Fin</Label>
-                 <Input id="heure_fin" name="heure_fin" type="time" required />
+                 <Label htmlFor="heure_fin">Fin *</Label>
+                 <Input 
+                   id="heure_fin" 
+                   type="time" 
+                   value={scheduleEndTime}
+                   onChange={(e) => setScheduleEndTime(e.target.value)}
+                   required 
+                 />
               </div>
            </div>
            <DialogFooter>
-              <Button type="submit" disabled={loading === 'schedule'}>
-                 {loading === 'schedule' ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />} 
-                 Planifier
+              <Button type="submit" className="w-full rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2" disabled={loading === 'schedule'}>
+                 {loading === 'schedule' ? <Loader2 className="animate-spin h-4 w-4" /> : <CalendarPlus className="h-4 w-4" />} 
+                 Planifier le cours
               </Button>
            </DialogFooter>
         </form>
@@ -241,22 +453,23 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
       color: "text-amber-500", 
       bg: "bg-amber-50",
       form: (
-        <form className="grid gap-4 py-4" onSubmit={async (e) => {
-           e.preventDefault()
-           const fd = new FormData(e.currentTarget)
-           const vals = Object.fromEntries(fd)
-           await handleAction("announce", { ...vals, id_auteur: adminId }, broadcastAnnouncementAction)
-        }}>
+        <form className="grid gap-4 py-4" onSubmit={handleAnnounceSubmit}>
            <div className="grid gap-2">
-              <Label htmlFor="titre">Titre de l&apos;annonce</Label>
-              <Input id="titre" name="titre" placeholder="Ex: Rappel Conseil de Classe" required />
+              <Label htmlFor="titre">Titre de l&apos;annonce *</Label>
+              <Input 
+                id="titre" 
+                value={announceTitle}
+                onChange={(e) => setAnnounceTitle(e.target.value)}
+                placeholder="Ex: Rappel Conseil de Classe" 
+                required 
+              />
            </div>
            <div className="grid gap-2">
-              <Label>Cible</Label>
-              <Select name="cible" defaultValue="tous" required>
+              <Label>Cible *</Label>
+              <Select value={announceCible} onValueChange={setAnnounceCible} required>
                  <SelectTrigger><SelectValue /></SelectTrigger>
                  <SelectContent>
-                    <SelectItem value="tous">Tous</SelectItem>
+                    <SelectItem value="tous">Tous les utilisateurs</SelectItem>
                     <SelectItem value="enseignants">Enseignants uniquement</SelectItem>
                     <SelectItem value="eleves">Élèves uniquement</SelectItem>
                     <SelectItem value="parents">Parents uniquement</SelectItem>
@@ -264,13 +477,20 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
               </Select>
            </div>
            <div className="grid gap-2">
-              <Label htmlFor="message">Contenu du message</Label>
-              <Textarea id="message" name="message" placeholder="Écrivez votre message ici..." className="min-h-[100px]" required />
+              <Label htmlFor="message">Contenu du message *</Label>
+              <Textarea 
+                id="message" 
+                value={announceMessage}
+                onChange={(e) => setAnnounceMessage(e.target.value)}
+                placeholder="Écrivez votre message ici..." 
+                className="min-h-[100px]" 
+                required 
+              />
            </div>
            <DialogFooter>
-              <Button type="submit" variant="default" disabled={loading === 'announce'}>
-                 {loading === 'announce' ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Megaphone className="mr-2 h-4 w-4" />} 
-                 Diffuser
+              <Button type="submit" className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2" disabled={loading === 'announce'}>
+                 {loading === 'announce' ? <Loader2 className="animate-spin h-4 w-4" /> : <Megaphone className="h-4 w-4" />} 
+                 Diffuser l&apos;annonce
               </Button>
            </DialogFooter>
         </form>
@@ -286,7 +506,10 @@ export function ManagementShortcuts({ data, adminId }: ManagementShortcutsProps)
           <Dialog 
             key={shortcut.id} 
             open={openDialog === shortcut.id} 
-            onOpenChange={(open) => setOpenDialog(open ? shortcut.id : null)}
+            onOpenChange={(open) => {
+              if (!open) resetForms()
+              setOpenDialog(open ? shortcut.id : null)
+            }}
           >
             <DialogTrigger asChild>
               <button className="min-w-0 group relative flex items-center gap-3 md:gap-4 p-4 md:p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 text-left overflow-hidden">
