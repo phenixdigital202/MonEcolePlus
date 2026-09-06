@@ -10,7 +10,7 @@ async function StudentDataFetcher({ studentId }: { studentId: number }) {
   const result = await getStudentAcademicData(studentId)
   if (!result.success || !result.data) {
     return (
-      <div className="p-6 border rounded-2xl bg-destructive/10 text-destructive text-center space-y-2">
+      <div role="alert" className="p-6 border rounded-2xl bg-destructive/10 text-destructive text-center space-y-2 no-print print:hidden no-print-system-alert">
         <h3 className="font-bold text-lg">Données de l&apos;élève indisponibles</h3>
         <p className="text-sm text-muted-foreground">{result.error || "Une erreur s'est produite lors du chargement."}</p>
       </div>

@@ -322,19 +322,16 @@ a, button, input, select, textarea,
     font-size: 11pt;
   }
 
-  /* Force reset of grid layout and sidebars during print */
-  .lg\:grid,
-  .lg\:grid-cols-\[16rem_1fr\],
-  .grid,
-  .flex {
+  /* Reset top containers during print */
+  main,
+  #printable-document-container {
     display: block !important;
-    grid-template-columns: none !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
   }
 
-  /* Hide app navigation, headers, sidebars, modals, action bars, buttons */
+  /* Hide app navigation, headers, sidebars, modals, action bars, buttons STRICTLY */
   aside,
   nav,
   header,
@@ -342,9 +339,19 @@ a, button, input, select, textarea,
   button,
   .no-print,
   .print\:hidden,
+  .no-print-system-alert,
+  [role="alert"],
   [role="dialog"],
   [data-sidebar] {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
   /* When printing a page with a printable document, isolate it */

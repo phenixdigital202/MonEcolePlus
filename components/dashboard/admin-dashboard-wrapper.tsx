@@ -153,7 +153,7 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
   } catch (error) {
     console.error("[AdminDataFetcher] FATAL ERROR during data fetch:", error)
     return (
-      <div className="p-6 border rounded-2xl bg-destructive/10 text-destructive text-center space-y-2">
+      <div role="alert" className="p-6 border rounded-2xl bg-destructive/10 text-destructive text-center space-y-2 no-print print:hidden no-print-system-alert">
         <h3 className="font-bold text-lg">Données partiellement indisponibles</h3>
         <p className="text-sm text-muted-foreground">Une erreur s&apos;est produite lors de la récupération des données analytiques.</p>
       </div>

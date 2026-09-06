@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, matiere: string | null }) {
   const result = await getTeacherDashboardData(teacherId)
   if (!result.success || !result.data) {
-    return <div className="p-4 bg-destructive/10 text-destructive rounded-lg">Erreur lors du chargement des données.</div>
+    return <div role="alert" className="p-4 bg-destructive/10 text-destructive rounded-lg no-print print:hidden no-print-system-alert">Erreur lors du chargement des données.</div>
   }
 
   const teacherData = result.data
