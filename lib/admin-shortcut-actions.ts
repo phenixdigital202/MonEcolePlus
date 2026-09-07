@@ -119,6 +119,9 @@ export async function getTeachersAction() {
     const prisma = await getPrismaClient()
     const teachers = await prisma.user.findMany({
       where: { role: 'teacher' },
+      include: {
+        teacherSubjects: true
+      },
       orderBy: { nom: 'asc' }
     })
     return { success: true, data: teachers }
@@ -247,26 +250,54 @@ export async function addUserAction(formData: any) {
     const prisma = await getPrismaClient()
     const { nom, email, password, role, matiere } = formData
     const hashedPassword = await bcrypt.hash(password, 10)
-    
-    await prisma.user.create({
+
+    const cookieStore = await cookies()
+    const schoolId = cookieStore.get("school_id")?.value
+    const parsedSchoolId = schoolId ? parseInt(schoolId) : null
+    const cleanEmail = email.toLowerCase().trim()
+
+    // 1. Create in Tenant DB
+    const newUser = await prisma.user.create({
       data: {
         nom,
-        email,
+        email: cleanEmail,
         password: hashedPassword,
         role,
         matiere: matiere || null,
+        id_ecole: parsedSchoolId,
         created_at: new Date()
       }
     })
+
+    // 2. Sync to Master DB for unified login
+    if (parsedSchoolId) {
+      try {
+        const existingMaster = await masterPrisma.user.findUnique({ where: { email: cleanEmail } })
+        if (!existingMaster) {
+          await masterPrisma.user.create({
+            data: {
+              nom,
+              email: cleanEmail,
+              password: hashedPassword,
+              role,
+              id_ecole: parsedSchoolId,
+              created_at: new Date()
+            }
+          })
+        }
+      } catch (masterErr) {
+        console.error("[addUserAction] Master DB sync error (non-fatal):", masterErr)
+      }
+    }
 
     revalidatePath("/dashboard/admin/users")
     revalidatePath("/dashboard/admin/teachers")
     revalidatePath("/dashboard/admin/parents")
     revalidatePath("/dashboard/admin/students")
-    return { success: true }
-  } catch (error) {
+    return { success: true, user: newUser }
+  } catch (error: any) {
     console.error("Error adding user:", error)
-    return { success: false, error: "Erreur lors de l'ajout de l'utilisateur" }
+    return { success: false, error: error?.message || "Erreur lors de l'ajout de l'utilisateur" }
   }
 }
 
@@ -499,3 +530,39 @@ export async function getShortcutMetaData() {
     return { success: false, error: "Data fetch failed" }
   }
 }
+
+export async function addTeacherSubjectAction(id_enseignant: number, matiere: string) {
+  try {
+    const prisma = await getPrismaClient()
+    const existing = await prisma.teacherSubject.findFirst({
+      where: { id_enseignant, matiere }
+    })
+    if (existing) {
+      return { success: false, error: "Cet enseignant enseigne déjà cette matière" }
+    }
+    const created = await prisma.teacherSubject.create({
+      data: {
+        id_enseignant,
+        matiere
+      }
+    })
+    revalidatePath("/dashboard/admin/teachers")
+    return { success: true, data: created }
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Impossible d'ajouter la matière" }
+  }
+}
+
+export async function removeTeacherSubjectAction(id: number) {
+  try {
+    const prisma = await getPrismaClient()
+    await prisma.teacherSubject.delete({
+      where: { id }
+    })
+    revalidatePath("/dashboard/admin/teachers")
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Impossible de retirer la matière" }
+  }
+}
+

@@ -7,9 +7,9 @@ import { getCachedUser } from "@/lib/cached-queries"
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ classId?: string }>
+  searchParams: Promise<{ classId?: string; teacherId?: string }>
 }) {
-  const { classId: rawClassId } = await searchParams
+  const { classId: rawClassId, teacherId: rawTeacherId } = await searchParams
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
@@ -32,12 +32,25 @@ export default async function SchedulePage({
   const classes = await getClasses()
   const teachers = await getTeachers()
   
-  // If student, force filter to their class. If teacher, query their specific entries.
+  // If student, force filter to their class. If teacher or teacherId specified, query specific entries.
   let classId: number
   let isReadOnly = false
   let schedule = []
+  let displayRole = user.role
 
-  if (user.role === 'student' && user.inscriptions[0]) {
+  if (rawTeacherId) {
+    const tId = parseInt(rawTeacherId)
+    isReadOnly = true
+    classId = 0
+    displayRole = "teacher"
+    schedule = await prisma.emploiDuTemps.findMany({
+      where: { id_enseignant: tId },
+      include: {
+        user: true,
+        classe: true
+      }
+    })
+  } else if (user.role === 'student' && user.inscriptions[0]) {
     classId = user.inscriptions[0].id_classe
     isReadOnly = true
     schedule = await getScheduleData(classId)
@@ -63,7 +76,7 @@ export default async function SchedulePage({
       initialSchedule={JSON.parse(JSON.stringify(schedule))}
       initialClassId={classId.toString()}
       isReadOnly={isReadOnly}
-      userRole={user.role}
+      userRole={displayRole}
     />
   )
 }

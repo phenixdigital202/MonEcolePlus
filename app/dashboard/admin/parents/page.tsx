@@ -21,7 +21,7 @@ import {
   X,
   UserPlus
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -192,10 +192,28 @@ export default function AdminParentsPage() {
     setActionLoading(false)
   }
 
+  const searchParams = useSearchParams()
+  const classIdParam = searchParams.get("classId")
+  const classIdNum = classIdParam ? parseInt(classIdParam) : null
+
   const filteredParents = parents.filter(parent => {
     const matchesSearch = (parent.nom || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (parent.email || "").toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
+    if (!matchesSearch) return false
+
+    if (classIdNum) {
+      const links = parent.parentEleveAsParent || parent.parent_links || []
+      const hasChildInClass = links.some((link: any) => {
+        const student = link.eleve
+        if (!student) return false
+        // Check active enrollment or any enrollment in that class
+        const inscriptions = student.inscriptions || []
+        return inscriptions.some((ins: any) => ins.id_classe === classIdNum && ins.statut === 'active')
+      })
+      return hasChildInClass
+    }
+
+    return true
   })
 
   return (
@@ -459,6 +477,24 @@ export default function AdminParentsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      {/* Filter Active Alert */}
+      {classIdParam && (
+        <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+          <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+            <Filter className="h-4 w-4 text-emerald-600" />
+            Affichage des parents ayant des élèves actifs dans la classe #{classIdParam} ({filteredParents.length} parent(s) trouvé(s))
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/dashboard/admin/parents')}
+            className="rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+          >
+            Afficher tous les parents
+          </Button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">

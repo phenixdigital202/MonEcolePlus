@@ -29,9 +29,12 @@ import {
 import { getClasses } from "@/lib/grades-actions"
 import { getBulletinFullClassDataAction, getSchoolInfoAction } from "@/lib/documents-actions"
 import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 
 export default function BulletinBatchPage() {
+  const searchParams = useSearchParams()
+  const classIdParam = searchParams.get("classId")
   const [step, setStep] = useState<"select" | "preview">("select")
   const [classes, setClasses] = useState<any[]>([])
   const [selectedClass, setSelectedClass] = useState("")
@@ -56,12 +59,25 @@ export default function BulletinBatchPage() {
         getSchoolInfoAction()
       ])
       setClasses(clsList)
-      if (clsList.length > 0) setSelectedClass(clsList[0].id.toString())
+      const targetClassId = classIdParam || (clsList.length > 0 ? clsList[0].id.toString() : "")
+      if (targetClassId) setSelectedClass(targetClassId)
       if (schInfo.success) setSchoolInfo(schInfo.data)
       setIsLoadingClasses(false)
+
+      if (classIdParam && targetClassId) {
+        setIsCalculating(true)
+        const res = await getBulletinFullClassDataAction(parseInt(targetClassId), "1")
+        if (res.success && res.data) {
+          setReportData(res.data)
+          setSelectedStudentIndex(0)
+          setStep("preview")
+          toast.success(`Bulletins générés pour la classe (${res.data.students.length} élève(s)) !`)
+        }
+        setIsCalculating(false)
+      }
     }
     initData()
-  }, [])
+  }, [classIdParam])
 
   const handleGenerate = async () => {
     if (!selectedClass) return toast.error("Veuillez choisir une classe")

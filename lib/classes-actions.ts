@@ -115,16 +115,19 @@ export async function unenrollStudentAction(studentId: number, classId: number) 
 export async function getEligibleStudentsAction(classId: number) {
   const prisma = await getPrisma()
   try {
-    const enrolled = await prisma.inscription.findMany({
-      where: { id_classe: classId },
+    // Exclude students who are actively enrolled in ANY class
+    const activeInscriptions = await prisma.inscription.findMany({
+      where: {
+        statut: 'active'
+      },
       select: { id_eleve: true }
     })
-    const enrolledIds = enrolled.map(e => e.id_eleve)
+    const activeStudentIds = activeInscriptions.map(e => e.id_eleve)
 
     const students = await prisma.user.findMany({
       where: {
         role: 'student',
-        id: { notIn: enrolledIds.length > 0 ? enrolledIds : [-1] }
+        id: { notIn: activeStudentIds.length > 0 ? activeStudentIds : [-1] }
       },
       select: { id: true, nom: true, email: true },
       orderBy: { nom: 'asc' }

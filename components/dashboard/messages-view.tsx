@@ -37,6 +37,9 @@ interface MessagesViewProps {
 }
 
 export function MessagesView({ currentUserId, currentUserRole, initialContacts }: MessagesViewProps) {
+  const searchParams = useSearchParams()
+  const recipientIdParam = searchParams.get("recipientId") || searchParams.get("to")
+
   const allContactsList = [
     ...(initialContacts.profs || []),
     ...(initialContacts.camarades || []),
@@ -52,6 +55,20 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
   const [searchTerm, setSearchTerm] = useState("")
   const [showChat, setShowChat] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (recipientIdParam) {
+      const recId = parseInt(recipientIdParam)
+      const found = allContactsList.find(c => c.id === recId)
+      if (found) {
+        setSelectedContact(found)
+        setShowChat(true)
+      } else {
+        setSelectedContact({ id: recId, name: `Utilisateur #${recId}`, role: "enseignant" })
+        setShowChat(true)
+      }
+    }
+  }, [recipientIdParam])
 
   useEffect(() => {
     if (selectedContact) {
