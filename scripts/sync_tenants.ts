@@ -27,14 +27,18 @@ async function main() {
       }
 
       console.log(`\n🚀 Synchronisation de l'école : ${ecole.nom}...`)
-      console.log(`Database URL: ${ecole.database_url.split("@")[1] || "masquée"}`)
+      const directUrl = ecole.database_url
+        .replace(":6543", ":5432")
+        .replace("?pgbouncer=true", "")
+        .replace("&pgbouncer=true", "")
+      console.log(`Database URL (direct): ${directUrl.split("@")[1] || "masquée"}`)
 
       try {
         // Exécuter 'prisma db push' pour cette base de données spécifique
         execSync("npx prisma db push --skip-generate", {
           env: {
             ...process.env,
-            DATABASE_URL: ecole.database_url
+            DATABASE_URL: directUrl
           },
           stdio: "inherit"
         })
