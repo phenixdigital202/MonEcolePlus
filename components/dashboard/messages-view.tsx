@@ -34,12 +34,10 @@ interface MessagesViewProps {
     famille: any[]
     administration: any[]
   }
+  initialTargetId?: number
 }
 
-export function MessagesView({ currentUserId, currentUserRole, initialContacts }: MessagesViewProps) {
-  const searchParams = useSearchParams()
-  const recipientIdParam = searchParams.get("recipientId") || searchParams.get("to")
-
+export function MessagesView({ currentUserId, currentUserRole, initialContacts, initialTargetId }: MessagesViewProps) {
   const allContactsList = [
     ...(initialContacts.profs || []),
     ...(initialContacts.camarades || []),
@@ -47,28 +45,31 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts }
     ...(initialContacts.administration || [])
   ]
 
-  const [selectedContact, setSelectedContact] = useState<any>(allContactsList[0] || null)
+  const [selectedContact, setSelectedContact] = useState<any>(() => {
+    if (initialTargetId) {
+      const match = allContactsList.find(c => c.id === initialTargetId)
+      if (match) return match
+    }
+    return allContactsList[0] || null
+  })
+
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [showChat, setShowChat] = useState(false)
+  const [showChat, setShowChat] = useState(!!initialTargetId)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (recipientIdParam) {
-      const recId = parseInt(recipientIdParam)
-      const found = allContactsList.find(c => c.id === recId)
-      if (found) {
-        setSelectedContact(found)
-        setShowChat(true)
-      } else {
-        setSelectedContact({ id: recId, name: `Utilisateur #${recId}`, role: "enseignant" })
+    if (initialTargetId) {
+      const match = allContactsList.find(c => c.id === initialTargetId)
+      if (match) {
+        setSelectedContact(match)
         setShowChat(true)
       }
     }
-  }, [recipientIdParam])
+  }, [initialTargetId])
 
   useEffect(() => {
     if (selectedContact) {

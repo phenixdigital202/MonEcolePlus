@@ -32,25 +32,13 @@ export default async function SchedulePage({
   const classes = await getClasses()
   const teachers = await getTeachers()
   
-  // If student, force filter to their class. If teacher or teacherId specified, query specific entries.
+  // If student, force filter to their class. If teacher or teacherId specified, query their specific entries.
   let classId: number
   let isReadOnly = false
   let schedule = []
-  let displayRole = user.role
+  let activeTeacher: any = null
 
-  if (rawTeacherId) {
-    const tId = parseInt(rawTeacherId)
-    isReadOnly = true
-    classId = 0
-    displayRole = "teacher"
-    schedule = await prisma.emploiDuTemps.findMany({
-      where: { id_enseignant: tId },
-      include: {
-        user: true,
-        classe: true
-      }
-    })
-  } else if (user.role === 'student' && user.inscriptions[0]) {
+  if (user.role === 'student' && user.inscriptions[0]) {
     classId = user.inscriptions[0].id_classe
     isReadOnly = true
     schedule = await getScheduleData(classId)
@@ -59,6 +47,18 @@ export default async function SchedulePage({
     classId = 0
     schedule = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
+      include: {
+        user: true,
+        classe: true
+      }
+    })
+  } else if (rawTeacherId) {
+    const tId = parseInt(rawTeacherId)
+    isReadOnly = true
+    classId = 0
+    activeTeacher = await prisma.user.findUnique({ where: { id: tId } })
+    schedule = await prisma.emploiDuTemps.findMany({
+      where: { id_enseignant: tId },
       include: {
         user: true,
         classe: true
@@ -76,7 +76,7 @@ export default async function SchedulePage({
       initialSchedule={JSON.parse(JSON.stringify(schedule))}
       initialClassId={classId.toString()}
       isReadOnly={isReadOnly}
-      userRole={displayRole}
+      userRole={rawTeacherId ? "teacher" : user.role}
     />
   )
 }

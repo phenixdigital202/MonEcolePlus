@@ -30,7 +30,6 @@ import { getClasses } from "@/lib/grades-actions"
 import { getBulletinFullClassDataAction, getSchoolInfoAction } from "@/lib/documents-actions"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
 
 export default function BulletinBatchPage() {
   const searchParams = useSearchParams()
@@ -59,22 +58,13 @@ export default function BulletinBatchPage() {
         getSchoolInfoAction()
       ])
       setClasses(clsList)
-      const targetClassId = classIdParam || (clsList.length > 0 ? clsList[0].id.toString() : "")
-      if (targetClassId) setSelectedClass(targetClassId)
+      if (classIdParam && clsList.some((c: any) => c.id.toString() === classIdParam)) {
+        setSelectedClass(classIdParam)
+      } else if (clsList.length > 0) {
+        setSelectedClass(clsList[0].id.toString())
+      }
       if (schInfo.success) setSchoolInfo(schInfo.data)
       setIsLoadingClasses(false)
-
-      if (classIdParam && targetClassId) {
-        setIsCalculating(true)
-        const res = await getBulletinFullClassDataAction(parseInt(targetClassId), "1")
-        if (res.success && res.data) {
-          setReportData(res.data)
-          setSelectedStudentIndex(0)
-          setStep("preview")
-          toast.success(`Bulletins générés pour la classe (${res.data.students.length} élève(s)) !`)
-        }
-        setIsCalculating(false)
-      }
     }
     initData()
   }, [classIdParam])

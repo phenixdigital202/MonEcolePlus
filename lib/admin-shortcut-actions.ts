@@ -130,11 +130,92 @@ export async function getTeachersAction() {
   }
 }
 
-export async function getParentsAction() {
+export async function addTeacherSubjectAction(teacherId: number, matiere: string) {
   try {
     const prisma = await getPrismaClient()
+    const teacher = await prisma.user.findUnique({
+      where: { id: teacherId }
+    })
+    if (!teacher || teacher.role !== 'teacher') {
+      return { success: false, error: "Enseignant introuvable." }
+    }
+
+    if (!matiere || !matiere.trim()) {
+      return { success: false, error: "Veuillez sélectionner une matière." }
+    }
+
+    const cleanMatiere = matiere.trim()
+
+    // Check if duplicate
+    const existing = await prisma.teacherSubject.findFirst({
+      where: { id_enseignant: teacherId, matiere: cleanMatiere }
+    })
+    if (existing) {
+      return { success: false, error: "Cette matière est déjà attribuée à cet enseignant." }
+    }
+
+    await prisma.teacherSubject.create({
+      data: {
+        id_enseignant: teacherId,
+        matiere: cleanMatiere
+      }
+    })
+
+    // If teacher doesn't have a primary subject, set it
+    if (!teacher.matiere) {
+      await prisma.user.update({
+        where: { id: teacherId },
+        data: { matiere: cleanMatiere }
+      })
+    }
+
+    revalidatePath("/dashboard/admin/teachers")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[addTeacherSubjectAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors de l'ajout de la matière" }
+  }
+}
+
+export async function removeTeacherSubjectAction(teacherId: number, matiere: string) {
+  try {
+    const prisma = await getPrismaClient()
+    await prisma.teacherSubject.deleteMany({
+      where: {
+        id_enseignant: teacherId,
+        matiere: matiere.trim()
+      }
+    })
+
+    revalidatePath("/dashboard/admin/teachers")
+    return { success: true }
+  } catch (error: any) {
+    console.error("[removeTeacherSubjectAction] Error:", error)
+    return { success: false, error: error?.message || "Erreur lors de la suppression de la matière" }
+  }
+}
+
+export async function getParentsAction(classId?: number) {
+  try {
+    const prisma = await getPrismaClient()
+    const whereClause: any = { role: 'parent' }
+    if (classId) {
+      whereClause.parentEleveAsParent = {
+        some: {
+          eleve: {
+            inscriptions: {
+              some: {
+                id_classe: classId,
+                statut: 'active'
+              }
+            }
+          }
+        }
+      }
+    }
+
     const parents = await prisma.user.findMany({
-      where: { role: 'parent' },
+      where: whereClause,
       include: {
         parentEleveAsParent: {
           include: {
@@ -247,37 +328,39 @@ export async function unlinkParentStudentAction(linkId: number) {
 
 export async function addUserAction(formData: any) {
   try {
-    const prisma = await getPrismaClient()
-    const { nom, email, password, role, matiere } = formData
-    const hashedPassword = await bcrypt.hash(password, 10)
-
     const cookieStore = await cookies()
     const schoolId = cookieStore.get("school_id")?.value
     const parsedSchoolId = schoolId ? parseInt(schoolId) : null
-    const cleanEmail = email.toLowerCase().trim()
 
-    // 1. Create in Tenant DB
+    const prisma = await getPrismaClient()
+    const { nom, email, password, role, matiere } = formData
+    if (!nom || !email || !password || !role) {
+      return { success: false, error: "Veuillez remplir tous les champs obligatoires (nom, email, mot de passe, rôle)." }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+    
     const newUser = await prisma.user.create({
       data: {
         nom,
-        email: cleanEmail,
+        email,
         password: hashedPassword,
         role,
-        matiere: matiere || null,
         id_ecole: parsedSchoolId,
+        matiere: matiere || null,
         created_at: new Date()
       }
     })
 
-    // 2. Sync to Master DB for unified login
+    // Sync user to Master DB so authentication at /login works
     if (parsedSchoolId) {
       try {
-        const existingMaster = await masterPrisma.user.findUnique({ where: { email: cleanEmail } })
+        const existingMaster = await masterPrisma.user.findUnique({ where: { email } })
         if (!existingMaster) {
           await masterPrisma.user.create({
             data: {
               nom,
-              email: cleanEmail,
+              email,
               password: hashedPassword,
               role,
               id_ecole: parsedSchoolId,
@@ -294,7 +377,7 @@ export async function addUserAction(formData: any) {
     revalidatePath("/dashboard/admin/teachers")
     revalidatePath("/dashboard/admin/parents")
     revalidatePath("/dashboard/admin/students")
-    return { success: true, user: newUser }
+    return { success: true, data: newUser }
   } catch (error: any) {
     console.error("Error adding user:", error)
     return { success: false, error: error?.message || "Erreur lors de l'ajout de l'utilisateur" }
@@ -530,39 +613,3 @@ export async function getShortcutMetaData() {
     return { success: false, error: "Data fetch failed" }
   }
 }
-
-export async function addTeacherSubjectAction(id_enseignant: number, matiere: string) {
-  try {
-    const prisma = await getPrismaClient()
-    const existing = await prisma.teacherSubject.findFirst({
-      where: { id_enseignant, matiere }
-    })
-    if (existing) {
-      return { success: false, error: "Cet enseignant enseigne déjà cette matière" }
-    }
-    const created = await prisma.teacherSubject.create({
-      data: {
-        id_enseignant,
-        matiere
-      }
-    })
-    revalidatePath("/dashboard/admin/teachers")
-    return { success: true, data: created }
-  } catch (error: any) {
-    return { success: false, error: error?.message || "Impossible d'ajouter la matière" }
-  }
-}
-
-export async function removeTeacherSubjectAction(id: number) {
-  try {
-    const prisma = await getPrismaClient()
-    await prisma.teacherSubject.delete({
-      where: { id }
-    })
-    revalidatePath("/dashboard/admin/teachers")
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error?.message || "Impossible de retirer la matière" }
-  }
-}
-

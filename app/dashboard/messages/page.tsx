@@ -4,7 +4,12 @@ import { MessagesView } from "@/components/dashboard/messages-view"
 import { getContacts, linkParentToStudent } from "@/lib/message-actions"
 import { getCachedUser } from "@/lib/cached-queries"
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ to?: string }>
+}) {
+  const { to: targetUserIdStr } = await searchParams
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
@@ -55,7 +60,8 @@ export default async function MessagesPage() {
         <MessagesView 
           currentUserId={user.id} 
           currentUserRole={user.role}
-          initialContacts={contactsResult.data as any} 
+          initialContacts={contactsResult.data as any}
+          initialTargetId={targetUserIdStr ? parseInt(targetUserIdStr) : undefined}
         />
       </main>
     </div>

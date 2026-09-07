@@ -155,28 +155,33 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                             </div>
                           </td>
                           <td className="p-4">
-                            <span className="text-sm font-bold text-slate-700">{ins.average || "N/A"}{ins.average && ins.average !== "N/A" && "/20"}</span>
+                            <span className="text-sm font-bold text-slate-700">{ins.average}{ins.average !== "N/A" && "/20"}</span>
                           </td>
                           <td className="p-4">
-                            <Badge variant="outline" className="text-emerald-600 border-emerald-200 text-[10px] font-bold">Actif</Badge>
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 rounded-full text-[10px]" variant="secondary">ACTIF</Badge>
                           </td>
-                          <td className="p-4 pr-6 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-1">
+                              <Link href={`/dashboard/messages?to=${student.id}`}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
+                                      <Mail className="h-4 w-4" />
+                                  </Button>
+                              </Link>
+                              
                               {userRole === "admin" && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-slate-400 hover:text-slate-600">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="rounded-xl border-slate-100">
-                                    <DropdownMenuLabel>Gestion Élève</DropdownMenuLabel>
+                                    <DropdownMenuLabel>Gestion Éleve</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="cursor-pointer gap-2"
-                                      onClick={() => router.push(`/dashboard/admin/students?studentId=${student.id}`)}
-                                    >
-                                      <Users className="h-4 w-4" /> Profil complet
+                                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                                      <Link href={`/dashboard/admin/students?studentId=${student.id}`}>
+                                        <Users className="h-4 w-4" /> Profil complet
+                                      </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
                                       className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10"
@@ -194,6 +199,16 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                         </tr>
                       )
                     })}
+                    {classe.inscriptions.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="py-12 text-center text-slate-400 italic font-medium">
+                          <div className="bg-slate-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                             <Users className="h-8 w-8 text-slate-200" />
+                          </div>
+                          Aucun élève inscrit dans cette classe.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -251,14 +266,15 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
                   </Button>
                 </Link>
                 {userRole === "admin" && (
-                  <Button 
-                      variant="ghost" 
-                      className="w-full justify-start bg-white/50 backdrop-blur-sm border-white border hover:bg-emerald-500 hover:text-white transition-all rounded-2xl h-12 shadow-sm"
-                      onClick={handleGenerateBulletins}
-                  >
-                    <BookOpen className="h-4 w-4 mr-3" />
-                    Générer les bulletins
-                  </Button>
+                  <Link href={`/dashboard/documents/bulletin?classId=${classId}`} className="block w-full">
+                    <Button 
+                        variant="ghost" 
+                        className="w-full justify-start bg-white/50 backdrop-blur-sm border-white border hover:bg-emerald-500 hover:text-white transition-all rounded-2xl h-12 shadow-sm text-slate-800"
+                    >
+                      <BookOpen className="h-4 w-4 mr-3" />
+                      Générer les bulletins
+                    </Button>
+                  </Link>
                 )}
               </CardContent>
             </Card>

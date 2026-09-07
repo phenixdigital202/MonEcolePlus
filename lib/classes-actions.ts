@@ -76,17 +76,24 @@ export async function deleteClass(id: number) {
 export async function enrollStudentAction(studentId: number, classId: number) {
   const prisma = await getPrisma()
   try {
-    const existing = await prisma.inscription.findFirst({
-      where: { id_eleve: studentId, id_classe: classId }
+    const targetClass = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { id: true, annee_scolaire: true }
+    })
+    const anneeScolaire = targetClass?.annee_scolaire || '2025-2026'
+
+    const existingActive = await prisma.inscription.findFirst({
+      where: { id_eleve: studentId, statut: 'active', annee_scolaire: anneeScolaire }
     })
     
-    if (existing) return { success: false, error: "L'élève est déjà inscrit" }
+    if (existingActive) return { success: false, error: "Cet élève possède déjà une inscription active pour cette année scolaire." }
 
     await prisma.inscription.create({
       data: {
         id_eleve: studentId,
         id_classe: classId,
-        annee_scolaire: '2023-2024'
+        annee_scolaire: anneeScolaire,
+        statut: 'active'
       }
     })
     
@@ -115,19 +122,26 @@ export async function unenrollStudentAction(studentId: number, classId: number) 
 export async function getEligibleStudentsAction(classId: number) {
   const prisma = await getPrisma()
   try {
-    // Exclude students who are actively enrolled in ANY class
+    const targetClass = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { id: true, annee_scolaire: true }
+    })
+    const anneeScolaire = targetClass?.annee_scolaire || '2025-2026'
+
+    // Exclude students who are actively enrolled in ANY class for this active school year
     const activeInscriptions = await prisma.inscription.findMany({
-      where: {
-        statut: 'active'
+      where: { 
+        statut: 'active',
+        annee_scolaire: anneeScolaire
       },
       select: { id_eleve: true }
     })
-    const activeStudentIds = activeInscriptions.map(e => e.id_eleve)
+    const unavailableStudentIds = activeInscriptions.map(e => e.id_eleve)
 
     const students = await prisma.user.findMany({
       where: {
         role: 'student',
-        id: { notIn: activeStudentIds.length > 0 ? activeStudentIds : [-1] }
+        id: { notIn: unavailableStudentIds.length > 0 ? unavailableStudentIds : [-1] }
       },
       select: { id: true, nom: true, email: true },
       orderBy: { nom: 'asc' }

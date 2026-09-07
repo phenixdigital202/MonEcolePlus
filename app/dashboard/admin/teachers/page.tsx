@@ -18,8 +18,7 @@ import {
   Clock,
   Briefcase,
   Loader2,
-  AlertTriangle,
-  X
+  AlertTriangle
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -76,7 +75,7 @@ import {
   deleteUserAction, 
   updateUserAction,
   addTeacherSubjectAction,
-  removeTeacherSubjectAction
+  removeTeacherSubjectAction 
 } from "@/lib/admin-shortcut-actions"
 import { toast } from "sonner"
 
@@ -113,8 +112,8 @@ export default function AdminTeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<any>(null)
   const [teacherToDelete, setTeacherToDelete] = useState<any>(null)
   const [selectedProfileTeacher, setSelectedProfileTeacher] = useState<any>(null)
-  const [selectedNewSubject, setSelectedNewSubject] = useState("")
   const [actionLoading, setActionLoading] = useState(false)
+  const [newSubjectSelected, setNewSubjectSelected] = useState("")
   const router = useRouter()
 
   const fetchTeachers = async () => {
@@ -122,6 +121,10 @@ export default function AdminTeachersPage() {
     const res = await getTeachersAction()
     if (res.success) {
       setTeachers(res.data || [])
+      if (selectedProfileTeacher) {
+        const updated = (res.data || []).find((t: any) => t.id === selectedProfileTeacher.id)
+        if (updated) setSelectedProfileTeacher(updated)
+      }
     }
     setLoading(false)
   }
@@ -129,6 +132,32 @@ export default function AdminTeachersPage() {
   useEffect(() => {
     fetchTeachers()
   }, [])
+
+  const handleAddSubjectToTeacher = async (teacherId: number, subject: string) => {
+    if (!subject) return toast.error("Veuillez sélectionner une matière")
+    setActionLoading(true)
+    const res = await addTeacherSubjectAction(teacherId, subject)
+    if (res.success) {
+      toast.success(`Matière "${subject}" ajoutée avec succès !`)
+      setNewSubjectSelected("")
+      await fetchTeachers()
+    } else {
+      toast.error(res.error || "Erreur lors de l'ajout")
+    }
+    setActionLoading(false)
+  }
+
+  const handleRemoveSubjectFromTeacher = async (teacherId: number, subject: string) => {
+    setActionLoading(true)
+    const res = await removeTeacherSubjectAction(teacherId, subject)
+    if (res.success) {
+      toast.success(`Matière "${subject}" retirée`)
+      await fetchTeachers()
+    } else {
+      toast.error(res.error || "Erreur lors du retrait")
+    }
+    setActionLoading(false)
+  }
 
   const handleAddTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -161,42 +190,6 @@ export default function AdminTeachersPage() {
       fetchTeachers()
     } else {
       toast.error(res.error || "Erreur lors de la mise à jour")
-    }
-    setActionLoading(false)
-  }
-
-  const handleAddSecondarySubject = async (teacherId: number) => {
-    if (!selectedNewSubject) return toast.error("Veuillez choisir une matière")
-    setActionLoading(true)
-    const res = await addTeacherSubjectAction(teacherId, selectedNewSubject)
-    if (res.success) {
-      toast.success(`Matière "${selectedNewSubject}" ajoutée avec succès !`)
-      setSelectedNewSubject("")
-      const updated = await getTeachersAction()
-      if (updated.success && updated.data) {
-        setTeachers(updated.data)
-        const updatedTeacher = updated.data.find(t => t.id === teacherId)
-        if (updatedTeacher) setSelectedProfileTeacher(updatedTeacher)
-      }
-    } else {
-      toast.error(res.error || "Impossible d'ajouter la matière")
-    }
-    setActionLoading(false)
-  }
-
-  const handleRemoveSecondarySubject = async (subjectId: number, teacherId: number) => {
-    setActionLoading(true)
-    const res = await removeTeacherSubjectAction(subjectId)
-    if (res.success) {
-      toast.success("Matière retirée avec succès")
-      const updated = await getTeachersAction()
-      if (updated.success && updated.data) {
-        setTeachers(updated.data)
-        const updatedTeacher = updated.data.find(t => t.id === teacherId)
-        if (updatedTeacher) setSelectedProfileTeacher(updatedTeacher)
-      }
-    } else {
-      toast.error(res.error || "Impossible de retirer la matière")
     }
     setActionLoading(false)
   }
@@ -279,7 +272,7 @@ export default function AdminTeachersPage() {
                   <Input id="password" name="password" type="password" placeholder="••••••••" className="rounded-xl" required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="matiere">Matière</Label>
+                  <Label htmlFor="matiere">Matière principale</Label>
                   <Select name="matiere">
                     <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Sélectionnez une matière" />
@@ -323,79 +316,59 @@ export default function AdminTeachersPage() {
                       </DialogDescription>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className="bg-emerald-500 text-white border-none text-[10px] rounded-full">Enseignant Actif</Badge>
-                        <Badge variant="outline" className="text-[10px] rounded-full font-bold">{selectedProfileTeacher.matiere || "Matière non spécifiée"}</Badge>
                       </div>
                     </div>
                   </div>
                 </DialogHeader>
 
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Matière Principale</p>
-                    <p className="font-bold text-slate-800 text-sm mt-0.5">
-                      {selectedProfileTeacher.matiere || "Non assignée"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Statut</p>
-                    <p className="font-bold text-emerald-600 text-sm mt-0.5">Actif</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Date d&apos;arrivée</p>
-                    <p className="font-bold text-slate-800 text-sm mt-0.5">
-                      {selectedProfileTeacher.created_at ? new Date(selectedProfileTeacher.created_at).toLocaleDateString("fr-FR") : "Récente"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-slate-400">Matières Enseignées</p>
-                    <p className="font-bold text-indigo-600 text-sm mt-0.5">
-                      {1 + (selectedProfileTeacher.teacherSubjects?.length || 0)} matière(s)
-                    </p>
-                  </div>
-                </div>
-
-                {/* Secondary Subjects Management */}
+                {/* Subject List & Management */}
                 <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="text-xs uppercase font-bold text-slate-500 tracking-wider">Matières de l&apos;enseignant (RP-021)</p>
-                  
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase font-bold text-slate-500">Matière(s) Enseignée(s)</p>
+                    <Badge variant="outline" className="text-[10px]">RP-021 Conforme</Badge>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-primary text-white font-bold py-1 px-3 rounded-xl">
-                      {selectedProfileTeacher.matiere || "Principale"} (Principale)
-                    </Badge>
-
-                    {selectedProfileTeacher.teacherSubjects?.map((ts: any) => (
-                      <Badge key={ts.id} variant="secondary" className="bg-indigo-100 text-indigo-800 font-bold py-1 px-3 rounded-xl flex items-center gap-1.5">
-                        {ts.matiere}
-                        <button 
-                          onClick={() => handleRemoveSecondarySubject(ts.id, selectedProfileTeacher.id)}
-                          className="hover:text-red-600 transition-colors"
-                          title="Retirer cette matière"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                    {Array.from(new Set([
+                      selectedProfileTeacher.matiere,
+                      ...(selectedProfileTeacher.teacherSubjects || []).map((ts: any) => ts.matiere)
+                    ].filter(Boolean))).map((sub: any) => (
+                      <Badge key={sub} className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 text-xs font-bold rounded-xl flex items-center gap-1.5">
+                        {sub}
+                        {(selectedProfileTeacher.teacherSubjects || []).some((ts: any) => ts.matiere === sub) && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubjectFromTeacher(selectedProfileTeacher.id, sub)}
+                            className="hover:text-destructive text-slate-400 font-bold ml-1"
+                            title="Retirer cette matière"
+                          >
+                            ×
+                          </button>
+                        )}
                       </Badge>
                     ))}
                   </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <Select value={selectedNewSubject} onValueChange={setSelectedNewSubject}>
-                      <SelectTrigger className="rounded-xl flex-1 bg-white">
+                  {/* Add second subject UI */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
+                    <Select value={newSubjectSelected} onValueChange={setNewSubjectSelected}>
+                      <SelectTrigger className="h-9 text-xs rounded-xl flex-1 bg-white">
                         <SelectValue placeholder="Ajouter une 2ème matière..." />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[200px]">
-                        {MATIERES.filter(m => m !== selectedProfileTeacher.matiere && !selectedProfileTeacher.teacherSubjects?.some((ts: any) => ts.matiere === m)).map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectContent className="rounded-xl max-h-[220px]">
+                        {MATIERES.map((m) => (
+                          <SelectItem key={m} value={m} className="text-xs">
+                            {m}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Button 
                       size="sm" 
-                      onClick={() => handleAddSecondarySubject(selectedProfileTeacher.id)}
-                      disabled={actionLoading || !selectedNewSubject}
-                      className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                      className="h-9 px-3 rounded-xl gap-1 text-xs font-bold"
+                      onClick={() => handleAddSubjectToTeacher(selectedProfileTeacher.id, newSubjectSelected)}
+                      disabled={actionLoading || !newSubjectSelected}
                     >
-                      {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ajouter"}
+                      <Plus className="h-3.5 w-3.5" /> Ajouter
                     </Button>
                   </div>
                 </div>
@@ -408,7 +381,7 @@ export default function AdminTeachersPage() {
                     onClick={() => {
                       const teacher = selectedProfileTeacher
                       setSelectedProfileTeacher(null)
-                      router.push(`/dashboard/messages?recipientId=${teacher.id}`)
+                      router.push(`/dashboard/messages?to=${teacher.id}`)
                     }}
                   >
                     <Mail className="h-4 w-4 text-primary" />
@@ -594,14 +567,20 @@ export default function AdminTeachersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none rounded-full">
-                            {teacher.matiere || "À définir"}
-                          </Badge>
-                          {teacher.teacherSubjects?.map((ts: any) => (
-                            <Badge key={ts.id} variant="outline" className="text-indigo-600 border-indigo-200 font-semibold rounded-full text-[10px]">
-                              {ts.matiere}
+                          {Array.from(new Set([
+                            teacher.matiere,
+                            ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
+                          ].filter(Boolean))).map((sub: any) => (
+                            <Badge key={sub} variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none rounded-full text-xs">
+                              {sub}
                             </Badge>
                           ))}
+                          {Array.from(new Set([
+                            teacher.matiere,
+                            ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
+                          ].filter(Boolean))).length === 0 && (
+                            <span className="text-xs text-slate-400 italic">À définir</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-bold text-slate-700">0</TableCell>
@@ -620,25 +599,13 @@ export default function AdminTeachersPage() {
                               <MoreHorizontal className="h-4 w-4 text-slate-500" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px]">
+                          <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[160px]">
                             <DropdownMenuLabel className="text-xs text-slate-400 font-bold uppercase tracking-widest px-3 py-2">Options</DropdownMenuLabel>
                             <DropdownMenuItem 
                               className="gap-2 rounded-xl cursor-pointer"
                               onClick={() => setSelectedProfileTeacher(teacher)}
                             >
                               <Eye className="h-4 w-4 text-blue-500" /> Voir Profil
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="gap-2 rounded-xl cursor-pointer"
-                              onClick={() => router.push(`/dashboard/messages?recipientId=${teacher.id}`)}
-                            >
-                              <Mail className="h-4 w-4 text-emerald-500" /> Message
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="gap-2 rounded-xl cursor-pointer"
-                              onClick={() => router.push(`/dashboard/schedule?teacherId=${teacher.id}`)}
-                            >
-                              <BookOpen className="h-4 w-4 text-indigo-500" /> Emploi du temps
                             </DropdownMenuItem>
                             <DropdownMenuItem className="gap-2 rounded-xl cursor-pointer" onClick={() => setEditingTeacher(teacher)}>
                               <Edit className="h-4 w-4 text-amber-500" /> Modifier

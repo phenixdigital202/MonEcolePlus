@@ -20,7 +20,7 @@ import {
   CheckCircle2,
   UserCheck
 } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -73,8 +73,6 @@ import { getStudentsAction, addStudentAction, deleteUserAction, updateUserAction
 import { toast } from "sonner"
 
 export default function AdminStudentsPage() {
-  const searchParams = useSearchParams()
-  const studentIdParam = searchParams.get("studentId")
   const [students, setStudents] = useState<any[]>([])
   const [classes, setClasses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +83,8 @@ export default function AdminStudentsPage() {
   const [selectedProfileStudent, setSelectedProfileStudent] = useState<any>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const targetStudentId = searchParams.get("studentId")
 
   const fetchData = async () => {
     setLoading(true)
@@ -93,7 +93,14 @@ export default function AdminStudentsPage() {
       getShortcutMetaData()
     ])
     
-    if (studentRes.success) setStudents(studentRes.data || [])
+    if (studentRes.success) {
+      const list = studentRes.data || []
+      setStudents(list)
+      if (targetStudentId) {
+        const found = list.find((s: any) => s.id === parseInt(targetStudentId))
+        if (found) setSelectedProfileStudent(found)
+      }
+    }
     if (metaRes.success) setClasses(metaRes.data.classes || [])
     
     setLoading(false)
@@ -101,16 +108,7 @@ export default function AdminStudentsPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
-
-  useEffect(() => {
-    if (studentIdParam && students.length > 0) {
-      const found = students.find(s => s.id.toString() === studentIdParam)
-      if (found) {
-        setSelectedProfileStudent(found)
-      }
-    }
-  }, [studentIdParam, students])
+  }, [targetStudentId])
 
   const handleAddStudent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
