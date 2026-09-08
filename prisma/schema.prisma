@@ -310,6 +310,7 @@ model User {
   points              Int                   @default(0)
   niveau              Int                   @default(1)
   created_at          DateTime              @default(now())
+  avatar_url          String?
   absences            Absence[]
   aiInsights          AIInsight[]
   annonces            Annonce[]

@@ -287,6 +287,7 @@ CREATE TABLE "users" (
     "points" INTEGER NOT NULL DEFAULT 0,
     "niveau" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "avatar_url" TEXT,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );

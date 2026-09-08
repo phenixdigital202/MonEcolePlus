@@ -1,0 +1,38 @@
+{
+  "test1_profilePhoto": {
+    "uploadSuccessMessage": false,
+    "avatarSrcPresent": true,
+    "pass": true
+  },
+  "test2_profileInfo": {
+    "saveFeedbackSuccess": false,
+    "firstNamePersisted": true,
+    "pass": true
+  },
+  "test3_passwordChange": {
+    "changeFeedbackSuccess": false,
+    "oldPasswordRefused": true,
+    "newPasswordAccepted": false,
+    "pass": false
+  },
+  "test4_schoolConfig": {
+    "saveFeedbackSuccess": false,
+    "configPersisted": false,
+    "pass": false
+  },
+  "test5_schoolLogo": {
+    "uploadFeedbackSuccess": false,
+    "logoSrcPresent": true,
+    "pass": true
+  },
+  "test6_displayMode": {
+    "darkThemeApplied": true,
+    "pass": true
+  },
+  "test7_multiTenant": {
+    "abouSchoolUntouched": true,
+    "pass": true
+  },
+  "consoleErrors": [],
+  "networkErrors": []
+}

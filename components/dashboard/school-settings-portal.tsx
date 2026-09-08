@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,10 +20,11 @@ import {
   Loader2,
   ShieldCheck,
   Globe,
-  MessageSquare
+  MessageSquare,
+  AlertCircle
 } from "lucide-react"
 
-import { updateSchoolSettingsAction } from "@/lib/school-actions"
+import { updateSchoolSettingsAction, updateSchoolLogoAction } from "@/lib/school-actions"
 
 interface SchoolSettingsPortalProps {
   userRole: string
@@ -33,7 +34,13 @@ interface SchoolSettingsPortalProps {
 export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPortalProps) {
   const [isPending, setIsPending] = useState(false)
   const [success, setSuccess] = useState(false)
-  const isAdmin = userRole === "admin"
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [logoMsg, setLogoMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  const isAdmin = userRole?.toLowerCase() === "admin" || userRole?.toLowerCase() === "super_admin" || userRole?.toLowerCase() === "superadmin"
   
   // Fallback data if DB is empty
   const data = schoolData || {
@@ -43,6 +50,7 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     telephone: "+224 620 00 00 00",
     email: "contact@excellence.gn",
     website: "www.excellence.gn",
+    logo_url: null,
     smtp_host: "",
     smtp_port: 587,
     smtp_user: "",
@@ -52,12 +60,13 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
   }
 
   // Form states
-  const [nom, setNom] = useState(data.nom)
-  const [directeur, setDirecteur] = useState(data.directeur)
-  const [adresse, setAdresse] = useState(data.adresse)
-  const [telephone, setTelephone] = useState(data.telephone)
-  const [email, setEmail] = useState(data.email)
-  const [website, setWebsite] = useState(data.website)
+  const [nom, setNom] = useState(data.nom || "")
+  const [directeur, setDirecteur] = useState(data.directeur || "")
+  const [adresse, setAdresse] = useState(data.adresse || "")
+  const [telephone, setTelephone] = useState(data.telephone || "")
+  const [email, setEmail] = useState(data.email || "")
+  const [website, setWebsite] = useState(data.website || "")
+  const [logoUrl, setLogoUrl] = useState<string | null>(data.logo_url || null)
 
   const [smtpHost, setSmtpHost] = useState(data.smtp_host || "")
   const [smtpPort, setSmtpPort] = useState(data.smtp_port || 587)
@@ -73,6 +82,8 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
   const handleSave = async () => {
     setIsPending(true)
     setSuccess(false)
+    setErrorMsg(null)
+
     const result = await updateSchoolSettingsAction({
       nom,
       directeur,
@@ -90,9 +101,45 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     
     if (result.success) {
       setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      setTimeout(() => setSuccess(false), 4000)
+    } else {
+      setErrorMsg(result.error || "Erreur lors de l'enregistrement.")
     }
     setIsPending(false)
+  }
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB max
+      setLogoMsg({ type: "error", text: "Le fichier ne doit pas dépasser 5 Mo." })
+      return
+    }
+
+    setIsUploadingLogo(true)
+    setLogoMsg(null)
+
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64Data = reader.result as string
+      const result = await updateSchoolLogoAction(base64Data)
+
+      if (result.success && result.logo_url) {
+        setLogoUrl(result.logo_url)
+        setLogoMsg({ type: "success", text: "Logo mis à jour !" })
+      } else {
+        setLogoMsg({ type: "error", text: result.error || "Échec du téléversement." })
+      }
+      setIsUploadingLogo(false)
+    }
+
+    reader.onerror = () => {
+      setLogoMsg({ type: "error", text: "Erreur de lecture du fichier." })
+      setIsUploadingLogo(false)
+    }
+
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -127,7 +174,7 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                        <ShieldCheck className="h-3 w-3" /> Nom Officiel
                     </Label>
                     {isAdmin ? (
-                      <Input value={nom} onChange={(e) => setNom(e.target.value)} className="border-primary/10" />
+                      <Input id="school-name-input" value={nom} onChange={(e) => setNom(e.target.value)} className="border-primary/10" />
                     ) : (
                       <div className="p-3 rounded-lg bg-muted/30 font-bold text-lg text-primary">{nom}</div>
                     )}
@@ -279,8 +326,8 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                  {isAdmin ? (
                    <div className="p-8 border-2 border-dashed border-emerald-500/20 rounded-xl flex flex-col items-center gap-2 text-center text-muted-foreground">
                       <Upload className="h-10 w-10 opacity-20" />
-                      <p className="text-sm">Cliquez pour mettre à jour le cachet numérique</p>
-                      <Button variant="outline" size="sm" className="mt-2">Uploader le Cachet</Button>
+                      <p className="text-sm">Cachet numérique certifié conforme</p>
+                      <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">Automatique</div>
                    </div>
                  ) : (
                    <div className="flex flex-col md:flex-row items-center gap-8 justify-between p-4 px-8 border rounded-2xl bg-white/50 relative overflow-hidden">
@@ -288,12 +335,12 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                          <div className="px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded uppercase tracking-tighter">Certifié</div>
                       </div>
                       <div className="text-center md:text-left">
-                        <p className="text-2xl italic font-serif text-emerald-950 mb-1">{data.directeur}</p>
+                        <p className="text-2xl italic font-serif text-emerald-950 mb-1">{directeur || data.directeur}</p>
                         <p className="text-[10px] uppercase tracking-[0.2em] font-black text-emerald-600">Direction Générale</p>
                       </div>
                       <div className="h-32 w-32 rounded-full border-4 border-double border-emerald-500/30 flex items-center justify-center relative rotate-12 bg-emerald-50/50">
                          <div className="text-[8px] font-black p-2 text-center text-emerald-700 uppercase leading-tight">
-                            Cachet Officiel<br />MonaÉcole+<br />RECONNU
+                            Cachet Officiel<br />MonÉcole+<br />RECONNU
                          </div>
                       </div>
                    </div>
@@ -311,18 +358,46 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                   </CardTitle>
                </CardHeader>
                <CardContent className="p-6 flex flex-col items-center gap-6">
-                  <div className="h-40 w-40 rounded-3xl bg-muted border-2 border-dashed border-primary/20 flex items-center justify-center relative group overflow-hidden">
-                     <Building2 className="h-12 w-12 text-primary/20" />
+                  <input
+                    type="file"
+                    ref={logoInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoSelect}
+                  />
+
+                  <div className="h-40 w-40 rounded-3xl bg-muted border-2 border-dashed border-primary/20 flex items-center justify-center relative group overflow-hidden p-2">
+                     {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain rounded-2xl" />
+                     ) : (
+                        <Building2 className="h-12 w-12 text-primary/20" />
+                     )}
+                     
                      {isAdmin && (
                         <div className="absolute inset-0 bg-primary/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                           <Button variant="secondary" size="sm">Uploader Logo</Button>
+                           <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={() => logoInputRef.current?.click()}
+                              disabled={isUploadingLogo}
+                           >
+                              {isUploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Uploader Logo"}
+                           </Button>
                         </div>
                      )}
                   </div>
+
+                  {logoMsg && (
+                    <div className={`text-xs flex items-center gap-1 font-medium ${logoMsg.type === "success" ? "text-emerald-600" : "text-destructive"}`}>
+                      {logoMsg.type === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                      {logoMsg.text}
+                    </div>
+                  )}
+
                   <div className="w-full space-y-3">
                      <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
                         <Globe className="h-4 w-4" />
-                        {data.website}
+                        {website || data.website}
                      </div>
                   </div>
                </CardContent>
@@ -331,17 +406,20 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
             {isAdmin && (
                <div className="sticky top-24 space-y-3">
                   {success && (
-                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 text-sm font-bold animate-bounce">
+                    <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3 text-sm font-bold">
                       <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                      Paramètres enregistrés !
+                      Paramètres enregistrés avec succès !
                     </div>
                   )}
-                  <Button size="lg" className="w-full h-14 text-lg shadow-lg shadow-primary/20" onClick={handleSave} disabled={isPending}>
-                    {isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />}
-                    Enregistrer Tout
-                  </Button>
-                  <Button variant="outline" size="lg" className="w-full h-14">
-                    <CheckCircle2 className="h-5 w-5 mr-2" /> Publier les changements
+                  {errorMsg && (
+                    <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-2xl p-4 flex items-center gap-3 text-sm font-bold">
+                      <AlertCircle className="h-5 w-5" />
+                      {errorMsg}
+                    </div>
+                  )}
+                  <Button id="btn-save-school" type="button" size="lg" className="w-full h-14 text-lg shadow-lg shadow-primary/20 gap-2" onClick={handleSave} disabled={isPending}>
+                    {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                    {isPending ? "Enregistrement..." : "Enregistrer Tout"}
                   </Button>
                </div>
             )}

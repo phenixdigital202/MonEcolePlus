@@ -76,10 +76,22 @@ export async function registerUser(formData: FormData) {
           subdomain: slug
         }
       })
-      console.log(`[registerUser] School stub created in Tenant DB`)
+      try {
+        await tenantPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('ecoles', 'id'), (SELECT MAX(id) FROM ecoles));`)
+      } catch (seqErr: any) {}
+      console.log(`[registerUser] School stub created in Tenant DB with ID ${schoolId}`)
     } catch (e: any) {
-      console.error(`[registerUser] Tenant school stub creation failed:`, e.message)
-      // Non-fatal: FK may not exist for ecole in some schemas
+      console.error(`[registerUser] Tenant school stub creation fallback:`, e.message)
+      try {
+        await tenantPrisma.ecole.create({
+          data: {
+            nom: schoolName.trim(),
+            subdomain: slug
+          }
+        })
+      } catch (e2: any) {
+        console.error(`[registerUser] Tenant school fallback creation failed:`, e2.message)
+      }
     }
 
     // ─── STEP 5: Hash password ───

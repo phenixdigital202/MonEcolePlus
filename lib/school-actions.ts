@@ -42,12 +42,8 @@ export async function updateSchoolSettingsAction(formData: {
     const tenantPrisma = await getPrisma()
     
     // 1. Get current school from Tenant DB
-    const ecole = await tenantPrisma.ecole.findFirst()
-    if (!ecole) {
-      return { success: false, error: "Établissement introuvable dans la base locataire." }
-    }
-
-    // 2. Update Tenant DB
+    let ecole = await tenantPrisma.ecole.findFirst()
+    
     const updateData: any = {
       nom: formData.nom,
       directeur: formData.directeur,
@@ -69,17 +65,31 @@ export async function updateSchoolSettingsAction(formData: {
       updateData.whatsapp_access_token = formData.whatsapp_access_token
     }
 
-    const updated = await tenantPrisma.ecole.update({
-      where: { id: ecole.id },
-      data: updateData
-    })
-
-    // 3. Sync to Master DB for global settings consistency
-    try {
-      await masterPrisma.ecole.update({
+    let updated;
+    if (!ecole) {
+      // Create ecole stub in Tenant DB if not present
+      updated = await tenantPrisma.ecole.create({
+        data: updateData
+      })
+      ecole = updated
+    } else {
+      updated = await tenantPrisma.ecole.update({
         where: { id: ecole.id },
         data: updateData
       })
+    }
+
+    // 3. Sync to Master DB by ID or subdomain
+    try {
+      const masterSchool = await masterPrisma.ecole.findFirst({
+        where: { OR: [{ id: ecole.id }, { subdomain: ecole.subdomain }] }
+      })
+      if (masterSchool) {
+        await masterPrisma.ecole.update({
+          where: { id: masterSchool.id },
+          data: updateData
+        })
+      }
     } catch (masterErr: any) {
       console.warn("[updateSchoolSettingsAction] Master DB sync warning:", masterErr.message)
     }
@@ -90,3 +100,44 @@ export async function updateSchoolSettingsAction(formData: {
     return { success: false, error: error.message || String(error) }
   }
 }
+
+export async function updateSchoolLogoAction(logoUrl: string) {
+  const { getPrisma } = require("./tenant-context")
+  const masterPrisma = require("./prisma").default
+
+  try {
+    if (!logoUrl || typeof logoUrl !== "string") {
+      return { success: false, error: "URL de logo invalide." }
+    }
+
+    const tenantPrisma = await getPrisma()
+    const ecole = await tenantPrisma.ecole.findFirst()
+
+    if (!ecole) {
+      return { success: false, error: "Établissement introuvable." }
+    }
+
+    // 1. Update Tenant DB
+    const updated = await tenantPrisma.ecole.update({
+      where: { id: ecole.id },
+      data: { logo_url: logoUrl }
+    })
+
+    // 2. Sync to Master DB
+    try {
+      await masterPrisma.ecole.update({
+        where: { id: ecole.id },
+        data: { logo_url: logoUrl }
+      })
+    } catch (masterErr: any) {
+      console.warn("[updateSchoolLogoAction] Master DB sync warning:", masterErr.message)
+    }
+
+    console.log(`[updateSchoolLogoAction] Logo updated for school ID=${ecole.id}`)
+    return { success: true, logo_url: logoUrl }
+  } catch (error: any) {
+    console.error("[updateSchoolLogoAction] Error:", error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
+
