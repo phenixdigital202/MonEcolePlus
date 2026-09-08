@@ -10,12 +10,26 @@ import { loginUser } from "@/lib/auth-actions"
 
 export default function LoginPage() {
   const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  async function handleSubmit(formData: FormData) {
+  // Force empty fields on mount to prevent browser password manager autofill
+  useEffect(() => {
+    setEmail("")
+    setPassword("")
+  }, [])
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setPending(true)
     setError(null)
+
+    const formData = new FormData()
+    formData.append("email", email)
+    formData.append("password", password)
+
     const result = await loginUser(formData)
     if (result?.error) {
       setError(result.error)
@@ -63,11 +77,7 @@ export default function LoginPage() {
               </div>
             )}
             
-            <form className="space-y-6" onSubmit={async (e) => {
-              e.preventDefault()
-              const formData = new FormData(e.currentTarget)
-              await handleSubmit(formData)
-            }}>
+            <form className="space-y-6" autoComplete="off" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                   Adresse email
@@ -76,7 +86,9 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
-                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
                   required
                   placeholder="vous@exemple.com"
                 />
@@ -95,7 +107,9 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   required
                   placeholder="••••••••"
                 />
