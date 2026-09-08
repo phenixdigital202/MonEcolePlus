@@ -53,7 +53,7 @@ export async function provisionTenantDatabase(dbName: string) {
         throw new Error("Init SQL script not found. Please run 'npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql'")
     }
     
-    const sql = fs.readFileSync(sqlPath, 'utf8')
+    const sql = fs.readFileSync(sqlPath, 'utf8').replace(/^\uFEFF/, '')
     
     await tenantClient.connect()
     console.log(`[Provisioner] Executing schema SQL on tenant database...`)

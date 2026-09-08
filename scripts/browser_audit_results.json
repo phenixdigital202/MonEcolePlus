@@ -1,0 +1,28 @@
+{
+  "testEmail": "audit_browser_1788859397924@monecole.ci",
+  "testSchool": "Lycée Excellence Audit 7924",
+  "testPassword": "Password123!",
+  "report": {
+    "signupScenario": {
+      "urlAfterSignup": "http://localhost:3000/signup",
+      "hasDetermineSchoolError": false,
+      "dashboardUrl": "http://localhost:3000/signup",
+      "cookies": {},
+      "dashboardLoaded": false,
+      "schoolNameInDashboard": false,
+      "emailUsed": "audit_browser_1788859397924@monecole.ci"
+    },
+    "logoutLoginScenario": {
+      "loginSuccess": false,
+      "urlAfterLogin": "http://localhost:3000/login",
+      "cookies": {}
+    },
+    "existingUserScenario": {},
+    "duplicateEmailScenario": {
+      "properErrorDisplayed": true
+    },
+    "databaseCheck": {},
+    "consoleErrors": [],
+    "networkErrors": []
+  }
+}

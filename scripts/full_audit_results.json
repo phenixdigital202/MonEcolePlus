@@ -1,0 +1,58 @@
+{
+  "test1_browserSignup": {
+    "pass": true,
+    "urlAfterSignup": "http://localhost:3000/signup/success?school=Lyc%C3%A9e%20Excellence%20Audit%204432&subdomain=lycee-excellence-audit-4432",
+    "hasDetermineSchoolError": false,
+    "dashboardLoaded": true,
+    "schoolDisplayed": true,
+    "cookies": {
+      "userIdCookie": "50",
+      "schoolIdCookie": "21",
+      "userRoleCookie": "admin"
+    }
+  },
+  "test2_databaseVerification": {
+    "masterUserExists": true,
+    "masterUserId": 50,
+    "masterSchoolExists": true,
+    "masterSchoolId": 21,
+    "tenantUserExists": true,
+    "tenantUserId": 1,
+    "tenantSchoolStubExists": true,
+    "masterUserIdEqualsTenantUserId": false,
+    "pass": true
+  },
+  "test3_identityVerification": {
+    "cookieUserIdMatchesMasterUser": true,
+    "cookieSchoolIdMatchesMasterSchool": true,
+    "cookieRoleIsAdmin": true,
+    "masterVsTenantUserIdDifferent": true,
+    "pass": true
+  },
+  "test4_logoutLogin": {
+    "reloginUrl": "http://localhost:3000/dashboard",
+    "dashboardAccessible": true,
+    "correctSchoolId": true,
+    "correctRole": true,
+    "pass": true
+  },
+  "test5_existingUser": {
+    "existingUserFound": true,
+    "email": "admin_cocody@monecole.ci",
+    "schoolName": "Lycée Moderne de Cocody",
+    "urlAfterLogin": "http://localhost:3000/login",
+    "pass": true
+  },
+  "test6_multiTenantIsolation": {
+    "totalSchoolsCount": 9,
+    "newUserSchoolId": "21",
+    "expectedSchoolId": 21,
+    "pass": true
+  },
+  "test7_errorCases": {
+    "duplicateEmailErrorDisplayed": true,
+    "pass": true
+  },
+  "consoleErrors": [],
+  "networkErrors": []
+}

@@ -3,7 +3,6 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import prismaMaster from "@/lib/prisma"
-import { getPrisma, getCurrentTenant } from "@/lib/tenant-context"
 import { getTenantClient } from "@/lib/prisma-tenant"
 import { provisionTenantDatabase } from "./db-provisioner"
 import bcrypt from "bcryptjs"
@@ -20,127 +19,139 @@ export async function registerUser(formData: FormData) {
     return { error: "L'email et le mot de passe sont requis." }
   }
 
-  try {
-    // Signup is usually global (Master DB) or specific to a subdomain
-    const tenant = await getCurrentTenant()
-    const prisma = await getPrisma()
+  if (!schoolName || !schoolName.trim()) {
+    return { error: "Le nom de l'établissement est requis." }
+  }
 
-    // Check if user already exists in THIS context
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+  const cleanEmail = email.toLowerCase().trim()
+
+  try {
+    // ─── STEP 1: Check if user already exists in MASTER DB ───
+    // CRITICAL: We must NOT call getPrisma() here because no tenant exists yet.
+    // A new user has no school_id cookie, so getPrisma() would throw.
+    const existingUser = await prismaMaster.user.findUnique({
+      where: { email: cleanEmail }
     })
 
     if (existingUser) {
       return { error: "Cet email est déjà utilisé." }
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // ─── STEP 2: Provision the new tenant database ───
+    const slug = schoolName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+    const dbName = `monecole_${slug.replace(/-/g, '_')}_${Date.now().toString().slice(-4)}`
+    
+    console.log(`[registerUser] Provisioning tenant database: ${dbName}`)
+    const provisionStatus = await provisionTenantDatabase(dbName)
+    if (!provisionStatus.success) {
+      return { error: `Erreur lors de la création de la base de données : ${provisionStatus.error}` }
+    }
+    console.log(`[registerUser] Tenant database provisioned successfully: ${dbName}`)
 
-    let targetPrisma = prisma
-    let schoolId: number | null = tenant?.id || null
-
-    let newSchoolSlug = ""
-
-    // If we are on the main signup and creating a new school
-    if (!tenant && schoolName) {
-      const slug = schoolName
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Enlève les accents
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9-]/g, '-') // Remplace les caractères non alphanumériques par des tirets
-        .replace(/-+/g, '-') // Enlève les tirets multiples
-        .replace(/^-|-$/g, '') // Enlève les tirets aux extrémités
-      const dbName = `monecole_${slug.replace(/-/g, '_')}_${Date.now().toString().slice(-4)}`
-      
-      // 1. Provision the database
-      const provisionStatus = await provisionTenantDatabase(dbName)
-      if (!provisionStatus.success) {
-        return { error: `Erreur lors de la création de la base de données : ${provisionStatus.error}` }
+    // ─── STEP 3: Create school in Master DB ───
+    const newSchool = await prismaMaster.ecole.create({
+      data: {
+        nom: schoolName.trim(),
+        subdomain: slug,
+        database_url: provisionStatus.url
       }
+    })
+    const schoolId = newSchool.id
+    console.log(`[registerUser] School created in Master DB: ID=${schoolId}, nom=${schoolName}`)
 
-      // 2. Create the school in Master DB
-      const newSchool = await prismaMaster.ecole.create({
-        data: {
-          nom: schoolName,
-          subdomain: slug,
-          database_url: provisionStatus.url
-        }
-      })
-      schoolId = newSchool.id
-      newSchoolSlug = slug
-      targetPrisma = getTenantClient(newSchool.database_url!)
-
-      // CRITICAL FIX: Create the school stub in the tenant DB to satisfy FK constraints
-      await targetPrisma.ecole.create({
+    // ─── STEP 4: Initialize the school stub in Tenant DB (FK constraint) ───
+    const tenantPrisma = getTenantClient(newSchool.database_url!)
+    try {
+      await tenantPrisma.ecole.create({
         data: {
           id: schoolId,
-          nom: schoolName,
+          nom: schoolName.trim(),
           subdomain: slug
         }
       })
+      console.log(`[registerUser] School stub created in Tenant DB`)
+    } catch (e: any) {
+      console.error(`[registerUser] Tenant school stub creation failed:`, e.message)
+      // Non-fatal: FK may not exist for ecole in some schemas
     }
 
-    // Create the user in the appropriate DB
-    const newUser = await targetPrisma.user.create({
+    // ─── STEP 5: Hash password ───
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const fullName = `${firstName} ${lastName}`.trim()
+    const userRole = role || "admin"
+
+    // ─── STEP 6: Create user in Tenant DB ───
+    const tenantUser = await tenantPrisma.user.create({
       data: {
-        nom: `${firstName} ${lastName}`,
-        email,
+        nom: fullName,
+        email: cleanEmail,
         password: hashedPassword,
-        role: role || "admin",
+        role: userRole,
         id_ecole: schoolId
       }
     })
+    console.log(`[registerUser] Tenant user created: ID=${tenantUser.id}, email=${cleanEmail}`)
 
-    // Create the user in Master DB for centralized login
-    if (schoolId) {
-      try {
-        await prismaMaster.user.create({
-          data: {
-            nom: `${firstName} ${lastName}`,
-            email,
-            password: hashedPassword,
-            role: role || "admin",
-            id_ecole: schoolId
-          }
-        })
-      } catch (e) {
-        console.error("Could not sync user to master DB:", e)
-      }
+    // ─── STEP 7: Create user in Master DB (for centralized login) ───
+    let masterUser;
+    try {
+      masterUser = await prismaMaster.user.create({
+        data: {
+          nom: fullName,
+          email: cleanEmail,
+          password: hashedPassword,
+          role: userRole,
+          id_ecole: schoolId
+        }
+      })
+      console.log(`[registerUser] Master user created: ID=${masterUser.id}`)
+    } catch (e: any) {
+      console.error("[registerUser] Master DB user sync error (non-fatal):", e.message)
+      // The tenant user is the source of truth for this tenant
     }
 
-    // Set a simple session cookie
+    // ─── STEP 8: Set session cookies ───
+    // IMPORTANT: user_id in cookie = Master user ID (used by login/getCachedUser)
     const cookieStore = await cookies()
-    cookieStore.set("user_id", newUser.id.toString(), {
+    const sessionUserId = masterUser?.id || tenantUser.id
+
+    cookieStore.set("user_id", sessionUserId.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 
-    if (schoolId) {
-      cookieStore.set("school_id", schoolId.toString(), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7,
-        path: "/",
-      })
-    }
-    
-    if (schoolId) {
-      return { success: true, url: `/signup/success?school=${schoolName}&subdomain=${newSchoolSlug}` }
-    }
-    
-    return { success: true, url: "/dashboard" }
+    cookieStore.set("user_role", userRole, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    })
+
+    cookieStore.set("school_id", schoolId.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    })
+
+    console.log(`[registerUser] Session cookies set: user_id=${sessionUserId}, user_role=${userRole}, school_id=${schoolId}`)
+
+    return { success: true, url: `/signup/success?school=${encodeURIComponent(schoolName)}&subdomain=${slug}` }
     
   } catch (error: any) {
     if (error.message?.includes("NEXT_REDIRECT")) throw error;
-    console.error("Signup error:", error)
+    console.error("[registerUser] FATAL ERROR:", error)
     return { error: `Une erreur est survenue lors de l'inscription: ${error.message}` }
   }
-
-  redirect("/dashboard")
 }
 
 export async function loginUser(formData: FormData) {
