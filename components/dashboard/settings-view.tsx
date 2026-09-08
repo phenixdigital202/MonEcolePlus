@@ -25,6 +25,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { useRouter } from "next/navigation"
+import { compressImage } from "@/lib/image-utils"
 import { updateUserProfilePhotoAction, updateUserProfileInfoAction, changeUserPasswordAction } from "@/lib/user-actions"
 
 interface SettingsViewProps {
@@ -39,6 +41,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ user }: SettingsViewProps) {
+  const router = useRouter()
   const { theme, setTheme } = useTheme()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -80,38 +83,29 @@ export function SettingsView({ user }: SettingsViewProps) {
   const currentClass = user.inscriptions?.[0]?.classe?.nom || "N/A"
 
   // 1. PHOTO CHANGE HANDLER
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setPhotoMessage({ type: "error", text: "La photo de profil ne doit pas dépasser 5 Mo." })
-      return
-    }
 
     setIsUploadingPhoto(true)
     setPhotoMessage(null)
 
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const base64Data = reader.result as string
+    try {
+      const base64Data = await compressImage(file, 500, 0.85)
       const result = await updateUserProfilePhotoAction(base64Data)
 
       if (result.success && result.avatar_url) {
         setAvatarUrl(result.avatar_url)
         setPhotoMessage({ type: "success", text: "Photo de profil mise à jour avec succès !" })
+        router.refresh()
       } else {
         setPhotoMessage({ type: "error", text: result.error || "Échec de la mise à jour de la photo." })
       }
+    } catch (err) {
+      setPhotoMessage({ type: "error", text: "Erreur lors du traitement de l'image." })
+    } finally {
       setIsUploadingPhoto(false)
     }
-
-    reader.onerror = () => {
-      setPhotoMessage({ type: "error", text: "Erreur lors de la lecture du fichier." })
-      setIsUploadingPhoto(false)
-    }
-
-    reader.readAsDataURL(file)
   }
 
   // 2. PROFILE EDIT HANDLER
@@ -127,6 +121,7 @@ export function SettingsView({ user }: SettingsViewProps) {
 
     if (result.success) {
       setProfileMessage({ type: "success", text: "Informations personnelles enregistrées avec succès !" })
+      router.refresh()
     } else {
       setProfileMessage({ type: "error", text: result.error || "Erreur lors de l'enregistrement." })
     }

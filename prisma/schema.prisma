@@ -108,6 +108,11 @@ model Ecole {
   nom                String
   subdomain          String?      @unique
   logo_url           String?
+  directeur          String?
+  adresse            String?
+  telephone          String?
+  email              String?
+  website            String?
   stripe_customer_id String?
   plan               EcolePlan?   @default(gratuit)
   database_url       String?

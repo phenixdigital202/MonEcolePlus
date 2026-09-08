@@ -24,6 +24,8 @@ import {
   AlertCircle
 } from "lucide-react"
 
+import { useRouter } from "next/navigation"
+import { compressImage } from "@/lib/image-utils"
 import { updateSchoolSettingsAction, updateSchoolLogoAction } from "@/lib/school-actions"
 
 interface SchoolSettingsPortalProps {
@@ -32,6 +34,7 @@ interface SchoolSettingsPortalProps {
 }
 
 export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPortalProps) {
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [success, setSuccess] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -101,6 +104,7 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     
     if (result.success) {
       setSuccess(true)
+      router.refresh()
       setTimeout(() => setSuccess(false), 4000)
     } else {
       setErrorMsg(result.error || "Erreur lors de l'enregistrement.")
@@ -108,38 +112,29 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     setIsPending(false)
   }
 
-  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB max
-      setLogoMsg({ type: "error", text: "Le fichier ne doit pas dépasser 5 Mo." })
-      return
-    }
 
     setIsUploadingLogo(true)
     setLogoMsg(null)
 
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const base64Data = reader.result as string
+    try {
+      const base64Data = await compressImage(file, 500, 0.85)
       const result = await updateSchoolLogoAction(base64Data)
 
       if (result.success && result.logo_url) {
         setLogoUrl(result.logo_url)
         setLogoMsg({ type: "success", text: "Logo mis à jour !" })
+        router.refresh()
       } else {
         setLogoMsg({ type: "error", text: result.error || "Échec du téléversement." })
       }
+    } catch (err) {
+      setLogoMsg({ type: "error", text: "Erreur lors du traitement du logo." })
+    } finally {
       setIsUploadingLogo(false)
     }
-
-    reader.onerror = () => {
-      setLogoMsg({ type: "error", text: "Erreur de lecture du fichier." })
-      setIsUploadingLogo(false)
-    }
-
-    reader.readAsDataURL(file)
   }
 
   return (
