@@ -192,7 +192,7 @@ export async function deleteEvaluationAction(id: number) {
   }
 }
 
-export async function getEvaluationsByClass(classId: number) {
+export async function getEvaluationsByClass(classId: number, options?: { forEntryOnly?: boolean }) {
   const prisma = await getPrisma()
   const cookieStore = await cookies()
   const userId = cookieStore.get("user_id")?.value
@@ -208,6 +208,8 @@ export async function getEvaluationsByClass(classId: number) {
     return []
   }
 
+  let baseWhere: any = { id_classe: classId }
+
   if (user.role === 'teacher') {
     const dbSubjects = await prisma.emploiDuTemps.findMany({
       where: { id_enseignant: user.id },
@@ -221,19 +223,46 @@ export async function getEvaluationsByClass(classId: number) {
       if (s.matiere) subjects.add(s.matiere)
     })
 
-    return await prisma.evaluation.findMany({
-      where: {
-        id_classe: classId,
-        matiere: { in: Array.from(subjects) }
-      },
-      orderBy: { date_eval: 'desc' }
-    })
+    baseWhere.matiere = { in: Array.from(subjects) }
   }
 
-  return await prisma.evaluation.findMany({
-    where: { id_classe: classId },
+  const evaluations = await prisma.evaluation.findMany({
+    where: baseWhere,
+    include: {
+      notes: { select: { id_eleve: true, valeur: true } }
+    },
     orderBy: { date_eval: 'desc' }
   })
+
+  // Count active students in class to evaluate entry status
+  const activeStudents = await getStudentsByClass(classId)
+  const totalActive = activeStudents.length
+
+  const enrichedEvaluations = evaluations.map(e => {
+    const notesCount = e.notes.length
+    let entryStatus: 'a_saisir' | 'saisie_incomplete' | 'saisie_complete' = 'a_saisir'
+    if (notesCount === 0) {
+      entryStatus = 'a_saisir'
+    } else if (totalActive > 0 && notesCount >= totalActive) {
+      entryStatus = 'saisie_complete'
+    } else {
+      entryStatus = 'saisie_incomplete'
+    }
+    return {
+      ...e,
+      totalActiveStudents: totalActive,
+      notesCount,
+      entryStatus,
+      isFullyCompleted: totalActive > 0 && notesCount >= totalActive
+    }
+  })
+
+  if (options?.forEntryOnly) {
+    // Filter out fully completed evaluations from NEW grade entry selector
+    return enrichedEvaluations.filter(e => !e.isFullyCompleted)
+  }
+
+  return enrichedEvaluations
 }
 
 export async function getGradesByEvaluation(evaluationId: number) {
@@ -245,11 +274,54 @@ export async function getGradesByEvaluation(evaluationId: number) {
 
 export async function getStudentsByClass(classId: number) {
   const prisma = await getPrisma()
-  const inscriptions = await prisma.inscription.findMany({
-    where: { id_classe: classId },
-    include: { user: true }
+  
+  // Find active school year if configured
+  const activeSchoolYear = await prisma.schoolYear.findFirst({
+    where: { status: "ACTIVE" }
   })
-  return inscriptions.map(i => i.user)
+
+  const whereClause: any = {
+    id_classe: classId,
+    statut: 'active',
+    user: { role: 'student' }
+  }
+
+  if (activeSchoolYear) {
+    whereClause.OR = [
+      { id_annee_scolaire: activeSchoolYear.id },
+      { annee_scolaire: activeSchoolYear.label }
+    ]
+  }
+
+  const inscriptions = await prisma.inscription.findMany({
+    where: whereClause,
+    include: { user: true },
+    orderBy: { user: { nom: 'asc' } }
+  })
+
+  // Deduplicate by student user id
+  const studentMap = new Map<number, any>()
+  inscriptions.forEach(i => {
+    if (i.user && !studentMap.has(i.user.id)) {
+      studentMap.set(i.user.id, i.user)
+    }
+  })
+
+  // Fallback: If no active school year filter matched any inscriptions, return active class inscriptions
+  if (studentMap.size === 0) {
+    const fallbackInscriptions = await prisma.inscription.findMany({
+      where: { id_classe: classId, statut: 'active', user: { role: 'student' } },
+      include: { user: true },
+      orderBy: { user: { nom: 'asc' } }
+    })
+    fallbackInscriptions.forEach(i => {
+      if (i.user && !studentMap.has(i.user.id)) {
+        studentMap.set(i.user.id, i.user)
+      }
+    })
+  }
+
+  return Array.from(studentMap.values())
 }
 
 export async function getClasses() {

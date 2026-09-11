@@ -61,6 +61,14 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
   const [showChat, setShowChat] = useState(!!initialTargetId)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Real Attachment & Voice Note states
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerIntervalRef = useRef<any>(null)
+
   useEffect(() => {
     if (initialTargetId) {
       const match = allContactsList.find(c => c.id === initialTargetId)
@@ -126,6 +134,176 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
       toast.error(res.error || "Échec de l'envoi")
     }
     setSending(false)
+  }
+
+  // 1. FILE ATTACHMENT HANDLER
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selectedContact) return
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error("Le fichier ne doit pas dépasser 10 Mo.")
+      return
+    }
+
+    setSending(true)
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64Data = reader.result as string
+      const payload = `[ATTACHMENT:${file.name}|${file.type}|${base64Data}]`
+      
+      const res = await sendMessage(currentUserId, selectedContact.id, payload)
+      if (res.success) {
+        toast.success("Fichier partagé avec succès !")
+        loadConversation(selectedContact.id, true)
+      } else {
+        toast.error(res.error || "Erreur lors de l'envoi du fichier.")
+      }
+      setSending(false)
+    }
+    reader.onerror = () => {
+      toast.error("Erreur de lecture du fichier.")
+      setSending(false)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
+  // 2. VOICE NOTE RECORDING HANDLER
+  const startVoiceRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error("Votre navigateur ne supporte pas l'enregistrement audio.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        
+        if (audioBlob.size === 0) return
+
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string
+          const payload = `[AUDIO:message_vocal.webm|${base64Audio}]`
+          
+          setSending(true)
+          const res = await sendMessage(currentUserId, selectedContact.id, payload)
+          if (res.success) {
+            toast.success("Message vocal envoyé !")
+            loadConversation(selectedContact.id, true)
+          } else {
+            toast.error(res.error || "Échec de l'envoi du message vocal.")
+          }
+          setSending(false)
+        }
+        reader.readAsDataURL(audioBlob)
+      }
+
+      mediaRecorder.start()
+      setIsRecordingVoice(true)
+      setRecordingSeconds(0)
+
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1)
+      }, 1000)
+
+      toast.info("Enregistrement vocal démarré...")
+    } catch (err: any) {
+      console.error("Microphone error:", err)
+      toast.error("Accès au microphone refusé ou indisponible.")
+    }
+  }
+
+  const stopVoiceRecording = (cancel = false) => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+
+    if (mediaRecorderRef.current && isRecordingVoice) {
+      if (cancel) {
+        audioChunksRef.current = []
+        mediaRecorderRef.current.onstop = () => {
+          const stream = mediaRecorderRef.current?.stream
+          stream?.getTracks().forEach(track => track.stop())
+        }
+        toast.info("Enregistrement vocal annulé.")
+      }
+      try {
+        mediaRecorderRef.current.stop()
+      } catch (e) {}
+    }
+    setIsRecordingVoice(false)
+    setRecordingSeconds(0)
+  }
+
+  // 3. RENDER CONTENT HELPER (Parse text, attachments, audio)
+  const renderMessageContent = (content: string) => {
+    if (content.startsWith('[AUDIO:')) {
+      const parts = content.slice(7, -1).split('|')
+      const name = parts[0] || "Message vocal"
+      const dataUrl = parts.slice(1).join('|')
+
+      return (
+        <div className="space-y-1 py-1 min-w-[220px]">
+          <div className="flex items-center gap-2 text-xs font-bold mb-1">
+            <Mic className="h-4 w-4 animate-pulse text-rose-500" />
+            <span>{name}</span>
+          </div>
+          <audio controls src={dataUrl} className="w-full h-9 rounded-xl" />
+        </div>
+      )
+    }
+
+    if (content.startsWith('[ATTACHMENT:')) {
+      const parts = content.slice(12, -1).split('|')
+      const filename = parts[0] || "Document"
+      const mimeType = parts[1] || ""
+      const dataUrl = parts.slice(2).join('|')
+
+      const isImage = mimeType.startsWith('image/')
+
+      if (isImage) {
+        return (
+          <div className="space-y-2 py-1 max-w-[260px]">
+            <img src={dataUrl} alt={filename} className="rounded-xl max-h-48 object-cover border" />
+            <div className="flex items-center justify-between text-xs">
+              <span className="truncate max-w-[160px] font-medium">{filename}</span>
+              <a href={dataUrl} download={filename} className="text-primary font-bold hover:underline">
+                Télécharger
+              </a>
+            </div>
+          </div>
+        )
+      }
+
+      return (
+        <div className="flex items-center gap-3 p-2 bg-slate-100/80 rounded-xl border text-slate-800">
+          <Paperclip className="h-6 w-6 text-primary shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-xs truncate">{filename}</p>
+            <a href={dataUrl} download={filename} className="text-[11px] text-primary font-bold hover:underline">
+              Télécharger le fichier
+            </a>
+          </div>
+        </div>
+      )
+    }
+
+    return content
   }
 
   const handleSelectContact = (contact: any) => {
@@ -290,7 +468,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
                             : "bg-white text-slate-900 border-slate-200 rounded-bl-none"
                         )}
                       >
-                        {message.content}
+                        {renderMessageContent(message.content)}
                         
                         {/* Emoji reaction display inside the bubble */}
                         {message.reaction && (
@@ -338,61 +516,80 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
 
             {/* Input area */}
             <div className="p-3 md:p-4 border-t bg-white">
-              <form className="flex items-center gap-2" onSubmit={handleSend}>
-                {/* Mock file attachment button */}
-                <Button 
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
-                  onClick={() => {
-                    const tempId = Date.now()
-                    setMessages(prev => [...prev, {
-                      id: tempId,
-                      sender: 'me',
-                      content: "📄 Pièce jointe partagée : Devoir_Maths.pdf",
-                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      read: false
-                    }])
-                    toast.success("Document partagé avec succès !")
-                  }}
-                  title="Partager un fichier"
-                >
-                  <Paperclip className="h-5 w-5" />
-                </Button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+                className="hidden" 
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+              />
 
-                {/* Mock voice note button */}
-                <Button 
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
-                  onClick={() => {
-                    const tempId = Date.now()
-                    setMessages(prev => [...prev, {
-                      id: tempId,
-                      sender: 'me',
-                      content: "🎙️ Note vocale envoyée (0:15)",
-                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      read: false
-                    }])
-                    toast.success("Message vocal enregistré et envoyé !")
-                  }}
-                  title="Enregistrer un message vocal"
-                >
-                  <Mic className="h-5 w-5" />
-                </Button>
+              {isRecordingVoice ? (
+                <div className="flex items-center justify-between p-2.5 bg-rose-50 border border-rose-200 rounded-2xl animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-3 w-3 rounded-full bg-rose-600 animate-ping" />
+                    <span className="text-sm font-bold text-rose-700">Enregistrement vocal en cours...</span>
+                    <span className="text-xs font-mono font-bold text-rose-600">
+                      0:{recordingSeconds < 10 ? '0' : ''}{recordingSeconds}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-slate-600 font-bold hover:bg-rose-100 rounded-xl"
+                      onClick={() => stopVoiceRecording(true)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      className="bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700"
+                      onClick={() => stopVoiceRecording(false)}
+                    >
+                      <Send className="h-4 w-4 mr-1" /> Envoyer
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <form className="flex items-center gap-2" onSubmit={handleSend}>
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                    title="Partager un fichier ou une image"
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
 
-                <Input
-                  placeholder="Écrivez votre message..."
-                  className="flex-1 h-12 bg-slate-50 border-slate-200 rounded-2xl text-sm"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                />
-                <Button type="submit" size="icon" className="h-12 w-12 rounded-2xl shadow-lg bg-primary text-white border-none shrink-0" disabled={!newMessage.trim() || sending}>
-                  {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                </Button>
-              </form>
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl hover:bg-slate-50 shrink-0 text-slate-500"
+                    onClick={startVoiceRecording}
+                    disabled={sending}
+                    title="Enregistrer un message vocal"
+                  >
+                    <Mic className="h-5 w-5" />
+                  </Button>
+
+                  <Input
+                    placeholder="Écrivez votre message..."
+                    className="flex-1 h-12 bg-slate-50 border-slate-200 rounded-2xl text-sm"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <Button type="submit" size="icon" className="h-12 w-12 rounded-2xl shadow-lg bg-primary text-white border-none shrink-0" disabled={!newMessage.trim() || sending}>
+                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                  </Button>
+                </form>
+              )}
             </div>
           </>
         ) : (

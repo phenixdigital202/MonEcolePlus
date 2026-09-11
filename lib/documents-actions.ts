@@ -70,6 +70,8 @@ export async function getSchoolInfoAction() {
         telephone: (school as any)?.telephone || "+225 07 00 00 00 00",
         email: (school as any)?.email || "contact@monecoleplus.ci",
         directeur: (school as any)?.directeur || "Le Chef d'Établissement",
+        logo_url: school?.logo_url || null,
+        cachet_url: (school as any)?.cachet_url || null,
         activeSchoolYear: activeYear?.label || "2026-2027"
       }
     }

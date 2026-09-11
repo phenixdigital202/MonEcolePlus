@@ -93,7 +93,7 @@ export default function VoiceGradesPage() {
       const fetchEvs = async () => {
         const id = parseInt(selectedClass)
         const [evs, stds] = await Promise.all([
-          getEvaluationsByClass(id),
+          getEvaluationsByClass(id, { forEntryOnly: true }),
           getStudentsByClass(id)
         ])
         setEvaluations(evs)

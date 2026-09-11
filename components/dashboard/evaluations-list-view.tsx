@@ -153,10 +153,20 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs font-bold text-slate-700">{ev._count?.notes || 0} notes</span>
-                            <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: (ev._count?.notes || 0) > 0 ? '100%' : '0%' }} />
-                            </div>
+                            <span className="text-xs font-bold text-slate-700">{ev._count?.notes || ev.notesCount || 0} notes</span>
+                            {ev.isFullyCompleted ? (
+                              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px] font-bold">
+                                Saisie complète
+                              </Badge>
+                            ) : (ev._count?.notes || ev.notesCount || 0) > 0 ? (
+                              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[9px] font-bold">
+                                Saisie en cours
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[9px] font-bold">
+                                À saisir
+                              </Badge>
+                            )}
                         </div>
                       </td>
                       <td className="p-4 text-right">

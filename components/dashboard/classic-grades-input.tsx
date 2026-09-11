@@ -57,7 +57,7 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
       setIsLoading(true)
       const id = parseInt(selectedClass)
       Promise.all([
-        getEvaluationsByClass(id),
+        getEvaluationsByClass(id, { forEntryOnly: true }),
         getStudentsByClass(id)
       ]).then(([evs, stds]) => {
         setEvaluations(evs)

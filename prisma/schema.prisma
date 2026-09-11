@@ -108,6 +108,7 @@ model Ecole {
   nom                String
   subdomain          String?      @unique
   logo_url           String?
+  cachet_url         String?
   directeur          String?
   adresse            String?
   telephone          String?

@@ -141,3 +141,76 @@ export async function updateSchoolLogoAction(logoUrl: string) {
   }
 }
 
+export async function updateSchoolCachetAction(cachetUrl: string) {
+  const { getPrisma } = require("./tenant-context")
+  const masterPrisma = require("./prisma").default
+
+  try {
+    if (!cachetUrl || typeof cachetUrl !== "string") {
+      return { success: false, error: "URL du cachet invalide." }
+    }
+
+    const tenantPrisma = await getPrisma()
+    const ecole = await tenantPrisma.ecole.findFirst()
+
+    if (!ecole) {
+      return { success: false, error: "Établissement introuvable." }
+    }
+
+    // 1. Update Tenant DB
+    await tenantPrisma.ecole.update({
+      where: { id: ecole.id },
+      data: { cachet_url: cachetUrl }
+    })
+
+    // 2. Sync to Master DB
+    try {
+      await masterPrisma.ecole.update({
+        where: { id: ecole.id },
+        data: { cachet_url: cachetUrl }
+      })
+    } catch (masterErr: any) {
+      console.warn("[updateSchoolCachetAction] Master DB sync warning:", masterErr.message)
+    }
+
+    console.log(`[updateSchoolCachetAction] Cachet updated for school ID=${ecole.id}`)
+    return { success: true, cachet_url: cachetUrl }
+  } catch (error: any) {
+    console.error("[updateSchoolCachetAction] Error:", error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
+
+export async function deleteSchoolCachetAction() {
+  const { getPrisma } = require("./tenant-context")
+  const masterPrisma = require("./prisma").default
+
+  try {
+    const tenantPrisma = await getPrisma()
+    const ecole = await tenantPrisma.ecole.findFirst()
+
+    if (!ecole) {
+      return { success: false, error: "Établissement introuvable." }
+    }
+
+    await tenantPrisma.ecole.update({
+      where: { id: ecole.id },
+      data: { cachet_url: null }
+    })
+
+    try {
+      await masterPrisma.ecole.update({
+        where: { id: ecole.id },
+        data: { cachet_url: null }
+      })
+    } catch (masterErr: any) {
+      console.warn("[deleteSchoolCachetAction] Master DB sync warning:", masterErr.message)
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[deleteSchoolCachetAction] Error:", error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
+

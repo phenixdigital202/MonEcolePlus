@@ -197,19 +197,23 @@ export default function CertificatePage() {
                        Fait le {new Date().toLocaleDateString('fr-FR')}
                     </div>
                     <div className="text-center relative">
-                       <p className="text-xs font-bold mb-10 text-slate-800">{schoolInfo.directeur}</p>
-                       
-                       {/* Signature & Stamp Simulation */}
-                       <div className="absolute -bottom-2 -left-10 w-64 h-24 flex flex-col items-center justify-center pointer-events-none overflow-hidden opacity-80">
-                          <div className="absolute h-20 w-20 border-4 border-rose-600 rounded-full flex flex-col items-center justify-center rotate-12 opacity-40">
-                             <p className="text-[5px] font-black text-rose-600 text-center uppercase tracking-tighter">DIRECTION GÉNÉRALE<br/>AUTHENTIFIÉ</p>
-                          </div>
-                          <p className="text-3xl font-serif italic text-indigo-900 -rotate-6 ml-4">Direction</p>
-                       </div>
+                        <p className="text-xs font-bold mb-10 text-slate-800">{schoolInfo.directeur}</p>
+                        
+                        {/* Signature & Official Stamp Overlay */}
+                        <div className="absolute -bottom-2 -left-10 w-64 h-24 flex flex-col items-center justify-center pointer-events-none overflow-hidden opacity-90">
+                           {schoolInfo.cachet_url ? (
+                              <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-24 w-24 object-contain rotate-6" />
+                           ) : (
+                              <div className="absolute h-20 w-20 border-4 border-rose-600 rounded-full flex flex-col items-center justify-center rotate-12 opacity-40">
+                                 <p className="text-[5px] font-black text-rose-600 text-center uppercase tracking-tighter">DIRECTION GÉNÉRALE<br/>AUTHENTIFIÉ</p>
+                              </div>
+                           )}
+                           <p className="text-3xl font-serif italic text-indigo-900 -rotate-6 ml-4">Direction</p>
+                        </div>
 
-                       <p className="text-xs font-bold pt-4 border-t border-slate-300">Cachet & Signature Officielle</p>
-                    </div>
-                 </div>
+                        <p className="text-xs font-bold pt-4 border-t border-slate-300">Cachet & Signature Officielle</p>
+                     </div>
+                  </div>
 
                  {/* 8. FOOTER SECURITY */}
                  <div className="absolute bottom-6 left-12 right-12 flex justify-between items-center text-[8px] font-mono text-slate-400 border-t border-slate-100 pt-3">

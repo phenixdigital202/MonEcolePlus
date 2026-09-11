@@ -21,12 +21,19 @@ import {
   ShieldCheck,
   Globe,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  FileCheck,
+  Trash2
 } from "lucide-react"
 
 import { useRouter } from "next/navigation"
 import { compressImage } from "@/lib/image-utils"
-import { updateSchoolSettingsAction, updateSchoolLogoAction } from "@/lib/school-actions"
+import { 
+  updateSchoolSettingsAction, 
+  updateSchoolLogoAction, 
+  updateSchoolCachetAction, 
+  deleteSchoolCachetAction 
+} from "@/lib/school-actions"
 
 interface SchoolSettingsPortalProps {
   userRole: string
@@ -43,6 +50,11 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [logoMsg, setLogoMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
+  // Official Stamp (Cachet) states
+  const cachetInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingCachet, setIsUploadingCachet] = useState(false)
+  const [cachetMsg, setCachetMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
   const isAdmin = userRole?.toLowerCase() === "admin" || userRole?.toLowerCase() === "super_admin" || userRole?.toLowerCase() === "superadmin"
   
   // Fallback data if DB is empty
@@ -54,6 +66,7 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     email: "contact@excellence.gn",
     website: "www.excellence.gn",
     logo_url: null,
+    cachet_url: null,
     smtp_host: "",
     smtp_port: 587,
     smtp_user: "",
@@ -70,6 +83,7 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
   const [email, setEmail] = useState(data.email || "")
   const [website, setWebsite] = useState(data.website || "")
   const [logoUrl, setLogoUrl] = useState<string | null>(data.logo_url || null)
+  const [cachetUrl, setCachetUrl] = useState<string | null>(data.cachet_url || null)
 
   const [smtpHost, setSmtpHost] = useState(data.smtp_host || "")
   const [smtpPort, setSmtpPort] = useState(data.smtp_port || 587)
@@ -135,6 +149,46 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
     } finally {
       setIsUploadingLogo(false)
     }
+  }
+
+  // Stamp / Cachet handlers
+  const handleCachetSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingCachet(true)
+    setCachetMsg(null)
+
+    try {
+      const base64Data = await compressImage(file, 600, 0.85)
+      const result = await updateSchoolCachetAction(base64Data)
+
+      if (result.success && result.cachet_url) {
+        setCachetUrl(result.cachet_url)
+        setCachetMsg({ type: "success", text: "Cachet officiel mis à jour avec succès !" })
+        router.refresh()
+      } else {
+        setCachetMsg({ type: "error", text: result.error || "Échec du téléversement du cachet." })
+      }
+    } catch (err) {
+      setCachetMsg({ type: "error", text: "Erreur lors du traitement du cachet." })
+    } finally {
+      setIsUploadingCachet(false)
+    }
+  }
+
+  const handleDeleteCachet = async () => {
+    setIsUploadingCachet(true)
+    setCachetMsg(null)
+    const result = await deleteSchoolCachetAction()
+    if (result.success) {
+      setCachetUrl(null)
+      setCachetMsg({ type: "success", text: "Cachet supprimé." })
+      router.refresh()
+    } else {
+      setCachetMsg({ type: "error", text: result.error || "Erreur lors de la suppression." })
+    }
+    setIsUploadingCachet(false)
   }
 
   return (
@@ -306,40 +360,80 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
               </CardContent>
             </Card>
 
-            {/* Signature & Authentication */}
+            {/* Cachet Officiel de l'Établissement */}
             <Card className="border-emerald-500/20 shadow-xl overflow-hidden">
               <CardHeader className="bg-emerald-500/5 border-b">
                 <CardTitle className="text-lg flex items-center gap-2 text-emerald-700">
-                  <Sparkles className="h-5 w-5" />
-                  Validation & Authenticité
+                  <FileCheck className="h-5 w-5" />
+                  Cachet Officiel de l'Établissement
                 </CardTitle>
                 <CardDescription>
-                  {isAdmin ? "Gérez les éléments de sécurité des documents." : "Aperçu des éléments d'authentification officielle."}
+                  Ce cachet officiel sera apposé sur les bulletins, certificats et documents administratifs générés.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                 {isAdmin ? (
-                   <div className="p-8 border-2 border-dashed border-emerald-500/20 rounded-xl flex flex-col items-center gap-2 text-center text-muted-foreground">
-                      <Upload className="h-10 w-10 opacity-20" />
-                      <p className="text-sm">Cachet numérique certifié conforme</p>
-                      <div className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">Automatique</div>
-                   </div>
-                 ) : (
-                   <div className="flex flex-col md:flex-row items-center gap-8 justify-between p-4 px-8 border rounded-2xl bg-white/50 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-2">
-                         <div className="px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded uppercase tracking-tighter">Certifié</div>
+              <CardContent className="p-6 space-y-4">
+                <input
+                  type="file"
+                  ref={cachetInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCachetSelect}
+                />
+
+                <div className="flex flex-col sm:flex-row items-center gap-6 p-4 border rounded-2xl bg-slate-50/50">
+                  <div className="h-32 w-32 rounded-2xl border-2 border-dashed border-emerald-500/30 flex items-center justify-center relative bg-white overflow-hidden p-2 shrink-0 shadow-sm">
+                    {cachetUrl ? (
+                      <img src={cachetUrl} alt="Cachet Officiel" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-center p-2 text-muted-foreground">
+                        <FileCheck className="h-8 w-8 mx-auto opacity-30 text-emerald-600 mb-1" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider block">Aucun cachet</span>
                       </div>
-                      <div className="text-center md:text-left">
-                        <p className="text-2xl italic font-serif text-emerald-950 mb-1">{directeur || data.directeur}</p>
-                        <p className="text-[10px] uppercase tracking-[0.2em] font-black text-emerald-600">Direction Générale</p>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2 text-center sm:text-left">
+                    <h4 className="font-bold text-sm text-slate-800">Cachet Numérique de l'École</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Format recommandé : PNG à fond transparent (ex: 600x600 px).
+                    </p>
+
+                    {cachetMsg && (
+                      <div className={`text-xs flex items-center justify-center sm:justify-start gap-1 font-medium ${cachetMsg.type === "success" ? "text-emerald-600" : "text-destructive"}`}>
+                        {cachetMsg.type === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                        {cachetMsg.text}
                       </div>
-                      <div className="h-32 w-32 rounded-full border-4 border-double border-emerald-500/30 flex items-center justify-center relative rotate-12 bg-emerald-50/50">
-                         <div className="text-[8px] font-black p-2 text-center text-emerald-700 uppercase leading-tight">
-                            Cachet Officiel<br />MonÉcole+<br />RECONNU
-                         </div>
+                    )}
+
+                    {isAdmin && (
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-2">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+                          onClick={() => cachetInputRef.current?.click()}
+                          disabled={isUploadingCachet}
+                        >
+                          {isUploadingCachet ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                          {cachetUrl ? "Remplacer le cachet" : "Téléverser le cachet"}
+                        </Button>
+
+                        {cachetUrl && (
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive border-destructive/20 hover:bg-destructive/10 rounded-xl text-xs font-bold"
+                            onClick={handleDeleteCachet}
+                            disabled={isUploadingCachet}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Supprimer
+                          </Button>
+                        )}
                       </div>
-                   </div>
-                 )}
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

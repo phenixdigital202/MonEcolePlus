@@ -577,9 +577,15 @@ export default function BulletinBatchPage() {
                             </div>
                             <div className="text-center w-56">
                                <p className="text-[10px] font-black uppercase mb-10 text-slate-800">Cachet & Signature du Directeur</p>
-                               <div className="relative mx-auto h-16 w-32 border-2 border-rose-600/40 rounded-xl flex items-center justify-center -rotate-6">
-                                  <p className="text-[6px] font-black text-rose-600 text-center uppercase tracking-widest opacity-60">DIRECTION GENERALE<br/>AUTHENTIFIÉ</p>
-                               </div>
+                               {schoolInfo.cachet_url ? (
+                                  <div className="relative mx-auto h-20 w-32 flex items-center justify-center -rotate-6">
+                                     <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-32 object-contain" />
+                                  </div>
+                               ) : (
+                                  <div className="relative mx-auto h-16 w-32 border-2 border-rose-600/40 rounded-xl flex items-center justify-center -rotate-6">
+                                     <p className="text-[6px] font-black text-rose-600 text-center uppercase tracking-widest opacity-60">DIRECTION GENERALE<br/>AUTHENTIFIÉ</p>
+                                  </div>
+                               )}
                             </div>
                          </div>
                       </Card>
