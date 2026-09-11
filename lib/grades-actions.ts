@@ -2,6 +2,7 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 import { validateGradeEntry } from "@/lib/pedagogical-constraints-engine"
 
 export async function saveGrades(evaluationId: number, grades: { studentId: number, value: number, comment?: string }[]) {
@@ -223,12 +224,15 @@ export async function getEvaluationsByClass(classId: number, options?: { forEntr
       if (s.matiere) subjects.add(s.matiere)
     })
 
-    baseWhere.matiere = { in: Array.from(subjects) }
+    if (subjects.size > 0) {
+      baseWhere.matiere = { in: Array.from(subjects) }
+    }
   }
 
   const evaluations = await prisma.evaluation.findMany({
     where: baseWhere,
     include: {
+      classe: true,
       notes: { select: { id_eleve: true, valeur: true } }
     },
     orderBy: { date_eval: 'desc' }
@@ -258,11 +262,45 @@ export async function getEvaluationsByClass(classId: number, options?: { forEntr
   })
 
   if (options?.forEntryOnly) {
-    // Filter out fully completed evaluations from NEW grade entry selector
-    return enrichedEvaluations.filter(e => !e.isFullyCompleted)
+    const available = enrichedEvaluations.filter(e => !e.isFullyCompleted)
+    // If all evaluations are fully completed, return all evaluations so dropdown doesn't become empty
+    return available.length > 0 ? available : enrichedEvaluations
   }
 
   return enrichedEvaluations
+}
+
+export async function getEnrichedEvaluationsAction() {
+  const prisma = await getPrisma()
+  const evaluations = await prisma.evaluation.findMany({
+    include: {
+      classe: true,
+      notes: { select: { id_eleve: true, valeur: true } }
+    },
+    orderBy: { date_eval: 'desc' }
+  })
+
+  // Get student count per class
+  const classIds = Array.from(new Set(evaluations.map(e => e.id_classe).filter(Boolean)))
+  const studentCountMap = new Map<number, number>()
+  
+  for (const cid of classIds) {
+    const stds = await getStudentsByClass(cid)
+    studentCountMap.set(cid, stds.length)
+  }
+
+  return evaluations.map(e => {
+    const totalActive = studentCountMap.get(e.id_classe) || 0
+    const notesCount = e.notes.length
+    const isFullyCompleted = totalActive > 0 && notesCount >= totalActive
+    return {
+      ...e,
+      totalActiveStudents: totalActive,
+      notesCount,
+      isFullyCompleted,
+      _count: { notes: notesCount }
+    }
+  })
 }
 
 export async function getGradesByEvaluation(evaluationId: number) {
@@ -273,6 +311,7 @@ export async function getGradesByEvaluation(evaluationId: number) {
 }
 
 export async function getStudentsByClass(classId: number) {
+  if (!classId || isNaN(classId)) return []
   const prisma = await getPrisma()
   
   // Find active school year if configured
@@ -280,24 +319,50 @@ export async function getStudentsByClass(classId: number) {
     where: { status: "ACTIVE" }
   })
 
-  const whereClause: any = {
-    id_classe: classId,
-    statut: 'active',
-    user: { role: 'student' }
-  }
+  let inscriptions: any[] = []
 
   if (activeSchoolYear) {
-    whereClause.OR = [
-      { id_annee_scolaire: activeSchoolYear.id },
-      { annee_scolaire: activeSchoolYear.label }
-    ]
+    inscriptions = await prisma.inscription.findMany({
+      where: {
+        id_classe: classId,
+        statut: 'active',
+        user: { role: 'student' },
+        OR: [
+          { id_annee_scolaire: activeSchoolYear.id },
+          { annee_scolaire: activeSchoolYear.label }
+        ]
+      },
+      include: { user: true },
+      orderBy: { user: { nom: 'asc' } }
+    })
   }
 
-  const inscriptions = await prisma.inscription.findMany({
-    where: whereClause,
-    include: { user: true },
-    orderBy: { user: { nom: 'asc' } }
-  })
+  // Fallback 1: Active inscriptions for this class regardless of school year string
+  if (inscriptions.length === 0) {
+    inscriptions = await prisma.inscription.findMany({
+      where: { id_classe: classId, statut: 'active', user: { role: 'student' } },
+      include: { user: true },
+      orderBy: { user: { nom: 'asc' } }
+    })
+  }
+
+  // Fallback 2: Any inscriptions for this class where user role is student
+  if (inscriptions.length === 0) {
+    inscriptions = await prisma.inscription.findMany({
+      where: { id_classe: classId, user: { role: 'student' } },
+      include: { user: true },
+      orderBy: { user: { nom: 'asc' } }
+    })
+  }
+
+  // Fallback 3: Any inscriptions for this class
+  if (inscriptions.length === 0) {
+    inscriptions = await prisma.inscription.findMany({
+      where: { id_classe: classId },
+      include: { user: true },
+      orderBy: { user: { nom: 'asc' } }
+    })
+  }
 
   // Deduplicate by student user id
   const studentMap = new Map<number, any>()
@@ -306,20 +371,6 @@ export async function getStudentsByClass(classId: number) {
       studentMap.set(i.user.id, i.user)
     }
   })
-
-  // Fallback: If no active school year filter matched any inscriptions, return active class inscriptions
-  if (studentMap.size === 0) {
-    const fallbackInscriptions = await prisma.inscription.findMany({
-      where: { id_classe: classId, statut: 'active', user: { role: 'student' } },
-      include: { user: true },
-      orderBy: { user: { nom: 'asc' } }
-    })
-    fallbackInscriptions.forEach(i => {
-      if (i.user && !studentMap.has(i.user.id)) {
-        studentMap.set(i.user.id, i.user)
-      }
-    })
-  }
 
   return Array.from(studentMap.values())
 }

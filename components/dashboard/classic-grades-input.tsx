@@ -40,6 +40,7 @@ interface ClassicGradesInputProps {
 
 export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGradesInputProps) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [selectedClass, setSelectedClass] = useState(searchParams.get("classId") || "")
   const [evaluations, setEvaluations] = useState<any[]>([])
   const [selectedEval, setSelectedEval] = useState(searchParams.get("evalId") || "")
@@ -62,8 +63,12 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
       ]).then(([evs, stds]) => {
         setEvaluations(evs)
         setStudents(stds)
-        // Reset evaluation if not in the new list
-        if (selectedEval && !evs.find(e => e.id.toString() === selectedEval)) {
+        // Keep selected eval if present in evs; otherwise auto-select first available evaluation
+        if (selectedEval && evs.find(e => e.id.toString() === selectedEval)) {
+          // Keep existing
+        } else if (evs.length > 0) {
+          setSelectedEval(evs[0].id.toString())
+        } else {
           setSelectedEval("")
         }
         setIsLoading(false)
@@ -120,6 +125,7 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
       const result = await saveGrades(parseInt(selectedEval), gradesToSave)
       if (result.success) {
         toast.success("Notes enregistrées avec succès")
+        router.refresh()
       } else {
         toast.error(result.error)
       }

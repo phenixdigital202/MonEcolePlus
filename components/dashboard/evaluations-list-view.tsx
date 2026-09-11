@@ -31,12 +31,15 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 
+import { useRouter } from "next/navigation"
+
 interface EvaluationsListViewProps {
   initialEvaluations: any[]
   classes: any[]
 }
 
 export function EvaluationsListView({ initialEvaluations, classes }: EvaluationsListViewProps) {
+  const router = useRouter()
   const [evaluations, setEvaluations] = useState(initialEvaluations)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -238,6 +241,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
         onSuccess={(ev) => {
           setEvaluations(prev => [ev, ...prev])
           setIsModalOpen(false)
+          router.refresh()
         }}
       />
 
@@ -249,6 +253,7 @@ export function EvaluationsListView({ initialEvaluations, classes }: Evaluations
         onSuccess={(updatedEv) => {
           setEvaluations(prev => prev.map(e => e.id === updatedEv.id ? { ...e, ...updatedEv } : e))
           setIsEditModalOpen(false)
+          router.refresh()
         }}
       />
 
