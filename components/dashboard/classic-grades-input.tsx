@@ -167,13 +167,17 @@ export function ClassicGradesInput({ classes, subjects, globalStats }: ClassicGr
             disabled={!selectedClass}
           >
             <SelectTrigger>
-              <SelectValue placeholder={selectedClass ? "Choisir une évaluation" : "Sélectionnez d'abord une classe"} />
+              <SelectValue placeholder={
+                selectedClass 
+                  ? (evaluations.length > 0 ? "Choisir une évaluation" : "Aucune évaluation (Cliquez pour créer)") 
+                  : "Sélectionnez d'abord une classe"
+              } />
             </SelectTrigger>
             <SelectContent>
               <div className="max-h-[300px] overflow-y-auto">
                 {evaluations.map(e => (
                   <SelectItem key={e.id} value={e.id.toString()}>
-                    {e.matiere} - {new Date(e.date_eval).toLocaleDateString()}
+                    {e.matiere} - {new Date(e.date_eval).toLocaleDateString("fr-FR")} {e.isFullyCompleted ? "✔ (Complétée)" : ""}
                   </SelectItem>
                 ))}
                 <div 
