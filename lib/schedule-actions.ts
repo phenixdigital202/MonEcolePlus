@@ -74,14 +74,35 @@ export async function generateAIScheduleAll() {
       }
     }
 
-    const classes = await prisma.class.findMany()
-    const teachers = await prisma.user.findMany({
-      where: { role: 'teacher' },
-      include: { teacherSubjects: true }
+    const classes = await prisma.class.findMany({
+      include: {
+        classSubjects: {
+          include: {
+            teachers: {
+              include: {
+                teacher: {
+                  include: {
+                    teacherAvailabilities: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: [{ ordre: 'asc' }, { id: 'asc' }]
+        }
+      }
     })
 
-    const subjects = ["Mathématiques", "Français", "Anglais", "SVT", "Physique-Chimie", "Histoire-Géo", "EPS", "Arts Plastiques"]
-    const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
+    const allTeachers = await prisma.user.findMany({
+      where: { role: 'teacher' },
+      include: {
+        teacherSubjects: true,
+        teacherAvailabilities: true
+      }
+    })
+
+    const defaultSubjects = ["Mathématiques", "Français", "Anglais", "SVT", "Physique-Chimie", "Histoire-Géo", "EPS", "Arts Plastiques"]
+    const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
     const slots = ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"]
     
     // Track occupied teacher slots: "teacherId_day_slot"
@@ -91,62 +112,151 @@ export async function generateAIScheduleAll() {
 
     const newEntries: TimetableSlot[] = []
 
-    // CSP Slot Allocation
+    // CSP Slot Allocation using Class Pédagogie source of truth
     for (const classe of classes) {
-      // Pick 4 subjects per day, distributed
-      for (const day of days) {
-        // Pick 4 slots for this class on this day (avoiding overload RP-035: max 5h)
-        const daySlots = ["08:00", "09:00", "10:00", "11:00"].slice(0, Math.floor(Math.random() * 2) + 3)
-        if (day !== "Samedi") {
-          daySlots.push("14:00")
+      const configuredSubjects = classe.classSubjects || []
+
+      if (configuredSubjects.length > 0) {
+        // Class has explicit subjects & assigned teachers configured!
+        for (const cs of configuredSubjects) {
+          const matName = cs.matiere
+          const hoursNeeded = Math.min(cs.volume_horaire_hebdo || 4, 6)
+          
+          // Get candidate teachers assigned to this class subject
+          let assignedTeacherObjects = cs.teachers.map((cst: any) => cst.teacher)
+          
+          // Fallback: if no specific teacher assigned to class subject, search all teachers enabled for this subject
+          if (assignedTeacherObjects.length === 0) {
+            assignedTeacherObjects = allTeachers.filter(t => {
+              const allowed = new Set<string>()
+              if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
+              t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
+              return allowed.has(matName.trim().toLowerCase())
+            })
+          }
+
+          // Fallback: if still no teacher, pick any tenant teacher
+          if (assignedTeacherObjects.length === 0) {
+            assignedTeacherObjects = allTeachers
+          }
+
+          let hoursScheduled = 0
+
+          for (const day of days) {
+            if (hoursScheduled >= hoursNeeded) break
+
+            // Daily slots for this class
+            const availableDaySlots = day === "Mercredi" ? ["08:00", "09:00", "10:00", "11:00"] : ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00"]
+
+            for (const slot of availableDaySlots) {
+              if (hoursScheduled >= hoursNeeded) break
+
+              // Find teacher among assigned objects who is free and available
+              const freeTeacher = assignedTeacherObjects.find((t: any) => {
+                const busyKey = `${t.id}_${day}_${slot}`
+                if (busyTeacherSlots.has(busyKey)) return false
+
+                // Check TeacherAvailability if defined
+                if (t.teacherAvailabilities && t.teacherAvailabilities.length > 0) {
+                  const dayAvail = t.teacherAvailabilities.filter((ta: any) => ta.jour === day)
+                  if (dayAvail.length > 0) {
+                    const slotMin = parseInt(slot.split(":")[0]) * 60
+                    const isExplicitlyUnavail = dayAvail.some((ta: any) => {
+                      if (!ta.est_disponible) {
+                        const startMin = new Date(ta.heure_debut).getUTCHours() * 60
+                        const endMin = new Date(ta.heure_fin).getUTCHours() * 60
+                        return slotMin >= startMin && slotMin < endMin
+                      }
+                      return false
+                    })
+                    if (isExplicitlyUnavail) return false
+                  }
+                }
+
+                return true
+              })
+
+              if (!freeTeacher) continue
+
+              // Room selection
+              let roomNum = (classes.indexOf(classe) % 10) + 101
+              let roomName = `Salle ${roomNum}`
+              while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
+                roomNum++
+                roomName = `Salle ${roomNum}`
+              }
+
+              busyTeacherSlots.add(`${freeTeacher.id}_${day}_${slot}`)
+              busyRoomSlots.add(`${roomName}_${day}_${slot}`)
+
+              const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
+              const endHour = parseInt(slot.split(":")[0]) + 1
+              const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+              newEntries.push({
+                id_classe: classe.id,
+                id_enseignant: freeTeacher.id,
+                matiere: matName,
+                jour: day,
+                heure_debut,
+                heure_fin,
+                salle: roomName
+              })
+
+              hoursScheduled++
+            }
+          }
         }
+      } else {
+        // Fallback for classes without configured classSubjects yet
+        for (const day of days) {
+          const daySlots = ["08:00", "09:00", "10:00", "11:00"]
+          if (day !== "Mercredi") daySlots.push("14:00")
 
-        for (let idx = 0; idx < daySlots.length; idx++) {
-          const slot = daySlots[idx]
-          const subject = subjects[(classes.indexOf(classe) + days.indexOf(day) + idx) % subjects.length]
+          for (let idx = 0; idx < daySlots.length; idx++) {
+            const slot = daySlots[idx]
+            const subject = defaultSubjects[(classes.indexOf(classe) + days.indexOf(day) + idx) % defaultSubjects.length]
 
-          // Find an available teacher who is authorized to teach this subject
-          let selectedTeacher = teachers.find(t => {
-            const allowed = new Set<string>()
-            if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
-            t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
-            
-            const matchesSubject = allowed.size === 0 || allowed.has(subject.toLowerCase())
-            const isFree = !busyTeacherSlots.has(`${t.id}_${day}_${slot}`)
-            return matchesSubject && isFree
-          })
+            let selectedTeacher = allTeachers.find(t => {
+              const allowed = new Set<string>()
+              if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
+              t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
+              
+              const matchesSubject = allowed.size === 0 || allowed.has(subject.toLowerCase())
+              const isFree = !busyTeacherSlots.has(`${t.id}_${day}_${slot}`)
+              return matchesSubject && isFree
+            })
 
-          // Fallback to any free teacher if strict match fails
-          if (!selectedTeacher) {
-            selectedTeacher = teachers.find(t => !busyTeacherSlots.has(`${t.id}_${day}_${slot}`))
+            if (!selectedTeacher) {
+              selectedTeacher = allTeachers.find(t => !busyTeacherSlots.has(`${t.id}_${day}_${slot}`))
+            }
+
+            if (!selectedTeacher) continue
+
+            let roomNum = (classes.indexOf(classe) % 10) + 101
+            let roomName = `Salle ${roomNum}`
+            while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
+              roomNum++
+              roomName = `Salle ${roomNum}`
+            }
+
+            busyTeacherSlots.add(`${selectedTeacher.id}_${day}_${slot}`)
+            busyRoomSlots.add(`${roomName}_${day}_${slot}`)
+
+            const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
+            const endHour = parseInt(slot.split(":")[0]) + 1
+            const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+            newEntries.push({
+              id_classe: classe.id,
+              id_enseignant: selectedTeacher.id,
+              matiere: subject,
+              jour: day,
+              heure_debut,
+              heure_fin,
+              salle: roomName
+            })
           }
-
-          if (!selectedTeacher) continue // Skip slot if no teacher free
-
-          // Room selection (RP-038)
-          let roomNum = (classes.indexOf(classe) % 10) + 101
-          let roomName = `Salle ${roomNum}`
-          while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
-            roomNum++
-            roomName = `Salle ${roomNum}`
-          }
-
-          busyTeacherSlots.add(`${selectedTeacher.id}_${day}_${slot}`)
-          busyRoomSlots.add(`${roomName}_${day}_${slot}`)
-
-          const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
-          const endHour = parseInt(slot.split(":")[0]) + 1
-          const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
-
-          newEntries.push({
-            id_classe: classe.id,
-            id_enseignant: selectedTeacher.id,
-            matiere: subject,
-            jour: day,
-            heure_debut,
-            heure_fin,
-            salle: roomName
-          })
         }
       }
     }

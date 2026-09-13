@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner"
 import { unenrollStudentAction } from "@/lib/classes-actions"
 import { EnrollmentModal } from "./enrollment-modal"
+import { ClassPedagogySection } from "./class-pedagogy-section"
 
 interface ClassDetailsViewProps {
   classe: any
@@ -69,7 +70,7 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
     }, 1500)
   }
 
-  const mainTeacher = classe.emploisDuTemps[0]?.user.nom || "Non assigné"
+  const mainTeacher = classe.professeurPrincipal?.nom || classe.emploisDuTemps[0]?.user.nom || "Non assigné"
 
   return (
     <>
@@ -115,6 +116,9 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
             </Card>
           ))}
         </div>
+
+        {/* GESTION PÉDAGOGIQUE (PROF PRINCIPAL, MATIÈRES, COEFFICIENTS & ENSEIGNANTS) */}
+        <ClassPedagogySection classId={classId} userRole={userRole} />
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Student List */}

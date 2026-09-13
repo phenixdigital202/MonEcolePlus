@@ -84,6 +84,12 @@ export async function getSchoolInfoAction() {
 export async function getBulletinDataAction(classeId: number, period: string) {
   try {
     const prisma = await getPrisma()
+
+    // Fetch class subjects configured for this class
+    const classSubjects = await prisma.classSubject.findMany({
+      where: { id_classe: classeId },
+      orderBy: [{ ordre: 'asc' }, { id: 'asc' }]
+    })
     
     // Fetch all students in class with their notes & absences
     const students = await prisma.user.findMany({
@@ -105,34 +111,92 @@ export async function getBulletinDataAction(classeId: number, period: string) {
       const studentNotes = student.notes || []
       const studentAbsences = student.absences || []
 
-      // Group notes by subject
-      const subjectMap: Record<string, { notes: number[], type: string }> = {}
-      studentNotes.forEach(n => {
-        const mat = n.evaluation.matiere || "Général"
-        if (!subjectMap[mat]) {
-          subjectMap[mat] = { notes: [], type: n.evaluation.type_eval || "Devoir" }
-        }
-        subjectMap[mat].notes.push(Number(n.valeur))
-      })
+      let subjects: Array<{
+        name: string
+        coef: number
+        notesCount: number
+        avg: number
+        totalPoints: number
+        feedback: string
+        hasNotes: boolean
+      }> = []
 
-      const subjects = Object.keys(subjectMap).map(mat => {
-        const list = subjectMap[mat].notes
-        const avg = list.reduce((a, b) => a + b, 0) / list.length
-        return {
-          name: mat,
-          coef: 2, // Standard coefficient
-          notesCount: list.length,
-          avg: Number(avg.toFixed(2)),
-          feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
-                    avg >= 14 ? "Très bon travail. Continuez ainsi." : 
-                    avg >= 12 ? "Bon travail dans l'ensemble." : 
-                    avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
-                    "Insuffisant. Travail régulier exigé."
-        }
-      })
+      let totalWeightedNotes = 0
+      let totalCoefficients = 0
 
-      const overallAvg = subjects.length > 0
-        ? subjects.reduce((acc, s) => acc + s.avg, 0) / subjects.length
+      if (classSubjects.length > 0) {
+        subjects = classSubjects.map(cs => {
+          const notesForMat = studentNotes.filter(
+            n => n.evaluation.matiere.toLowerCase().trim() === cs.matiere.toLowerCase().trim()
+          )
+          if (notesForMat.length > 0) {
+            const list = notesForMat.map(n => Number(n.valeur))
+            const avg = list.reduce((a, b) => a + b, 0) / list.length
+            const coef = cs.coefficient
+            const totalPoints = avg * coef
+            totalWeightedNotes += totalPoints
+            totalCoefficients += coef
+
+            return {
+              name: cs.matiere,
+              coef,
+              notesCount: list.length,
+              avg: Number(avg.toFixed(2)),
+              totalPoints: Number(totalPoints.toFixed(2)),
+              hasNotes: true,
+              feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
+                        avg >= 14 ? "Très bon travail. Continuez ainsi." : 
+                        avg >= 12 ? "Bon travail dans l'ensemble." : 
+                        avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
+                        "Insuffisant. Travail régulier exigé."
+            }
+          } else {
+            return {
+              name: cs.matiere,
+              coef: cs.coefficient,
+              notesCount: 0,
+              avg: 0,
+              totalPoints: 0,
+              hasNotes: false,
+              feedback: "Aucune note saisie"
+            }
+          }
+        })
+      } else {
+        const subjectMap: Record<string, { notes: number[], type: string }> = {}
+        studentNotes.forEach(n => {
+          const mat = n.evaluation.matiere || "Général"
+          if (!subjectMap[mat]) {
+            subjectMap[mat] = { notes: [], type: n.evaluation.type_eval || "Devoir" }
+          }
+          subjectMap[mat].notes.push(Number(n.valeur))
+        })
+
+        subjects = Object.keys(subjectMap).map(mat => {
+          const list = subjectMap[mat].notes
+          const avg = list.reduce((a, b) => a + b, 0) / list.length
+          const coef = 2
+          const totalPoints = avg * coef
+          totalWeightedNotes += totalPoints
+          totalCoefficients += coef
+          return {
+            name: mat,
+            coef,
+            notesCount: list.length,
+            avg: Number(avg.toFixed(2)),
+            totalPoints: Number(totalPoints.toFixed(2)),
+            hasNotes: true,
+            feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
+                      avg >= 14 ? "Très bon travail. Continuez ainsi." : 
+                      avg >= 12 ? "Bon travail dans l'ensemble." : 
+                      avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
+                      "Insuffisant. Travail régulier exigé."
+          }
+        })
+      }
+
+      const overallAvg = totalCoefficients > 0
+        ? totalWeightedNotes / totalCoefficients
         : 0
 
       return {
@@ -158,14 +222,21 @@ export async function getBulletinFullClassDataAction(classId: number, semester: 
   try {
     const prisma = await getPrisma()
 
-    // 1. Fetch class details
+    // 1. Fetch class details & configured subjects
     const targetClass = await prisma.class.findUnique({
-      where: { id: classId }
+      where: { id: classId },
+      include: {
+        classSubjects: {
+          orderBy: [{ ordre: 'asc' }, { id: 'asc' }]
+        }
+      }
     })
 
     if (!targetClass) {
       return { success: false, error: "Classe introuvable" }
     }
+
+    const classSubjects = targetClass.classSubjects || []
 
     // 2. Fetch all students registered in this class
     const inscriptions = await prisma.inscription.findMany({
@@ -196,34 +267,94 @@ export async function getBulletinFullClassDataAction(classId: number, semester: 
       const studentNotes = student.notes || []
       const studentAbsences = student.absences || []
 
-      // Group notes by subject
-      const subjectMap: Record<string, { notes: number[], type: string }> = {}
-      studentNotes.forEach(n => {
-        const mat = n.evaluation.matiere || "Général"
-        if (!subjectMap[mat]) {
-          subjectMap[mat] = { notes: [], type: n.evaluation.type_eval }
-        }
-        subjectMap[mat].notes.push(Number(n.valeur))
-      })
+      let subjects: Array<{
+        name: string
+        coef: number
+        notesCount: number
+        avg: number
+        totalPoints: number
+        feedback: string
+        hasNotes: boolean
+      }> = []
 
-      const subjects = Object.keys(subjectMap).map(mat => {
-        const list = subjectMap[mat].notes
-        const avg = list.reduce((a, b) => a + b, 0) / list.length
-        return {
-          name: mat,
-          coef: 2, // Standard coefficient
-          notesCount: list.length,
-          avg: Number(avg.toFixed(2)),
-          feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
-                    avg >= 14 ? "Très bon travail. Continuez ainsi." : 
-                    avg >= 12 ? "Bon travail dans l'ensemble." : 
-                    avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
-                    "Insuffisant. Travail régulier exigé."
-        }
-      })
+      let totalWeightedNotes = 0
+      let totalCoefficients = 0
 
-      const overallAvg = subjects.length > 0
-        ? subjects.reduce((acc, s) => acc + s.avg, 0) / subjects.length
+      if (classSubjects.length > 0) {
+        subjects = classSubjects.map(cs => {
+          const notesForMat = studentNotes.filter(
+            n => n.evaluation.matiere.toLowerCase().trim() === cs.matiere.toLowerCase().trim()
+          )
+
+          if (notesForMat.length > 0) {
+            const list = notesForMat.map(n => Number(n.valeur))
+            const avg = list.reduce((a, b) => a + b, 0) / list.length
+            const coef = cs.coefficient
+            const totalPoints = avg * coef
+            totalWeightedNotes += totalPoints
+            totalCoefficients += coef
+
+            return {
+              name: cs.matiere,
+              coef,
+              notesCount: list.length,
+              avg: Number(avg.toFixed(2)),
+              totalPoints: Number(totalPoints.toFixed(2)),
+              hasNotes: true,
+              feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
+                        avg >= 14 ? "Très bon travail. Continuez ainsi." : 
+                        avg >= 12 ? "Bon travail dans l'ensemble." : 
+                        avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
+                        "Insuffisant. Travail régulier exigé."
+            }
+          } else {
+            return {
+              name: cs.matiere,
+              coef: cs.coefficient,
+              notesCount: 0,
+              avg: 0,
+              totalPoints: 0,
+              hasNotes: false,
+              feedback: "Aucune note saisie"
+            }
+          }
+        })
+      } else {
+        const subjectMap: Record<string, { notes: number[], type: string }> = {}
+        studentNotes.forEach(n => {
+          const mat = n.evaluation.matiere || "Général"
+          if (!subjectMap[mat]) {
+            subjectMap[mat] = { notes: [], type: n.evaluation.type_eval }
+          }
+          subjectMap[mat].notes.push(Number(n.valeur))
+        })
+
+        subjects = Object.keys(subjectMap).map(mat => {
+          const list = subjectMap[mat].notes
+          const avg = list.reduce((a, b) => a + b, 0) / list.length
+          const coef = 2
+          const totalPoints = avg * coef
+          totalWeightedNotes += totalPoints
+          totalCoefficients += coef
+
+          return {
+            name: mat,
+            coef,
+            notesCount: list.length,
+            avg: Number(avg.toFixed(2)),
+            totalPoints: Number(totalPoints.toFixed(2)),
+            hasNotes: true,
+            feedback: avg >= 16 ? "Excellent travail. Très rigoureux." : 
+                      avg >= 14 ? "Très bon travail. Continuez ainsi." : 
+                      avg >= 12 ? "Bon travail dans l'ensemble." : 
+                      avg >= 10 ? "Passable. Des efforts sont nécessaires." : 
+                      "Insuffisant. Travail régulier exigé."
+          }
+        })
+      }
+
+      const overallAvg = totalCoefficients > 0
+        ? totalWeightedNotes / totalCoefficients
         : 0
 
       return {
@@ -234,8 +365,8 @@ export async function getBulletinFullClassDataAction(classId: number, semester: 
         overallAvg: Number(overallAvg.toFixed(2)),
         totalAbsences: studentAbsences.length,
         subjects: subjects.length > 0 ? subjects : [
-          { name: "Mathématiques", coef: 4, notesCount: 0, avg: 0, feedback: "Aucune note saisie" },
-          { name: "Français", coef: 4, notesCount: 0, avg: 0, feedback: "Aucune note saisie" }
+          { name: "Mathématiques", coef: 4, notesCount: 0, avg: 0, totalPoints: 0, hasNotes: false, feedback: "Aucune note saisie" },
+          { name: "Français", coef: 4, notesCount: 0, avg: 0, totalPoints: 0, hasNotes: false, feedback: "Aucune note saisie" }
         ],
         decision: overallAvg >= 10 ? "Tableau d'Honneur / Admis" : "Avertissement du Conseil"
       }

@@ -84,24 +84,57 @@ model Badge {
 }
 
 model Class {
-  id             Int             @id @default(autoincrement())
-  id_ecole       Int?
-  nom            String
-  niveau         String
-  capacite       Int             @default(60)
-  id_level       Int?
-  id_annee_scolaire Int?
-  created_at     DateTime        @default(now())
-  ecole          Ecole?          @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
-  schoolLevel    SchoolLevel?    @relation(fields: [id_level], references: [id], onUpdate: Restrict)
-  emploisDuTemps EmploiDuTemps[]
-  evaluations    Evaluation[]
-  inscriptions   Inscription[]
+  id                     Int                   @id @default(autoincrement())
+  id_ecole               Int?
+  nom                    String
+  niveau                 String
+  capacite               Int                   @default(60)
+  id_level               Int?
+  id_annee_scolaire       Int?
+  id_professeur_principal Int?
+  created_at             DateTime              @default(now())
+  ecole                  Ecole?                @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
+  schoolLevel            SchoolLevel?          @relation(fields: [id_level], references: [id], onUpdate: Restrict)
+  professeurPrincipal    User?                 @relation("ProfesseurPrincipal", fields: [id_professeur_principal], references: [id], onDelete: SetNull)
+  emploisDuTemps         EmploiDuTemps[]
+  evaluations            Evaluation[]
+  inscriptions           Inscription[]
+  classSubjects          ClassSubject[]
 
   @@index([id_ecole])
   @@index([id_level])
+  @@index([id_professeur_principal])
   @@map("classes")
 }
+
+model ClassSubject {
+  id                   Int                   @id @default(autoincrement())
+  id_classe            Int
+  matiere              String
+  coefficient          Float                 @default(1.0)
+  volume_horaire_hebdo Int                   @default(4)
+  ordre                Int                   @default(1)
+  classe               Class                 @relation(fields: [id_classe], references: [id], onDelete: Cascade)
+  teachers             ClassSubjectTeacher[]
+
+  @@unique([id_classe, matiere])
+  @@index([id_classe])
+  @@map("class_subjects")
+}
+
+model ClassSubjectTeacher {
+  id               Int          @id @default(autoincrement())
+  id_class_subject Int
+  id_enseignant    Int
+  classSubject     ClassSubject @relation(fields: [id_class_subject], references: [id], onDelete: Cascade)
+  teacher          User         @relation(fields: [id_enseignant], references: [id], onDelete: Cascade)
+
+  @@unique([id_class_subject, id_enseignant])
+  @@index([id_class_subject])
+  @@index([id_enseignant])
+  @@map("class_subject_teachers")
+}
+
 
 model Ecole {
   id                 Int          @id @default(autoincrement())
@@ -332,6 +365,8 @@ model User {
   parentEleveAsParent ParentEleve[]         @relation("ParentEleveParent")
   teacherSubjects     TeacherSubject[]
   teacherAvailabilities TeacherAvailability[]
+  classesAsProfPrincipal Class[]            @relation("ProfesseurPrincipal")
+  classSubjectTeachers ClassSubjectTeacher[]
   ecole               Ecole?                @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
 
   @@index([id_ecole])

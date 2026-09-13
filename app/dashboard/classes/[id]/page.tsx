@@ -60,6 +60,9 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
   const classe = await prisma.class.findUnique({
     where: { id: classId },
     include: {
+      professeurPrincipal: {
+        select: { id: true, nom: true, email: true, role: true }
+      },
       inscriptions: {
         include: {
           user: {
