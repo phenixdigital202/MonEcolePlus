@@ -280,13 +280,25 @@ export async function getEnrichedEvaluationsAction() {
     orderBy: { date_eval: 'desc' }
   })
 
-  // Get student count per class
+  // Get student count per class efficiently via a single groupBy query (eliminates N+1 loop)
   const classIds = Array.from(new Set(evaluations.map(e => e.id_classe).filter(Boolean)))
   const studentCountMap = new Map<number, number>()
   
-  for (const cid of classIds) {
-    const stds = await getStudentsByClass(cid)
-    studentCountMap.set(cid, stds.length)
+  if (classIds.length > 0) {
+    const activeStudentCounts = await prisma.inscription.groupBy({
+      by: ['id_classe'],
+      where: {
+        id_classe: { in: classIds },
+        statut: 'active',
+        user: { role: 'student' }
+      },
+      _count: {
+        id_eleve: true
+      }
+    })
+    for (const group of activeStudentCounts) {
+      studentCountMap.set(group.id_classe, group._count.id_eleve)
+    }
   }
 
   return evaluations.map(e => {
