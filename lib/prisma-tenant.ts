@@ -17,16 +17,27 @@ export function getTenantClient(dbUrl: string): PrismaClient {
     throw new Error("No database URL provided for tenant")
   }
 
-  // Return cached client if available
-  if (clients[dbUrl]) {
-    return clients[dbUrl]
+  // Ensure connection string uses Transaction Pooler (port 6543) if pointing to Supabase pooler host
+  let formattedUrl = dbUrl
+  if (formattedUrl.includes(".pooler.supabase.com:5432")) {
+    formattedUrl = formattedUrl.replace(":5432", ":6543")
+    if (!formattedUrl.includes("pgbouncer=true")) {
+      const sep = formattedUrl.includes("?") ? "&" : "?"
+      formattedUrl = `${formattedUrl}${sep}pgbouncer=true`
+    }
   }
 
-  // Ensure connection string has reasonable connection limit & timeout parameters for serverless
-  let formattedUrl = dbUrl
   if (!formattedUrl.includes("connection_limit=")) {
     const separator = formattedUrl.includes("?") ? "&" : "?"
-    formattedUrl = `${formattedUrl}${separator}connection_limit=5&pool_timeout=15`
+    formattedUrl = `${formattedUrl}${separator}connection_limit=10&pool_timeout=20`
+  }
+
+  // Return cached client if available (check both key variations)
+  if (clients[formattedUrl]) {
+    return clients[formattedUrl]
+  }
+  if (clients[dbUrl]) {
+    return clients[dbUrl]
   }
 
   // Create new client with override datasource
@@ -39,7 +50,8 @@ export function getTenantClient(dbUrl: string): PrismaClient {
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
   })
 
-  // Store in cache
+  // Store in global cache
+  clients[formattedUrl] = client
   clients[dbUrl] = client
   
   return client

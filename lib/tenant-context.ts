@@ -3,6 +3,18 @@ import masterPrisma from "./prisma"
 import { getTenantClient } from "./prisma-tenant"
 import { logError } from "./logger"
 
+declare global {
+  var schoolCacheById: Map<number, { school: any; timestamp: number }> | undefined
+  var schoolCacheBySubdomain: Map<string, { school: any; timestamp: number }> | undefined
+}
+
+const cacheById = globalThis.schoolCacheById || new Map<number, { school: any; timestamp: number }>()
+const cacheBySubdomain = globalThis.schoolCacheBySubdomain || new Map<string, { school: any; timestamp: number }>()
+globalThis.schoolCacheById = cacheById
+globalThis.schoolCacheBySubdomain = cacheBySubdomain
+
+const CACHE_TTL_MS = 60 * 1000 // 60 seconds TTL
+
 /**
  * Identifies the current tenant (school) based on stored session context or domain.
  */
@@ -29,11 +41,17 @@ export async function getCurrentTenant() {
     if (schoolId) {
       const parsedId = parseInt(schoolId)
       if (!isNaN(parsedId)) {
+        const cached = cacheById.get(parsedId)
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+          return cached.school
+        }
+
         const school = await masterPrisma.ecole.findUnique({
           where: { id: parsedId }
         })
         console.log(`[getCurrentTenant] Resolved school by school_id cookie: ID=${school?.id}, Name=${school?.nom}, hasDbUrl=${!!school?.database_url}`)
         if (school && school.database_url) {
+          cacheById.set(parsedId, { school, timestamp: Date.now() })
           return school
         }
       }
@@ -52,11 +70,17 @@ export async function getCurrentTenant() {
     console.log(`[getCurrentTenant] Referer subdomain lookup -> referer: ${referer}, subdomain parameter: ${subdomain}`)
 
     if (subdomain) {
+      const cachedSub = cacheBySubdomain.get(subdomain)
+      if (cachedSub && (Date.now() - cachedSub.timestamp < CACHE_TTL_MS)) {
+        return cachedSub.school
+      }
+
       const school = await masterPrisma.ecole.findUnique({
         where: { subdomain }
       })
       console.log(`[getCurrentTenant] Resolved school by subdomain: ID=${school?.id}, Name=${school?.nom}, hasDbUrl=${!!school?.database_url}`)
       if (school && school.database_url) {
+        cacheBySubdomain.set(subdomain, { school, timestamp: Date.now() })
         return school
       }
     }
