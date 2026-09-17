@@ -13,7 +13,23 @@ export async function getPaymentsAction() {
             id: true,
             nom: true,
             email: true,
-            role: true
+            role: true,
+            inscriptions: {
+              include: { classe: true },
+              orderBy: { startDate: 'desc' }
+            },
+            parentEleveAsEleve: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    nom: true,
+                    email: true
+                  }
+                }
+              },
+              take: 1
+            }
           }
         }
       },
@@ -27,6 +43,64 @@ export async function getPaymentsAction() {
   } catch (error: any) {
     console.error("Error fetching payments:", error)
     return { success: false, error: error?.message || "Erreur de chargement des paiements" }
+  }
+}
+
+export async function getPaymentReceiptDetailsAction(paymentId: number) {
+  try {
+    const prisma = await getPrisma()
+    const payment = await prisma.paiement.findUnique({
+      where: { id: paymentId },
+      include: {
+        user: {
+          include: {
+            inscriptions: {
+              include: { classe: true },
+              orderBy: { startDate: 'desc' }
+            },
+            parentEleveAsEleve: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    nom: true,
+                    email: true
+                  }
+                }
+              },
+              take: 1
+            }
+          }
+        }
+      }
+    })
+
+    if (!payment) {
+      return { success: false, error: "Paiement non trouvé dans cet établissement" }
+    }
+
+    const school = await prisma.ecole.findFirst()
+
+    const studentPayments = await prisma.paiement.findMany({
+      where: {
+        id_utilisateur: payment.id_utilisateur,
+        status: 'paye'
+      }
+    })
+
+    const totalPaidByStudent = studentPayments.reduce((acc, p) => acc + Number(p.montant), 0)
+
+    return {
+      success: true,
+      data: JSON.parse(JSON.stringify({
+        payment,
+        school,
+        totalPaidByStudent
+      }))
+    }
+  } catch (error: any) {
+    console.error("Error fetching receipt details:", error)
+    return { success: false, error: error?.message || "Erreur lors du chargement des détails du reçu" }
   }
 }
 

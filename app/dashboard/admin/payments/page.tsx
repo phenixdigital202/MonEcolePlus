@@ -71,6 +71,7 @@ import {
   runBankReconciliationAction
 } from "@/lib/payment-actions"
 import { getAllUsersAction } from "@/lib/admin-shortcut-actions"
+import { PaymentReceiptDocument } from "@/components/documents/payment-receipt-document"
 import { toast } from "sonner"
 
 export default function AdminPaymentsPage() {
@@ -644,50 +645,32 @@ export default function AdminPaymentsPage() {
 
       {/* REÇU MODAL */}
       <Dialog open={!!receiptPayment} onOpenChange={(open) => !open && setReceiptPayment(null)}>
-        <DialogContent className="sm:max-w-lg rounded-3xl p-6">
+        <DialogContent className="sm:max-w-2xl rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
           {receiptPayment && (
-            <div id="printable-document" className="printable-area space-y-6 print:p-0 print:m-0 print:w-full">
-              <div className="text-center space-y-1 pb-4 border-b border-slate-100 flex flex-col items-center">
-                {schoolInfo?.logo_url && (
-                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-12 w-12 object-contain mb-1" />
-                )}
-                <h2 className="text-xl font-black text-primary">{schoolInfo?.nom || "MonÉcole+ Groupe Scolaire"}</h2>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Reçu Officiel de Règlement</p>
-                <p className="text-[10px] text-slate-400">Reçu N° REC-{receiptPayment.id}-{new Date(receiptPayment.date_paiement).getFullYear()}</p>
-              </div>
+            <div className="space-y-4">
+              <PaymentReceiptDocument
+                payment={receiptPayment}
+                schoolInfo={schoolInfo}
+                totalPaidByStudent={payments
+                  .filter((p) => p.id_utilisateur === receiptPayment.id_utilisateur && p.status === "paye")
+                  .reduce((acc, p) => acc + Number(p.montant), 0)}
+              />
 
-              <div className="space-y-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="flex justify-between py-1 border-b border-slate-200/50">
-                  <span className="text-slate-500 font-medium">Élève / Bénéficiaire :</span>
-                  <span className="font-bold text-slate-900">{receiptPayment.user?.nom}</span>
+              <DialogFooter className="gap-2 sm:gap-0 print:hidden no-print pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center">
+                <div className="text-[11px] text-slate-500 italic">
+                  Format recommandé : A5 / A4 Portrait
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-200/50">
-                  <span className="text-slate-500 font-medium">Email :</span>
-                  <span className="font-bold text-slate-900">{receiptPayment.user?.email}</span>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="rounded-xl font-bold" onClick={() => setReceiptPayment(null)}>
+                    Fermer
+                  </Button>
+                  <Button
+                    className="rounded-xl bg-primary text-white font-bold border-none gap-2 shadow-lg shadow-primary/20"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="h-4 w-4" /> Imprimer le reçu
+                  </Button>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-200/50">
-                  <span className="text-slate-500 font-medium">Motif du Paiement :</span>
-                  <span className="font-bold uppercase text-primary">{receiptPayment.type}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-slate-200/50">
-                  <span className="text-slate-500 font-medium">Date d&apos;émission :</span>
-                  <span className="font-bold text-slate-800">{new Date(receiptPayment.date_paiement).toLocaleDateString('fr-FR')}</span>
-                </div>
-                <div className="flex justify-between py-2 items-center">
-                  <span className="text-slate-700 font-bold text-sm">Montant Réglé :</span>
-                  <span className="font-black text-emerald-600 text-lg">{Number(receiptPayment.montant).toLocaleString("fr-FR")} FCFA</span>
-                </div>
-              </div>
-
-              <div className="text-[10px] text-slate-400 text-center italic">
-                Ce document constitue une preuve officielle de paiement enregistrée en base de données.
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0 print:hidden no-print">
-                <Button variant="outline" className="rounded-xl" onClick={() => setReceiptPayment(null)}>Fermer</Button>
-                <Button className="rounded-xl bg-primary text-white font-bold border-none gap-2" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4" /> Imprimer le reçu
-                </Button>
               </DialogFooter>
             </div>
           )}
