@@ -32,73 +32,52 @@ export default async function ClassesPage() {
 
   const isTeacher = user.role === 'teacher'
 
-  // Fetch classes from the database, filtering if the user is a teacher
-  const classes = await prisma.class.findMany({
-    where: isTeacher ? {
-      emploisDuTemps: {
-        some: {
-          id_enseignant: user.id
+  // Parallelize independent DB queries for maximum render performance
+  const [classes, totalStudents, totalTeachers, allNotes] = await Promise.all([
+    prisma.class.findMany({
+      where: isTeacher ? {
+        emploisDuTemps: {
+          some: {
+            id_enseignant: user.id
+          }
         }
-      }
-    } : undefined,
-    include: {
-      _count: {
-        select: { 
-          inscriptions: true,
-          emploisDuTemps: true 
-        }
-      },
-      emploisDuTemps: {
-        select: { 
-          matiere: true,
-          user: { select: { nom: true } }
-        }
-      },
-      evaluations: {
-        include: {
-          notes: {
-            select: { valeur: true }
+      } : undefined,
+      include: {
+        _count: {
+          select: { 
+            inscriptions: true,
+            emploisDuTemps: true 
+          }
+        },
+        emploisDuTemps: {
+          select: { 
+            matiere: true,
+            user: { select: { nom: true } }
+          }
+        },
+        evaluations: {
+          select: {
+            notes: {
+              select: { valeur: true }
+            }
           }
         }
       }
-    }
-  })
+    }),
+    isTeacher 
+      ? prisma.inscription.count({ where: { id_classe: { in: (await prisma.class.findMany({ where: { emploisDuTemps: { some: { id_enseignant: user.id } } }, select: { id: true } })).map(c => c.id) } } })
+      : prisma.user.count({ where: { role: 'student' } }),
+    prisma.user.count({ where: { role: 'teacher' } }),
+    prisma.note.aggregate({
+      _avg: { valeur: true }
+    })
+  ])
 
   // Aggregating stats
   const allClasses = classes.length
   
-  let totalStudents = 0
-  if (isTeacher) {
-    totalStudents = await prisma.inscription.count({
-      where: { id_classe: { in: classes.map(c => c.id) } }
-    })
-  } else {
-    totalStudents = await prisma.user.count({ where: { role: 'student' } })
-  }
-
-  const totalTeachers = await prisma.user.count({ where: { role: 'teacher' } })
-
   // Calculate average
-  let globalAverage = "N/A"
-  if (isTeacher) {
-    const classIds = classes.map(c => c.id)
-    if (classIds.length > 0) {
-      const allNotes = await prisma.note.aggregate({
-        where: {
-          evaluation: {
-            id_classe: { in: classIds }
-          }
-        },
-        _avg: { valeur: true }
-      })
-      globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
-    }
-  } else {
-    const allNotes = await prisma.note.aggregate({
-      _avg: { valeur: true }
-    })
-    globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
-  }
+  const globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
 
   const formattedClasses = classes.map(c => {
     // Unique subjects count

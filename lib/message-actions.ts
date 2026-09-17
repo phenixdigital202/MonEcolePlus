@@ -26,12 +26,30 @@ export async function getContacts(userId: number, role: string) {
     }
 
     if (role === 'admin') {
-      // 1. Teachers
-      const teachers = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'teacher' },
-        select: { id: true, nom: true, email: true, role: true },
-        orderBy: { nom: 'asc' }
-      })
+      const [teachers, students, parents, admins] = await Promise.all([
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'teacher' },
+          select: { id: true, nom: true, email: true, role: true },
+          orderBy: { nom: 'asc' }
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'student' },
+          select: { id: true, nom: true, email: true, role: true },
+          orderBy: { nom: 'asc' },
+          take: 100
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'parent' },
+          select: { id: true, nom: true, email: true, role: true },
+          orderBy: { nom: 'asc' }
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'admin' },
+          select: { id: true, nom: true, email: true, role: true },
+          orderBy: { nom: 'asc' }
+        })
+      ])
+
       contacts.profs = teachers.map(t => ({
         id: t.id,
         name: t.nom,
@@ -40,13 +58,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'teacher'
       }))
 
-      // 2. Students
-      const students = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'student' },
-        select: { id: true, nom: true, email: true, role: true },
-        orderBy: { nom: 'asc' },
-        take: 100
-      })
       contacts.camarades = students.map(s => ({
         id: s.id,
         name: s.nom,
@@ -55,12 +66,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'student'
       }))
 
-      // 3. Parents
-      const parents = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'parent' },
-        select: { id: true, nom: true, email: true, role: true },
-        orderBy: { nom: 'asc' }
-      })
       contacts.famille = parents.map(p => ({
         id: p.id,
         name: p.nom,
@@ -69,12 +74,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'parent'
       }))
 
-      // 4. Other Admins
-      const admins = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'admin' },
-        select: { id: true, nom: true, email: true, role: true },
-        orderBy: { nom: 'asc' }
-      })
       contacts.administration = admins.map(a => ({
         id: a.id,
         name: a.nom,
@@ -83,12 +82,28 @@ export async function getContacts(userId: number, role: string) {
         role: 'admin'
       }))
     } else if (role === 'student') {
-      // Teachers
-      const teachers = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'teacher' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 50
-      })
+      const [teachers, classmates, parentLinks, admins] = await Promise.all([
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'teacher' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 50
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'student' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 50
+        }),
+        prisma.parentEleve.findMany({
+          where: { id_eleve: userId },
+          include: { parent: true }
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'admin' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 10
+        })
+      ])
+
       contacts.profs = teachers.map(t => ({
         id: t.id,
         name: t.nom,
@@ -97,12 +112,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'teacher'
       }))
 
-      // Classmates
-      const classmates = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'student' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 50
-      })
       contacts.camarades = classmates.map(c => ({
         id: c.id,
         name: c.nom,
@@ -111,11 +120,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'student'
       }))
 
-      // Parents
-      const parentLinks = await prisma.parentEleve.findMany({
-        where: { id_eleve: userId },
-        include: { parent: true }
-      })
       contacts.famille = parentLinks.map(p => ({
         id: p.parent.id,
         name: p.parent.nom,
@@ -124,12 +128,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'parent'
       }))
 
-      // Admins
-      const admins = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'admin' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 10
-      })
       contacts.administration = admins.map(a => ({
         id: a.id,
         name: a.nom,
@@ -138,11 +136,23 @@ export async function getContacts(userId: number, role: string) {
         role: 'admin'
       }))
     } else if (role === 'parent') {
-      // Children
-      const parentLinks = await prisma.parentEleve.findMany({
-        where: { id_parent: userId },
-        include: { eleve: true }
-      })
+      const [parentLinks, teachers, admins] = await Promise.all([
+        prisma.parentEleve.findMany({
+          where: { id_parent: userId },
+          include: { eleve: true }
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'teacher' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 50
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'admin' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 10
+        })
+      ])
+
       contacts.famille = parentLinks.map(link => ({
         id: link.eleve.id,
         name: link.eleve.nom,
@@ -151,12 +161,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'student'
       }))
 
-      // Teachers
-      const teachers = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'teacher' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 50
-      })
       contacts.profs = teachers.map(t => ({
         id: t.id,
         name: t.nom,
@@ -165,12 +169,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'teacher'
       }))
 
-      // Admins
-      const admins = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'admin' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 10
-      })
       contacts.administration = admins.map(a => ({
         id: a.id,
         name: a.nom,
@@ -179,11 +177,27 @@ export async function getContacts(userId: number, role: string) {
         role: 'admin'
       }))
     } else if (role === 'teacher') {
-      // Other teachers
-      const teachers = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'teacher' },
-        select: { id: true, nom: true, email: true, role: true }
-      })
+      const [teachers, students, parents, admins] = await Promise.all([
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'teacher' },
+          select: { id: true, nom: true, email: true, role: true }
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'student' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 100
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'parent' },
+          select: { id: true, nom: true, email: true, role: true },
+          take: 100
+        }),
+        prisma.user.findMany({
+          where: { ...baseWhere, role: 'admin' },
+          select: { id: true, nom: true, email: true, role: true }
+        })
+      ])
+
       contacts.profs = teachers.map(t => ({
         id: t.id,
         name: t.nom,
@@ -192,12 +206,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'teacher'
       }))
 
-      // Students
-      const students = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'student' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 100
-      })
       contacts.camarades = students.map(s => ({
         id: s.id,
         name: s.nom,
@@ -206,12 +214,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'student'
       }))
 
-      // Parents
-      const parents = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'parent' },
-        select: { id: true, nom: true, email: true, role: true },
-        take: 100
-      })
       contacts.famille = parents.map(p => ({
         id: p.id,
         name: p.nom,
@@ -220,11 +222,6 @@ export async function getContacts(userId: number, role: string) {
         role: 'parent'
       }))
 
-      // Admins
-      const admins = await prisma.user.findMany({
-        where: { ...baseWhere, role: 'admin' },
-        select: { id: true, nom: true, email: true, role: true }
-      })
       contacts.administration = admins.map(a => ({
         id: a.id,
         name: a.nom,
