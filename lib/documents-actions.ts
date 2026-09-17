@@ -324,7 +324,7 @@ export async function getBulletinFullClassDataAction(classId: number, semester: 
         studentNotes.forEach(n => {
           const mat = n.evaluation.matiere || "Général"
           if (!subjectMap[mat]) {
-            subjectMap[mat] = { notes: [], type: n.evaluation.type_eval }
+            subjectMap[mat] = { notes: [], type: n.evaluation.type_eval || "devoir" }
           }
           subjectMap[mat].notes.push(Number(n.valeur))
         })

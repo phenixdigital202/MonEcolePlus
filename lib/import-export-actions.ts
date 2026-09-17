@@ -112,7 +112,7 @@ export async function executeImportData(type: string, validRows: any[]) {
           code: row.code || row.nom.substring(0, 3).toUpperCase(),
           coefficient: parseInt(row.coefficient || "2")
         }))
-        const result = await tx.matiere.createMany({
+        const result = await (tx as any).matiere.createMany({
           data: dataToInsert,
           skipDuplicates: true
         })
@@ -149,7 +149,7 @@ export async function getExportData(type: string) {
     } else if (type === "classes") {
       data = await prisma.class.findMany()
     } else if (type === "subjects") {
-      data = await prisma.matiere.findMany()
+      data = await (prisma as any).matiere.findMany()
     } else if (type === "emails") {
       data = await prisma.notificationEmail.findMany()
     } else if (type === "whatsapps") {

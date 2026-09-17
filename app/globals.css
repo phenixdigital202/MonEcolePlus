@@ -322,21 +322,42 @@ a, button, input, select, textarea,
     font-size: 11pt;
   }
 
-  /* Reset top containers during print */
-  main,
-  #printable-document-container {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
+  /* 1. Hide EVERYTHING under body by default during print */
+  body * {
+    visibility: hidden !important;
   }
 
-  /* Hide app navigation, headers, sidebars, action bars, buttons STRICTLY */
-  aside,
-  nav,
-  header,
-  footer:not(.printable-footer),
+  /* 2. Explicitly make ONLY printable document elements and their contents visible */
+  #printable-document-container,
+  #printable-document-container *,
+  .printable-area,
+  .printable-area *,
+  #printable-document,
+  #printable-document * {
+    visibility: visible !important;
+  }
+
+  /* 3. Position the printable document at absolute top-left (0,0) to isolate it completely from the page layout */
+  #printable-document-container,
+  .printable-area,
+  #printable-document {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 999999 !important;
+  }
+
+  /* 4. Hide interactive elements, buttons, overlays, and sidebars */
   button,
+  nav,
+  aside,
+  header,
   .no-print,
   .print\:hidden,
   .no-print-system-alert,
@@ -344,76 +365,15 @@ a, button, input, select, textarea,
   [data-sidebar] {
     display: none !important;
     visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    max-height: 0 !important;
-    width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
   }
 
-  /* Hide regular dialogs, but KEEP OPEN dialogs containing a printable document */
-  [role="dialog"]:not(:has(.printable-area)):not(:has(#printable-document)) {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* Expand printable dialog modal to full page for clean printing */
-  [role="dialog"]:has(.printable-area),
-  [role="dialog"]:has(#printable-document) {
-    display: block !important;
-    visibility: visible !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    background: #ffffff !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    transform: none !important;
-    z-index: 99999 !important;
-  }
-
-  /* Hide background dashboard page when printing a receipt or document from a modal */
-  body:has([role="dialog"] .printable-area) main,
-  body:has([role="dialog"] #printable-document) main {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* Reset top containers during print */
-  main,
-  #printable-document-container {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-  }
-
-  .printable-area,
-  #printable-document {
-    display: block !important;
-    visibility: visible !important;
-    position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-    background: #ffffff !important;
-  }
-
-  /* Prevent awkward page breaks in tables and cards */
+  /* 5. Prevent page breaks inside cards or table rows */
   table, tr, td, th, .card, .printable-card {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
-  /* Remove any URLs / links printed automatically by browsers on <a> tags */
+  /* 6. Strip auto-generated link URLs */
   a[href]:after {
     content: "" !important;
   }

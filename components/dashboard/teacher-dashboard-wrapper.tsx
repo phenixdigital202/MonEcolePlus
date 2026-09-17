@@ -120,7 +120,7 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
                 <div className="flex-1">
                   <p className="text-sm font-medium">{teacherData.unreadMessages} message{teacherData.unreadMessages > 1 ? 's' : ''} non lu{teacherData.unreadMessages > 1 ? 's' : ''}</p>
                 </div>
-                <Button variant="ghost" size="sm" asChild prefetch={true}><Link href="/dashboard/messages">Voir</Link></Button>
+                <Button variant="ghost" size="sm" asChild><Link href="/dashboard/messages" prefetch={true}>Voir</Link></Button>
               </CardContent>
             </Card>
           )}

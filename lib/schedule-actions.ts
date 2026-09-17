@@ -443,14 +443,14 @@ export async function optimizeSchedule(classId: number) {
     for (const course of courses) {
       // Check current slot conflict
       const hour = new Date(course.heure_debut).toISOString().substring(11, 16)
-      const conflictRes = await checkCourseConflict(course.id, course.id_enseignant, course.salle, course.jour, hour)
+      const conflictRes = await checkCourseConflict(course.id, course.id_enseignant, course.salle || "", course.jour, hour)
       
       if (conflictRes.conflict) {
         // Find a free slot
         let found = false
         for (const d of days) {
           for (const s of slots) {
-            const check = await checkCourseConflict(course.id, course.id_enseignant, course.salle, d, s)
+            const check = await checkCourseConflict(course.id, course.id_enseignant, course.salle || "", d, s)
             if (!check.conflict) {
               // Move course here
               const hDebut = new Date(`1970-01-01T${s}:00Z`)

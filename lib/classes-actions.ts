@@ -78,9 +78,9 @@ export async function enrollStudentAction(studentId: number, classId: number) {
   try {
     const targetClass = await prisma.class.findUnique({
       where: { id: classId },
-      select: { id: true, annee_scolaire: true }
+      select: { id: true, id_annee_scolaire: true }
     })
-    const anneeScolaire = targetClass?.annee_scolaire || '2025-2026'
+    const anneeScolaire = (targetClass as any)?.annee_scolaire || '2025-2026'
 
     const existingActive = await prisma.inscription.findFirst({
       where: { id_eleve: studentId, statut: 'active', annee_scolaire: anneeScolaire }
@@ -124,9 +124,9 @@ export async function getEligibleStudentsAction(classId: number) {
   try {
     const targetClass = await prisma.class.findUnique({
       where: { id: classId },
-      select: { id: true, annee_scolaire: true }
+      select: { id: true, id_annee_scolaire: true }
     })
-    const anneeScolaire = targetClass?.annee_scolaire || '2025-2026'
+    const anneeScolaire = (targetClass as any)?.annee_scolaire || '2025-2026'
 
     // Exclude students who are actively enrolled in ANY class for this active school year
     const activeInscriptions = await prisma.inscription.findMany({
