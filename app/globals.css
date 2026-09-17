@@ -331,7 +331,7 @@ a, button, input, select, textarea,
     width: 100% !important;
   }
 
-  /* Hide app navigation, headers, sidebars, modals, action bars, buttons STRICTLY */
+  /* Hide app navigation, headers, sidebars, action bars, buttons STRICTLY */
   aside,
   nav,
   header,
@@ -341,7 +341,6 @@ a, button, input, select, textarea,
   .print\:hidden,
   .no-print-system-alert,
   [role="alert"],
-  [role="dialog"],
   [data-sidebar] {
     display: none !important;
     visibility: hidden !important;
@@ -354,12 +353,44 @@ a, button, input, select, textarea,
     overflow: hidden !important;
   }
 
-  /* When printing a page with a printable document, isolate it */
-  main {
+  /* Hide regular dialogs, but KEEP OPEN dialogs containing a printable document */
+  [role="dialog"]:not(:has(.printable-area)):not(:has(#printable-document)) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Expand printable dialog modal to full page for clean printing */
+  [role="dialog"]:has(.printable-area),
+  [role="dialog"]:has(#printable-document) {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    transform: none !important;
+    z-index: 99999 !important;
+  }
+
+  /* Hide background dashboard page when printing a receipt or document from a modal */
+  body:has([role="dialog"] .printable-area) main,
+  body:has([role="dialog"] #printable-document) main {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset top containers during print */
+  main,
+  #printable-document-container {
+    margin: 0 !important;
+    padding: 0 !important;
     width: 100% !important;
-    max-width: 100% !important;
   }
 
   .printable-area,
