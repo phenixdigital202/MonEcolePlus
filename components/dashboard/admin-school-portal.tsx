@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { 
   Building2, 
   MapPin, 
@@ -16,7 +17,10 @@ import {
   Settings,
   MessageSquare,
   Server,
-  Key
+  Key,
+  Loader2,
+  Trash2,
+  CheckCircle2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { updateSchoolSettingsAction } from "@/lib/school-actions"
+import { updateSchoolSettingsAction, updateSchoolLogoAction, deleteSchoolLogoAction } from "@/lib/school-actions"
+import { compressImage } from "@/lib/image-utils"
 import { testWhatsAppConnectionAction } from "@/lib/whatsapp-actions"
 import { saveSchoolYearAction } from "@/lib/school-year-actions"
 import { toast } from "sonner"
@@ -49,9 +54,16 @@ interface AdminSchoolPortalProps {
 }
 
 export function AdminSchoolPortal({ schoolData, stats, schoolYears: initialSchoolYears }: AdminSchoolPortalProps) {
+  const router = useRouter()
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
   const [isPending, setIsPending] = useState(false)
   const [testingWa, setTestingWa] = useState(false)
   const [waTestPhone, setWaTestPhone] = useState("")
+
+  // Logo States
+  const [logoUrl, setLogoUrl] = useState(schoolData?.logo_url || "")
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
 
   // Form states
   const [nom, setNom] = useState(schoolData?.nom || "")
@@ -223,6 +235,53 @@ export function AdminSchoolPortal({ schoolData, stats, schoolYears: initialSchoo
       toast.error("Erreur de test : " + err.message)
     } finally {
       setTestingWa(false)
+    }
+  }
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Le fichier ne doit pas dépasser 15 Mo.")
+      return
+    }
+
+    setIsUploadingLogo(true)
+    try {
+      const base64Data = await compressImage(file, 500, 0.85)
+      const res = await updateSchoolLogoAction(base64Data)
+
+      if (res.success && res.logo_url) {
+        setLogoUrl(res.logo_url)
+        toast.success("Logo de l'établissement mis à jour avec succès !")
+        router.refresh()
+      } else {
+        toast.error(res.error || "Échec du téléversement du logo.")
+      }
+    } catch (err: any) {
+      console.error("[AdminSchoolPortal] Logo upload error:", err)
+      toast.error("Erreur lors de la compression ou de l'envoi du logo.")
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleDeleteLogo = async () => {
+    setIsUploadingLogo(true)
+    try {
+      const res = await deleteSchoolLogoAction()
+      if (res.success) {
+        setLogoUrl("")
+        toast.success("Logo supprimé avec succès !")
+        router.refresh()
+      } else {
+        toast.error(res.error || "Échec de la suppression du logo.")
+      }
+    } catch (err: any) {
+      toast.error("Erreur lors de la suppression.")
+    } finally {
+      setIsUploadingLogo(false)
     }
   }
 
@@ -421,20 +480,75 @@ export function AdminSchoolPortal({ schoolData, stats, schoolYears: initialSchoo
         <div className="space-y-6">
           {/* Logo Card */}
           <Card className="border-none shadow-xl bg-white/70 backdrop-blur-sm card-hover-premium rounded-3xl overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+            <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-bold text-slate-800">Logo Établissement</CardTitle>
+              {logoUrl && (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                  Actif
+                </Badge>
+              )}
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30 overflow-hidden">
-                <div className="text-center p-4">
-                  <Building2 className="mx-auto h-12 w-12 text-slate-400" />
-                  <p className="mt-2 text-xs text-slate-400 font-bold uppercase tracking-wider">Logo non défini</p>
-                </div>
+              <input
+                type="file"
+                ref={logoInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleLogoSelect}
+              />
+              <div className="relative flex aspect-square items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30 overflow-hidden group">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo Établissement"
+                    className="h-full w-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="text-center p-4">
+                    <Building2 className="mx-auto h-12 w-12 text-slate-400" />
+                    <p className="mt-2 text-xs text-slate-400 font-bold uppercase tracking-wider">Logo non défini</p>
+                  </div>
+                )}
+                {isUploadingLogo && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  </div>
+                )}
               </div>
-              <Button variant="outline" className="w-full gap-2 border-slate-200 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 h-10">
-                <Upload className="h-4 w-4 text-slate-500" />
-                Téléverser un logo
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploadingLogo}
+                  className="flex-1 gap-2 border-slate-200 rounded-xl hover:bg-slate-50 text-xs font-bold text-slate-700 h-10"
+                >
+                  {isUploadingLogo ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      Téléversement...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 text-slate-500" />
+                      {logoUrl ? "Changer le logo" : "Téléverser un logo"}
+                    </>
+                  )}
+                </Button>
+                {logoUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDeleteLogo}
+                    disabled={isUploadingLogo}
+                    className="border-red-200 hover:bg-red-50 text-red-600 rounded-xl px-3 h-10"
+                    title="Supprimer le logo"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 

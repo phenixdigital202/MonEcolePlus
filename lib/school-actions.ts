@@ -141,6 +141,39 @@ export async function updateSchoolLogoAction(logoUrl: string) {
   }
 }
 
+export async function deleteSchoolLogoAction() {
+  const { getPrisma } = require("./tenant-context")
+  const masterPrisma = require("./prisma").default
+
+  try {
+    const tenantPrisma = await getPrisma()
+    const ecole = await tenantPrisma.ecole.findFirst()
+
+    if (!ecole) {
+      return { success: false, error: "Établissement introuvable." }
+    }
+
+    await tenantPrisma.ecole.update({
+      where: { id: ecole.id },
+      data: { logo_url: null }
+    })
+
+    try {
+      await masterPrisma.ecole.update({
+        where: { id: ecole.id },
+        data: { logo_url: null }
+      })
+    } catch (masterErr: any) {
+      console.warn("[deleteSchoolLogoAction] Master DB sync warning:", masterErr.message)
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("[deleteSchoolLogoAction] Error:", error)
+    return { success: false, error: error.message || String(error) }
+  }
+}
+
 export async function updateSchoolCachetAction(cachetUrl: string) {
   const { getPrisma } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
