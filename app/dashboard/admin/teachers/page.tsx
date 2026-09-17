@@ -647,8 +647,8 @@ export default function AdminTeachersPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )
+                }))}
               </TableBody>
             </Table>
           )}
