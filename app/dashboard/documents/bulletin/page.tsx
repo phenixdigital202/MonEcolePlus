@@ -234,8 +234,12 @@ export default function BulletinBatchPage() {
                         <div className="flex justify-between items-start border-b border-slate-100 pb-6 mb-8">
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold">
-                                <Building2 className="h-5 w-5" />
+                              <div className="h-12 w-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold overflow-hidden p-1">
+                                {schoolInfo.logo_url ? (
+                                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                                ) : (
+                                  <Building2 className="h-6 w-6" />
+                                )}
                               </div>
                               <h2 className="text-base font-extrabold uppercase tracking-wider text-slate-900">{schoolInfo.nom}</h2>
                             </div>
@@ -360,7 +364,10 @@ export default function BulletinBatchPage() {
                             </div>
                             <span className="text-[8px] font-black tracking-widest mt-1">UNION • DISCIPLINE • TRAVAIL</span>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end">
+                            {schoolInfo.logo_url && (
+                              <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-10 w-10 object-contain mb-1" />
+                            )}
                             <h2 className="text-sm font-extrabold uppercase">{schoolInfo.nom}</h2>
                             <p className="text-[9px] text-slate-500">{schoolInfo.adresse}</p>
                             <p className="text-[9px] font-bold text-slate-700">{schoolInfo.telephone}</p>
@@ -428,9 +435,13 @@ export default function BulletinBatchPage() {
                         {/* Branded Header */}
                         <div className="flex justify-between items-center pb-6 border-b border-slate-100">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold">
-                              <Building2 className="h-5 w-5" />
-                            </div>
+                             <div className="h-12 w-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold overflow-hidden p-1">
+                                {schoolInfo.logo_url ? (
+                                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                                ) : (
+                                  <Building2 className="h-6 w-6" />
+                                )}
+                             </div>
                             <div>
                               <h3 className="font-extrabold text-base text-slate-900">{schoolInfo.nom}</h3>
                               <p className="text-[10px] text-slate-400">{schoolInfo.adresse}</p>
@@ -500,8 +511,12 @@ export default function BulletinBatchPage() {
                          {/* Header Branding */}
                          <div className="flex justify-between border-b-2 border-slate-900 pb-4 mb-6">
                             <div className="flex gap-4 items-center">
-                               <div className="h-16 w-16 bg-primary flex items-center justify-center text-white rounded-2xl font-bold">
-                                  <Building2 className="h-8 w-8" />
+                               <div className="h-16 w-16 bg-primary flex items-center justify-center text-white rounded-2xl font-bold overflow-hidden p-1">
+                                  {schoolInfo.logo_url ? (
+                                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                                  ) : (
+                                    <Building2 className="h-8 w-8" />
+                                  )}
                                </div>
                                <div>
                                   <h2 className="text-lg md:text-xl font-black uppercase text-slate-900">{schoolInfo.nom}</h2>

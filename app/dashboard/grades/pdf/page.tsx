@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { getClasses } from "@/lib/grades-actions"
+import { getSchoolInfoAction } from "@/lib/documents-actions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function BulletinPDFPage() {
@@ -33,6 +34,7 @@ export default function BulletinPDFPage() {
   const [classes, setClasses] = useState<any[]>([])
   const [previewData, setPreviewData] = useState<any[]>([])
   const [selectedStudentForPDF, setSelectedStudentForPDF] = useState<any>(null)
+  const [schoolInfo, setSchoolInfo] = useState<any>(null)
   
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -42,7 +44,12 @@ export default function BulletinPDFPage() {
       setClasses(cls)
       if (cls.length > 0) setSelectedClass(cls[0].id.toString())
     }
+    const fetchSchool = async () => {
+      const res = await getSchoolInfoAction()
+      if (res.success) setSchoolInfo(res.data)
+    }
     fetchClasses()
+    fetchSchool()
   }, [])
 
   const handleGenerate = async () => {
@@ -210,14 +217,19 @@ export default function BulletinPDFPage() {
               <div id="printable-document" ref={printRef} className="printable-area p-8 bg-white text-slate-900 font-sans space-y-6 border rounded-2xl mt-4 shadow-sm print:shadow-none print:border-none print:m-0 print:p-0 print:w-full">
                 {/* Header */}
                 <div className="flex justify-between items-start border-b pb-4">
-                  <div>
-                    <h2 className="text-xl font-black uppercase tracking-wider text-indigo-950">RÉPUBLIQUE DE CÔTE D&apos;IVOIRE</h2>
-                    <p className="text-xs text-slate-500 font-semibold uppercase">Ministère de l&apos;Éducation Nationale et de l&apos;Alphabétisation</p>
-                    <p className="text-sm font-bold text-indigo-800 mt-2">ÉTABLISSEMENT : MonÉcole+</p>
+                  <div className="flex items-center gap-4">
+                    {schoolInfo?.logo_url && (
+                      <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-14 w-14 object-contain" />
+                    )}
+                    <div>
+                      <h2 className="text-xl font-black uppercase tracking-wider text-indigo-950">RÉPUBLIQUE DE CÔTE D&apos;IVOIRE</h2>
+                      <p className="text-xs text-slate-500 font-semibold uppercase">Ministère de l&apos;Éducation Nationale et de l&apos;Alphabétisation</p>
+                      <p className="text-sm font-bold text-indigo-800 mt-1">ÉTABLISSEMENT : {schoolInfo?.nom || "MonÉcole+"}</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <h3 className="text-lg font-black text-slate-800">BULLETIN DE NOTES</h3>
-                    <p className="text-xs font-bold text-indigo-600 uppercase">Trimestre {selectedSemester} - Année 2023-2024</p>
+                    <p className="text-xs font-bold text-indigo-600 uppercase">Trimestre {selectedSemester} - Année {schoolInfo?.activeSchoolYear || "2026-2027"}</p>
                   </div>
                 </div>
 

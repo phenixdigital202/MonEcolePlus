@@ -45,6 +45,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { getExamensNationaux, createExamenNational, deleteExamenNational } from "@/lib/examen-actions"
+import { getSchoolInfoAction } from "@/lib/documents-actions"
 
 export default function ExamensAdminPage() {
   const [exams, setExams] = useState<any[]>([])
@@ -67,6 +68,13 @@ export default function ExamensAdminPage() {
   const [docMention, setDocMention] = useState("Bien")
   const [docType, setDocType] = useState<"convocation" | "diplome">("convocation")
   const [generatedDoc, setGeneratedDoc] = useState<any>(null)
+  const [schoolInfo, setSchoolInfo] = useState<any>(null)
+
+  useEffect(() => {
+    getSchoolInfoAction().then(res => {
+      if (res.success) setSchoolInfo(res.data)
+    })
+  }, [])
 
   const fetchData = async () => {
     setLoading(true)
@@ -364,16 +372,19 @@ export default function ExamensAdminPage() {
 
             {generatedDoc && (
               <div id="printable-document" className="printable-area mt-6 border border-slate-100 p-5 rounded-2xl bg-slate-50 space-y-4 print:border-none print:bg-white print:p-0 print:m-0">
-                <div className="text-center space-y-1 pb-3 border-b">
+                <div className="text-center space-y-1 pb-3 border-b flex flex-col items-center">
+                  {schoolInfo?.logo_url ? (
+                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-10 w-10 object-contain mb-1 mx-auto" />
+                  ) : null}
                   {docType === "convocation" ? (
                     <>
-                      <FileText className="h-8 w-8 mx-auto text-primary" />
+                      {!schoolInfo?.logo_url && <FileText className="h-8 w-8 mx-auto text-primary" />}
                       <h4 className="font-bold text-sm text-slate-800">CONVOCATION INDIVIDUELLE</h4>
                       <p className="text-[10px] text-slate-500 uppercase tracking-widest">{generatedDoc.examNom}</p>
                     </>
                   ) : (
                     <>
-                      <Award className="h-8 w-8 mx-auto text-amber-500" />
+                      {!schoolInfo?.logo_url && <Award className="h-8 w-8 mx-auto text-amber-500" />}
                       <h4 className="font-bold text-sm text-slate-800">ATTESTATION DE RÉUSSITE</h4>
                       <p className="text-[10px] text-slate-500 uppercase tracking-widest">Mention {generatedDoc.mention}</p>
                     </>

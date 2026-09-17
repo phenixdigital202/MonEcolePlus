@@ -52,6 +52,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { getSchoolInfoAction } from "@/lib/documents-actions"
 import {
   Select,
   SelectContent,
@@ -99,16 +100,19 @@ export default function AdminPaymentsPage() {
 
   const [paymentToDelete, setPaymentToDelete] = useState<any>(null)
   const [receiptPayment, setReceiptPayment] = useState<any>(null)
+  const [schoolInfo, setSchoolInfo] = useState<any>(null)
 
   const fetchData = async () => {
     setLoading(true)
-    const [payRes, userRes] = await Promise.all([
+    const [payRes, userRes, schRes] = await Promise.all([
       getPaymentsAction(),
-      getAllUsersAction()
+      getAllUsersAction(),
+      getSchoolInfoAction()
     ])
 
     if (payRes.success) setPayments(payRes.data || [])
     if (userRes.success) setUsers(userRes.data || [])
+    if (schRes.success) setSchoolInfo(schRes.data)
     setLoading(false)
   }
 
@@ -643,8 +647,11 @@ export default function AdminPaymentsPage() {
         <DialogContent className="sm:max-w-lg rounded-3xl p-6">
           {receiptPayment && (
             <div id="printable-document" className="printable-area space-y-6 print:p-0 print:m-0 print:w-full">
-              <div className="text-center space-y-1 pb-4 border-b border-slate-100">
-                <h2 className="text-xl font-black text-primary">MonÉcole+ Groupe Scolaire</h2>
+              <div className="text-center space-y-1 pb-4 border-b border-slate-100 flex flex-col items-center">
+                {schoolInfo?.logo_url && (
+                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-12 w-12 object-contain mb-1" />
+                )}
+                <h2 className="text-xl font-black text-primary">{schoolInfo?.nom || "MonÉcole+ Groupe Scolaire"}</h2>
                 <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Reçu Officiel de Règlement</p>
                 <p className="text-[10px] text-slate-400">Reçu N° REC-{receiptPayment.id}-{new Date(receiptPayment.date_paiement).getFullYear()}</p>
               </div>

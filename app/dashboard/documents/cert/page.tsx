@@ -145,9 +145,13 @@ export default function CertificatePage() {
                  {/* 1. HEADER (Branding) */}
                  <div className="relative z-10 flex justify-between border-b-2 border-slate-900 pb-6 mb-8">
                     <div className="flex items-center gap-4">
-                       <div className="h-20 w-20 bg-primary/10 border-2 border-slate-900 flex items-center justify-center rounded-2xl">
-                          <Building2 className="h-10 w-10 text-primary" />
-                       </div>
+                        <div className="h-20 w-20 bg-primary/10 border-2 border-slate-900 flex items-center justify-center rounded-2xl overflow-hidden p-1">
+                           {schoolInfo.logo_url ? (
+                              <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                           ) : (
+                              <Building2 className="h-10 w-10 text-primary" />
+                           )}
+                        </div>
                        <div>
                           <h1 className="text-xl md:text-2xl font-black uppercase leading-none text-slate-900">{schoolInfo.nom}</h1>
                           <p className="text-xs font-bold mt-1 text-slate-700">Enseignement Primaire & Secondaire</p>

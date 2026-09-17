@@ -21,7 +21,9 @@ import {
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import { updateCoursePosition, checkCourseConflict, optimizeSchedule } from "@/lib/schedule-actions"
+import { getSchoolInfoAction } from "@/lib/documents-actions"
 import { toast } from "sonner"
+import { useEffect } from "react"
 
 const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"]
 const hours = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"]
@@ -49,6 +51,13 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
   const [isSaving, setIsSaving] = useState(false)
   const [draggedItem, setDraggedItem] = useState<any | null>(null)
   const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly")
+  const [schoolInfo, setSchoolInfo] = useState<any>(null)
+
+  useEffect(() => {
+    getSchoolInfoAction().then(res => {
+      if (res.success) setSchoolInfo(res.data)
+    })
+  }, [])
 
   const handleClassChange = (id: string) => {
     router.push(`/dashboard/schedule/edit?classId=${id}`)
@@ -212,6 +221,23 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
 
         <Card id="printable-document" className="printable-area border-none shadow-xl rounded-3xl overflow-hidden bg-white/40 backdrop-blur-md print:shadow-none print:rounded-none print:bg-white">
           <CardContent className="p-0">
+            {/* Print Header */}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 print:bg-white">
+              <div className="flex items-center gap-4">
+                {schoolInfo?.logo_url && (
+                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-12 w-12 object-contain" />
+                )}
+                <div>
+                  <h2 className="font-extrabold text-base text-slate-900 uppercase">{schoolInfo?.nom || "MonÉcole+ Groupe Scolaire"}</h2>
+                  <p className="text-xs text-slate-500 font-medium">Emploi du Temps Officiel • {initialClasses.find(c => c.id === selectedClassId)?.nom || "Classe"}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-black uppercase text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full print:border print:border-indigo-200">
+                  Année {schoolInfo?.activeSchoolYear || "2026-2027"}
+                </span>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1000px]">
                 <thead>
