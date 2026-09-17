@@ -120,7 +120,12 @@ export async function getTeachersAction() {
     const teachers = await prisma.user.findMany({
       where: { role: 'teacher' },
       include: {
-        teacherSubjects: true
+        teacherSubjects: true,
+        emploisDuTemps: {
+          select: {
+            classe: { select: { nom: true } }
+          }
+        }
       },
       orderBy: { nom: 'asc' }
     })
@@ -273,6 +278,9 @@ export async function getStudentsAction() {
           include: {
             classe: true
           }
+        },
+        notes: {
+          select: { valeur: true }
         }
       },
       orderBy: { nom: 'asc' }

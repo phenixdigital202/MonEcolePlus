@@ -78,6 +78,7 @@ import {
   removeTeacherSubjectAction 
 } from "@/lib/admin-shortcut-actions"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 const MATIERES = [
   // Tronc Commun & Primaire
@@ -209,25 +210,48 @@ export default function AdminTeachersPage() {
   }
 
   const handleExport = () => {
-    const headers = ["ID", "Nom", "Email", "Statut"]
-    const csvData = filteredTeachers.map(t => [
-      t.id,
-      t.nom,
-      t.email,
-      "Actif"
-    ])
+    if (filteredTeachers.length === 0) {
+      toast.error("Aucun enseignant à exporter.")
+      return
+    }
+
+    const exportData = filteredTeachers.map(t => {
+      const subjects = Array.from(new Set([
+        t.matiere,
+        ...(t.teacherSubjects || []).map((ts: any) => ts.matiere)
+      ].filter(Boolean)))
+      const subjectsText = subjects.length > 0 ? subjects.join(", ") : "Non définie"
+
+      const assignedClasses = Array.from(new Set((t.emploisDuTemps || []).map((e: any) => e.classe?.nom).filter(Boolean)))
+      const classesText = assignedClasses.length > 0 ? `${assignedClasses.length} (${assignedClasses.join(", ")})` : "Aucune classe"
+
+      return {
+        "Enseignant": `${t.nom || "Enseignant"} (${t.email || "Non spécifié"})`,
+        "Matière": subjectsText,
+        "Classes": classesText,
+        "Statut": "Actif",
+        "Actions": "Enseignant Titulaire - Profil Consultable"
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+
+    // Format column widths
+    worksheet["!cols"] = [
+      { wch: 35 }, // Enseignant
+      { wch: 25 }, // Matière
+      { wch: 25 }, // Classes
+      { wch: 15 }, // Statut
+      { wch: 35 }  // Actions
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Liste Enseignants")
+
+    const fileName = `liste_enseignants_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(workbook, fileName)
     
-    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", `enseignants_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast.success("Liste exportée avec succès")
+    toast.success("Liste des enseignants exportée en fichier Excel (.xlsx) avec succès !")
   }
 
   const filteredTeachers = teachers.filter(teacher => {
@@ -522,7 +546,7 @@ export default function AdminTeachersPage() {
               onClick={handleExport}
             >
               <Download className="h-4 w-4" />
-              Exporter CSV
+              Exporter Liste
             </Button>
           </div>
         </CardHeader>
@@ -550,40 +574,42 @@ export default function AdminTeachersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTeachers.map((teacher) => (
-                    <TableRow key={teacher.id} className="group hover:bg-slate-50/50 transition-colors">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                              {teacher.nom ? teacher.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-bold text-slate-800">{teacher.nom}</p>
-                            <p className="text-xs text-slate-500">{teacher.email}</p>
+                  filteredTeachers.map((teacher) => {
+                    const assignedClassesCount = new Set((teacher.emploisDuTemps || []).map((e: any) => e.classe?.nom).filter(Boolean)).size
+                    return (
+                      <TableRow key={teacher.id} className="group hover:bg-slate-50/50 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                                {teacher.nom ? teacher.nom.split(' ').map((n: string) => n[0]).join('') : "P"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-bold text-slate-800">{teacher.nom}</p>
+                              <p className="text-xs text-slate-500">{teacher.email}</p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {Array.from(new Set([
-                            teacher.matiere,
-                            ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
-                          ].filter(Boolean))).map((sub: any) => (
-                            <Badge key={sub} variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none rounded-full text-xs">
-                              {sub}
-                            </Badge>
-                          ))}
-                          {Array.from(new Set([
-                            teacher.matiere,
-                            ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
-                          ].filter(Boolean))).length === 0 && (
-                            <span className="text-xs text-slate-400 italic">À définir</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-slate-700">0</TableCell>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {Array.from(new Set([
+                              teacher.matiere,
+                              ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
+                            ].filter(Boolean))).map((sub: any) => (
+                              <Badge key={sub} variant="secondary" className="bg-slate-100 text-slate-700 font-bold border-none rounded-full text-xs">
+                                {sub}
+                              </Badge>
+                            ))}
+                            {Array.from(new Set([
+                              teacher.matiere,
+                              ...(teacher.teacherSubjects || []).map((ts: any) => ts.matiere)
+                            ].filter(Boolean))).length === 0 && (
+                              <span className="text-xs text-slate-400 italic">À définir</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-slate-700">{assignedClassesCount}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className={`h-2 w-2 rounded-full bg-emerald-500 animate-pulse`} />

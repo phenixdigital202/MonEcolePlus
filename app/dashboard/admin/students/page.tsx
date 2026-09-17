@@ -71,6 +71,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { getStudentsAction, addStudentAction, deleteUserAction, updateUserAction, getShortcutMetaData } from "@/lib/admin-shortcut-actions"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<any[]>([])
@@ -159,26 +160,45 @@ export default function AdminStudentsPage() {
   }
 
   const handleExport = () => {
-    const headers = ["ID", "Nom", "Email", "Classe", "Statut"]
-    const csvData = filteredStudents.map(s => [
-      s.id,
-      s.nom,
-      s.email,
-      s.inscriptions?.[0]?.classe?.nom || "N/A",
-      "Actif"
-    ])
+    if (filteredStudents.length === 0) {
+      toast.error("Aucun élève à exporter.")
+      return
+    }
+
+    const exportData = filteredStudents.map(s => {
+      const currentInscription = s.inscriptions?.[0]
+      const notes = s.notes || []
+      const avgVal = notes.length > 0
+        ? (notes.reduce((acc: number, n: any) => acc + Number(n.valeur), 0) / notes.length).toFixed(1) + " / 20"
+        : "--/20"
+
+      return {
+        "Élève": `${s.nom || "Élève"} (${s.email || "Non spécifié"})`,
+        "Classe": currentInscription?.classe?.nom || "Non inscrit",
+        "Moyenne": avgVal,
+        "Statut": "Actif",
+        "Actions": "Inscrit - Profil Consultable"
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+
+    // Format column widths
+    worksheet["!cols"] = [
+      { wch: 35 }, // Élève
+      { wch: 20 }, // Classe
+      { wch: 15 }, // Moyenne
+      { wch: 15 }, // Statut
+      { wch: 30 }  // Actions
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Liste des Élèves")
+
+    const fileName = `liste_eleves_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(workbook, fileName)
     
-    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", `eleves_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast.success("Liste exportée avec succès")
+    toast.success("Liste des élèves téléversée/exportée en Excel (.xlsx) avec succès !")
   }
 
   const filteredStudents = students.filter(student => {
@@ -457,6 +477,11 @@ export default function AdminStudentsPage() {
                 ) : (
                   filteredStudents.map((student) => {
                     const currentInscription = student.inscriptions?.[0]
+                    const notes = student.notes || []
+                    const studentAvg = notes.length > 0
+                      ? (notes.reduce((acc: number, n: any) => acc + Number(n.valeur), 0) / notes.length).toFixed(1) + "/20"
+                      : "--/20"
+
                     return (
                       <TableRow key={student.id} className="group hover:bg-slate-50/50 transition-colors">
                         <TableCell>
@@ -477,7 +502,7 @@ export default function AdminStudentsPage() {
                             {currentInscription?.classe?.nom || "Non inscrit"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-bold text-slate-700">--/20</TableCell>
+                        <TableCell className="font-bold text-slate-700">{studentAvg}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
