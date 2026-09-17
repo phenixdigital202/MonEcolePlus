@@ -44,8 +44,8 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
     redirect("/login")
   }
 
-  // Parallelize security check, class query, and attendance calculation for maximum speed
-  const [isTeaching, classe, totalAbsences] = await Promise.all([
+  // Parallelize security check and class query for maximum speed
+  const [isTeaching, classe] = await Promise.all([
     user.role === 'teacher'
       ? prisma.emploiDuTemps.findFirst({
           where: { id_classe: classId, id_enseignant: user.id },
@@ -97,13 +97,6 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
           select: { inscriptions: true }
         }
       }
-    }),
-    prisma.absence.count({
-      where: {
-        eleve: {
-          inscriptions: { some: { id_classe: classId } }
-        }
-      }
     })
   ])
 
@@ -114,6 +107,13 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
   if (!classe) {
     notFound()
   }
+
+  const studentIds = classe.inscriptions.map(i => i.id_eleve)
+  const totalAbsences = studentIds.length > 0 
+    ? await prisma.absence.count({
+        where: { id_eleve: { in: studentIds } }
+      })
+    : 0
 
   const totalStudents = classe._count.inscriptions
   const attendanceRate = totalStudents > 0 ? Math.max(0, 100 - (totalAbsences / (totalStudents * 10)) * 100).toFixed(0) : "100"
