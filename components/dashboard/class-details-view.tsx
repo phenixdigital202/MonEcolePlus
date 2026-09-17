@@ -117,9 +117,6 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
           ))}
         </div>
 
-        {/* GESTION PÉDAGOGIQUE (PROF PRINCIPAL, MATIÈRES, COEFFICIENTS & ENSEIGNANTS) */}
-        <ClassPedagogySection classId={classId} userRole={userRole} />
-
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Student List */}
           <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl overflow-hidden">
@@ -284,6 +281,9 @@ export function ClassDetailsView({ classe, classId, userRole = "admin" }: ClassD
             </Card>
           </div>
         </div>
+
+        {/* GESTION PÉDAGOGIQUE (PROF PRINCIPAL, MATIÈRES, COEFFICIENTS & ENSEIGNANTS) - PLACÉ EN BAS DE PAGE */}
+        <ClassPedagogySection classId={classId} userRole={userRole} />
       </main>
 
       <EnrollmentModal 

@@ -65,7 +65,7 @@ export default async function ClassesPage() {
       }
     }),
     isTeacher 
-      ? prisma.inscription.count({ where: { id_classe: { in: (await prisma.class.findMany({ where: { emploisDuTemps: { some: { id_enseignant: user.id } } }, select: { id: true } })).map(c => c.id) } } })
+      ? prisma.inscription.count({ where: { classe: { emploisDuTemps: { some: { id_enseignant: user.id } } } } })
       : prisma.user.count({ where: { role: 'student' } }),
     prisma.user.count({ where: { role: 'teacher' } }),
     prisma.note.aggregate({

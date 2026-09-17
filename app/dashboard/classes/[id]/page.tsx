@@ -44,72 +44,78 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
     redirect("/login")
   }
 
-  // Security check: if teacher, ensure they teach this class
-  if (user.role === 'teacher') {
-    const isTeaching = await prisma.emploiDuTemps.findFirst({
-      where: {
-        id_classe: classId,
-        id_enseignant: user.id
-      }
-    })
-    if (!isTeaching) {
-      redirect("/dashboard/classes")
-    }
-  }
-
-  const classe = await prisma.class.findUnique({
-    where: { id: classId },
-    include: {
-      professeurPrincipal: {
-        select: { id: true, nom: true, email: true, role: true }
-      },
-      inscriptions: {
-        include: {
-          user: {
-            include: {
-              notes: {
-                where: {
-                  evaluation: { id_classe: classId }
-                },
-                select: { valeur: true }
+  // Parallelize security check, class query, and attendance calculation for maximum speed
+  const [isTeaching, classe, totalAbsences] = await Promise.all([
+    user.role === 'teacher'
+      ? prisma.emploiDuTemps.findFirst({
+          where: { id_classe: classId, id_enseignant: user.id },
+          select: { id: true }
+        })
+      : Promise.resolve(true),
+    prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        nom: true,
+        niveau: true,
+        capacite: true,
+        professeurPrincipal: {
+          select: { id: true, nom: true, email: true, role: true }
+        },
+        inscriptions: {
+          select: {
+            id: true,
+            id_eleve: true,
+            user: {
+              select: {
+                id: true,
+                nom: true,
+                email: true,
+                notes: {
+                  where: { evaluation: { id_classe: classId } },
+                  select: { valeur: true }
+                }
               }
             }
           }
-        }
-      },
-      emploisDuTemps: {
-        include: {
-          user: {
-            select: { nom: true }
+        },
+        emploisDuTemps: {
+          select: {
+            id: true,
+            matiere: true,
+            salle: true,
+            user: { select: { id: true, nom: true, email: true } }
           }
-        }
-      },
-      evaluations: {
-        include: {
-          notes: {
-            select: { valeur: true }
+        },
+        evaluations: {
+          select: {
+            id: true,
+            notes: { select: { valeur: true } }
           }
+        },
+        _count: {
+          select: { inscriptions: true }
         }
-      },
-      _count: {
-        select: { inscriptions: true }
       }
-    }
-  })
+    }),
+    prisma.absence.count({
+      where: {
+        eleve: {
+          inscriptions: { some: { id_classe: classId } }
+        }
+      }
+    })
+  ])
+
+  if (user.role === 'teacher' && !isTeaching) {
+    redirect("/dashboard/classes")
+  }
 
   if (!classe) {
     notFound()
   }
 
-  // Calculate attendance (Real logic would sum total sessions vs absences)
   const totalStudents = classe._count.inscriptions
-  const totalAbsences = await prisma.absence.count({
-    where: {
-      id_eleve: { in: classe.inscriptions.map(i => i.id_eleve) }
-    }
-  })
-  
-  // Mock attendance rate based on real absence count for realism
   const attendanceRate = totalStudents > 0 ? Math.max(0, 100 - (totalAbsences / (totalStudents * 10)) * 100).toFixed(0) : "100"
 
   // Process student averages
