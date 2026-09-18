@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { getCertificateStudentsAction, getSchoolInfoAction } from "@/lib/documents-actions"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { toast } from "sonner"
 
 export default function CertificatePage() {
@@ -233,10 +234,18 @@ export default function CertificatePage() {
                    <CardTitle className="text-lg font-bold">Actions & Export</CardTitle>
                  </CardHeader>
                  <CardContent className="space-y-3">
-                   <Button className="w-full h-12 shadow-lg rounded-2xl bg-primary text-white font-bold gap-2 border-none" onClick={handlePrint}>
+                   <Button className="w-full h-12 shadow-lg rounded-2xl bg-primary text-white font-bold gap-2 border-none" onClick={() => window.print()}>
                      <Printer className="h-4 w-4" /> Imprimer le certificat
                    </Button>
-                   <Button variant="outline" className="w-full h-12 bg-white rounded-2xl font-bold gap-2" onClick={handlePrint}>
+                   <Button variant="outline" className="w-full h-12 bg-white rounded-2xl font-bold gap-2" onClick={() => {
+                     if (!selectedStudent) return
+                     toast.info("Génération du certificat PDF...")
+                     downloadDocumentAsPdf({
+                       elementId: "printable-document",
+                       filename: `Certificat_Scolarite_${selectedStudent.nom?.replace(/\s+/g, "_")}`,
+                       format: "a4"
+                     })
+                   }}>
                      <Download className="h-4 w-4" /> Télécharger en PDF
                    </Button>
                  </CardContent>

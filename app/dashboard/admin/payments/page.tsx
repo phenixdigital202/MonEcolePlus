@@ -72,6 +72,8 @@ import {
 } from "@/lib/payment-actions"
 import { getAllUsersAction } from "@/lib/admin-shortcut-actions"
 import { PaymentReceiptDocument } from "@/components/documents/payment-receipt-document"
+import { DocumentPrintContainer } from "@/components/documents/document-print-container"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { toast } from "sonner"
 
 export default function AdminPaymentsPage() {
@@ -643,7 +645,20 @@ export default function AdminPaymentsPage() {
         </CardContent>
       </Card>
 
-      {/* REÇU MODAL */}
+      {/* REÇU MODAL & PRINT PORTAL */}
+      {receiptPayment && (
+        <DocumentPrintContainer pageSize="a5">
+          <PaymentReceiptDocument
+            payment={receiptPayment}
+            schoolInfo={schoolInfo}
+            totalPaidByStudent={payments
+              .filter((p) => p.id_utilisateur === receiptPayment.id_utilisateur && p.status === "paye")
+              .reduce((acc, p) => acc + Number(p.montant), 0)}
+            printFormat="A5"
+          />
+        </DocumentPrintContainer>
+      )}
+
       <Dialog open={!!receiptPayment} onOpenChange={(open) => !open && setReceiptPayment(null)}>
         <DialogContent className="sm:max-w-2xl rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
           {receiptPayment && (
@@ -654,21 +669,36 @@ export default function AdminPaymentsPage() {
                 totalPaidByStudent={payments
                   .filter((p) => p.id_utilisateur === receiptPayment.id_utilisateur && p.status === "paye")
                   .reduce((acc, p) => acc + Number(p.montant), 0)}
+                printFormat="A5"
               />
 
               <DialogFooter className="gap-2 sm:gap-0 print:hidden no-print pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center">
                 <div className="text-[11px] text-slate-500 italic">
-                  Format recommandé : A5 / A4 Portrait
+                  Format conseillé : A5 / A4 Portrait
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" className="rounded-xl font-bold" onClick={() => setReceiptPayment(null)}>
                     Fermer
                   </Button>
                   <Button
+                    variant="outline"
+                    className="rounded-xl border-slate-300 font-bold gap-2 text-slate-700"
+                    onClick={() => {
+                      toast.info("Génération du fichier PDF en cours...")
+                      downloadDocumentAsPdf({
+                        elementId: "printable-document",
+                        filename: `Recu_Paiement_REC-${String(receiptPayment.id).padStart(6, "0")}`,
+                        format: "a5"
+                      })
+                    }}
+                  >
+                    <Download className="h-4 w-4" /> Télécharger PDF
+                  </Button>
+                  <Button
                     className="rounded-xl bg-primary text-white font-bold border-none gap-2 shadow-lg shadow-primary/20"
                     onClick={() => window.print()}
                   >
-                    <Printer className="h-4 w-4" /> Imprimer le reçu
+                    <Printer className="h-4 w-4" /> Imprimer
                   </Button>
                 </div>
               </DialogFooter>

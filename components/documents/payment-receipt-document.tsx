@@ -87,20 +87,20 @@ export function PaymentReceiptDocument({
   return (
     <div
       id="printable-document"
-      className="printable-area w-full max-w-[210mm] mx-auto bg-white p-6 rounded-2xl border border-slate-200 text-slate-900 shadow-sm print:shadow-none print:border-none print:p-0 print:m-0 print:w-full font-sans leading-relaxed text-xs"
+      className="printable-area print-page-a5 w-full max-w-[148mm] mx-auto bg-white p-6 border border-slate-200 text-slate-900 shadow-sm print:shadow-none print:border-none print:p-0 print:m-0 font-sans leading-relaxed text-xs box-border"
     >
       {/* HEADER SECTION */}
-      <div className="flex items-start justify-between pb-4 border-b-2 border-slate-900 gap-4">
+      <div className="flex items-start justify-between pb-3 border-b-2 border-slate-900 gap-3">
         {/* LOGO */}
         <div className="flex-shrink-0">
           {schoolInfo?.logo_url ? (
             <img
               src={schoolInfo.logo_url}
               alt="Logo Établissement"
-              className="h-16 w-auto max-w-[120px] object-contain"
+              className="h-14 w-auto max-w-[110px] object-contain"
             />
           ) : (
-            <div className="h-14 w-14 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xl tracking-tighter">
+            <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-lg tracking-tighter">
               M+
             </div>
           )}
@@ -108,13 +108,13 @@ export function PaymentReceiptDocument({
 
         {/* SCHOOL INFORMATION */}
         <div className="flex-1 text-center space-y-0.5">
-          <h1 className="text-base font-black uppercase tracking-tight text-slate-950">
+          <h1 className="text-sm font-black uppercase tracking-tight text-slate-950">
             {schoolInfo?.nom || "ÉTABLISSEMENT SCOLAIRE DE CÔTE D'IVOIRE"}
           </h1>
-          <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-widest">
+          <p className="text-[8px] font-semibold text-slate-500 uppercase tracking-widest">
             République de Côte d'Ivoire &bull; Union - Discipline - Travail
           </p>
-          <div className="text-[10px] text-slate-600 space-x-2 pt-0.5">
+          <div className="text-[9px] text-slate-600 space-x-2 pt-0.5">
             {schoolInfo?.adresse && <span>{schoolInfo.adresse}</span>}
             {schoolInfo?.telephone && <span>&bull; Tél: {schoolInfo.telephone}</span>}
             {schoolInfo?.email && <span>&bull; Email: {schoolInfo.email}</span>}
@@ -122,35 +122,35 @@ export function PaymentReceiptDocument({
         </div>
 
         {/* RIGHT BADGE / REPUBLIQUE */}
-        <div className="flex-shrink-0 text-right hidden sm:block print:block">
-          <span className="inline-block text-[9px] font-bold text-slate-400 border border-slate-200 px-2 py-1 rounded-md uppercase">
+        <div className="flex-shrink-0 text-right block">
+          <span className="inline-block text-[8px] font-bold text-slate-500 border border-slate-200 px-2 py-0.5 rounded uppercase">
             Année {academicYear}
           </span>
         </div>
       </div>
 
       {/* DOCUMENT TITLE & RECEIPT NUMBER */}
-      <div className="py-4 text-center space-y-1">
-        <h2 className="text-lg font-black text-slate-900 uppercase tracking-wider">
+      <div className="py-3 text-center space-y-1">
+        <h2 className="text-base font-black text-slate-900 uppercase tracking-wider">
           REÇU OFFICIEL DE PAIEMENT
         </h2>
-        <div className="inline-block bg-slate-100 text-slate-800 font-mono font-bold px-3 py-1 rounded-md text-xs border border-slate-300">
+        <div className="inline-block bg-slate-100 text-slate-800 font-mono font-bold px-3 py-0.5 rounded text-xs border border-slate-300">
           N° {receiptNumber}
         </div>
       </div>
 
       {/* GRID 2 COLUMNS: STUDENT INFO & REGULATION DETAILS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         {/* BLOCK 1: INFORMATIONS ÉLÈVE */}
-        <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 space-y-2">
+        <div className="border border-slate-200 rounded-xl p-2.5 bg-slate-50/50 space-y-1.5">
           <div className="border-b border-slate-200 pb-1 flex items-center justify-between">
-            <span className="font-black text-[10px] text-slate-900 uppercase tracking-wider">
+            <span className="font-black text-[9px] text-slate-900 uppercase tracking-wider">
               INFORMATIONS DE L'ÉLÈVE
             </span>
-            <span className="text-[9px] text-slate-400 font-mono">BÉNÉFICIAIRE</span>
+            <span className="text-[8px] text-slate-400 font-mono">BÉNÉFICIAIRE</span>
           </div>
 
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1 text-[11px]">
             <div className="flex justify-between">
               <span className="text-slate-500 font-medium">Nom & Prénom :</span>
               <span className="font-bold text-slate-950">{student.nom || "—"}</span>
@@ -177,15 +177,15 @@ export function PaymentReceiptDocument({
         </div>
 
         {/* BLOCK 2: DÉTAIL DU RÈGLEMENT */}
-        <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 space-y-2">
+        <div className="border border-slate-200 rounded-xl p-2.5 bg-slate-50/50 space-y-1.5">
           <div className="border-b border-slate-200 pb-1 flex items-center justify-between">
-            <span className="font-black text-[10px] text-slate-900 uppercase tracking-wider">
+            <span className="font-black text-[9px] text-slate-900 uppercase tracking-wider">
               DÉTAIL DU RÈGLEMENT
             </span>
-            <span className="text-[9px] text-slate-400 font-mono">TRANSACTION</span>
+            <span className="text-[8px] text-slate-400 font-mono">TRANSACTION</span>
           </div>
 
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1 text-[11px]">
             <div className="flex justify-between">
               <span className="text-slate-500 font-medium">Motif du Règlement :</span>
               <span className="font-black uppercase text-slate-900">{payment.type || "SCOLARITÉ"}</span>
@@ -211,22 +211,22 @@ export function PaymentReceiptDocument({
       </div>
 
       {/* BLOCK 3: MONTANT RÉGLÉ & STATUT */}
-      <div className="border-2 border-slate-900 rounded-xl p-4 mb-4 bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1 text-center sm:text-left">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <div className="border-2 border-slate-900 rounded-xl p-3 mb-3 bg-slate-900 text-white flex flex-row items-center justify-between gap-3">
+        <div className="space-y-0.5 text-left">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
             MONTANT RÉGLÉ
           </span>
-          <div className="text-2xl font-black tracking-tight text-emerald-400">
+          <div className="text-xl font-black tracking-tight text-emerald-400">
             {amountNumber.toLocaleString("fr-FR")} FCFA
           </div>
-          <div className="text-xs italic text-slate-300 font-medium">
+          <div className="text-[10px] italic text-slate-300 font-medium">
             Montant en lettres : <span className="font-bold text-white uppercase">{amountInWords}</span>
           </div>
         </div>
 
         <div className="flex-shrink-0 text-center">
           <div
-            className={`border-2 border-dashed px-4 py-2 rounded-xl text-center uppercase tracking-widest font-black text-xs ${
+            className={`border-2 border-dashed px-3 py-1.5 rounded-xl text-center uppercase tracking-widest font-black text-[10px] ${
               isPaid
                 ? "border-emerald-400 text-emerald-300 bg-emerald-950/60"
                 : isPending
@@ -241,7 +241,7 @@ export function PaymentReceiptDocument({
 
       {/* FINANCIAL CONTEXT SUMMARY IF AVAILABLE */}
       {typeof totalPaidByStudent === "number" && totalPaidByStudent > 0 && (
-        <div className="mb-4 px-3 py-2 bg-slate-100 rounded-lg text-[11px] text-slate-700 flex justify-between items-center border border-slate-200">
+        <div className="mb-3 px-3 py-1.5 bg-slate-100 rounded-lg text-[10px] text-slate-700 flex justify-between items-center border border-slate-200">
           <span className="font-medium text-slate-600">
             Cumul des versements validés enregistrés pour cet élève :
           </span>
@@ -250,36 +250,36 @@ export function PaymentReceiptDocument({
       )}
 
       {/* OFFICIAL ATTESTATION TEXT */}
-      <div className="mb-6 text-[10px] text-slate-600 text-center italic bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+      <div className="mb-4 text-[9px] text-slate-600 text-center italic bg-slate-50 p-2 rounded-lg border border-slate-200">
         "Le présent reçu atteste du règlement du montant indiqué ci-dessus et constitue une preuve officielle de paiement enregistrée dans le système de gestion de l'établissement."
       </div>
 
       {/* SIGNATURE & CACHET SECTION */}
-      <div className="grid grid-cols-2 gap-6 pt-2 mb-6 border-t border-slate-200">
+      <div className="grid grid-cols-2 gap-4 pt-2 mb-4 border-t border-slate-200">
         {/* SIGNATURE */}
-        <div className="text-center space-y-8">
-          <span className="font-bold text-[10px] text-slate-800 uppercase tracking-wider block">
+        <div className="text-center space-y-6">
+          <span className="font-bold text-[9px] text-slate-800 uppercase tracking-wider block">
             SIGNATURE DU RESPONSABLE
           </span>
-          <div className="h-10 flex items-end justify-center">
-            <div className="w-36 border-b border-slate-400"></div>
+          <div className="h-8 flex items-end justify-center">
+            <div className="w-32 border-b border-slate-400"></div>
           </div>
         </div>
 
         {/* CACHET OFFICIEL */}
-        <div className="text-center space-y-2">
-          <span className="font-bold text-[10px] text-slate-800 uppercase tracking-wider block">
+        <div className="text-center space-y-1">
+          <span className="font-bold text-[9px] text-slate-800 uppercase tracking-wider block">
             CACHET DE L'ÉTABLISSEMENT
           </span>
-          <div className="h-16 flex items-center justify-center">
+          <div className="h-14 flex items-center justify-center">
             {schoolInfo?.cachet_url ? (
               <img
                 src={schoolInfo.cachet_url}
                 alt="Cachet de l'établissement"
-                className="h-16 w-auto max-w-[140px] object-contain mx-auto"
+                className="h-14 w-auto max-w-[120px] object-contain mx-auto"
               />
             ) : (
-              <div className="border-2 border-dashed border-slate-300 rounded-lg h-14 w-36 flex items-center justify-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg h-12 w-32 flex items-center justify-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
                 Zone Cachet
               </div>
             )}
@@ -288,7 +288,7 @@ export function PaymentReceiptDocument({
       </div>
 
       {/* DISCREET FOOTER */}
-      <div className="pt-3 border-t border-slate-200 text-[9px] text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-1 text-center sm:text-left">
+      <div className="pt-2 border-t border-slate-200 text-[8px] text-slate-400 flex flex-row justify-between items-center gap-1 text-left">
         <div>
           Document officiel généré par <span className="font-bold text-slate-700">MonÉcole+</span> &bull; Plateforme de Gestion Scolaire
         </div>

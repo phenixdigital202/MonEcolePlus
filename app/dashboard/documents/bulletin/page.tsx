@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select"
 import { getClasses } from "@/lib/grades-actions"
 import { getBulletinFullClassDataAction, getSchoolInfoAction } from "@/lib/documents-actions"
+import { DocumentPrintContainer } from "@/components/documents/document-print-container"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
@@ -213,8 +215,19 @@ export default function BulletinBatchPage() {
                             </SelectContent>
                          </Select>
                       </div>
+                      <Button size="sm" variant="outline" className="border-slate-300 font-bold rounded-xl gap-2 text-slate-700 bg-white" onClick={() => {
+                        if (!currentStudent) return
+                        toast.info("Génération du bulletin PDF...")
+                        downloadDocumentAsPdf({
+                          elementId: "bulletin-document",
+                          filename: `Bulletin_${currentStudent.nom?.replace(/\s+/g, '_')}_T${selectedSemester}`,
+                          format: "a4"
+                        })
+                      }}>
+                        <Download className="h-4 w-4" /> Télécharger PDF
+                      </Button>
                       <Button size="sm" className="bg-primary text-white font-bold rounded-xl gap-2" onClick={handlePrint}>
-                        <Printer className="h-4 w-4" /> Imprimer / PDF
+                        <Printer className="h-4 w-4" /> Imprimer
                       </Button>
                    </div>
                 </div>
@@ -222,6 +235,86 @@ export default function BulletinBatchPage() {
                 {/* High-Fidelity Printable Bulletin Template */}
                 {currentStudent ? (
                   <div id="printable-document" className="relative printable-area print:w-full print:max-w-none print:m-0 print:p-0">
+                    <DocumentPrintContainer pageSize="a4">
+                      <div id="bulletin-document" className="printable-area w-full bg-white p-8 rounded-3xl text-slate-900 border border-slate-200">
+                        {/* Header */}
+                        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
+                          <div className="flex gap-4 items-center">
+                            {schoolInfo.logo_url && (
+                              <img src={schoolInfo.logo_url} alt="Logo" className="h-16 w-auto max-w-[120px] object-contain" />
+                            )}
+                            <div>
+                              <h2 className="text-xl font-black uppercase text-slate-950">{schoolInfo.nom}</h2>
+                              <p className="text-xs text-slate-600 font-medium">{schoolInfo.adresse} &bull; {schoolInfo.telephone}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <h1 className="text-2xl font-black uppercase tracking-wider text-slate-900">BULLETIN DE NOTES</h1>
+                            <p className="text-xs font-bold uppercase tracking-widest text-primary">Trimestre {selectedSemester} &bull; Année 2025-2026</p>
+                          </div>
+                        </div>
+
+                        {/* Student Metadata */}
+                        <div className="grid grid-cols-4 gap-3 mb-6 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                          <div>ÉLÈVE : <span className="font-black text-slate-900 uppercase">{currentStudent.nom}</span></div>
+                          <div>CLASSE : <span className="font-black text-slate-900">{currentStudent.classNom}</span></div>
+                          <div>EFFECTIF : <span className="font-black text-slate-900">{currentStudent.totalStudents}</span></div>
+                          <div className="text-right">RANG : <span className="font-black text-primary">#{currentStudent.rank}</span></div>
+                        </div>
+
+                        {/* Subjects Table */}
+                        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
+                          <thead className="bg-slate-100 uppercase font-black text-slate-700">
+                            <tr>
+                              <th className="border border-slate-300 p-2 text-left">Matières</th>
+                              <th className="border border-slate-300 p-2 text-center">Coef</th>
+                              <th className="border border-slate-300 p-2 text-center">Moyenne / 20</th>
+                              <th className="border border-slate-300 p-2 text-left">Appréciation</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {currentStudent.subjects?.map((m: any, i: number) => (
+                              <tr key={i} className="border-b border-slate-200">
+                                <td className="border border-slate-300 p-2 font-bold text-slate-900">{m.name}</td>
+                                <td className="border border-slate-300 p-2 text-center">{m.coef}</td>
+                                <td className="border border-slate-300 p-2 text-center font-black text-primary bg-primary/5">{m.avg.toFixed(2)}</td>
+                                <td className="border border-slate-300 p-2 text-[11px] italic text-slate-600">{m.feedback}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        {/* Summary */}
+                        <div className="grid grid-cols-2 gap-6 mb-6">
+                          <div className="p-4 border border-slate-300 bg-slate-50 text-center rounded-2xl">
+                            <p className="text-[10px] uppercase font-bold text-slate-500">Moyenne Générale</p>
+                            <p className="text-3xl font-black text-slate-900">{currentStudent.overallAvg.toFixed(2)} / 20</p>
+                          </div>
+                          <div className="p-4 border border-slate-300 bg-primary/10 text-center rounded-2xl">
+                            <p className="text-[10px] uppercase font-bold text-primary">Rang de Classe</p>
+                            <p className="text-3xl font-black text-primary">#{currentStudent.rank} <span className="text-xs font-bold text-slate-500">/ {currentStudent.totalStudents}</span></p>
+                          </div>
+                        </div>
+
+                        {/* Signatures */}
+                        <div className="flex justify-between items-end border-t border-slate-200 pt-6">
+                          <div className="flex gap-3 items-center">
+                            <QrCode className="h-12 w-12 text-slate-900" />
+                            <p className="text-[8px] font-mono leading-tight text-slate-500">DOCUMENT SÉCURISÉ<br/>Vérifié par MonÉcole+</p>
+                          </div>
+                          <div className="text-center w-56">
+                            <p className="text-[10px] font-black uppercase mb-10 text-slate-800">Cachet & Signature du Directeur</p>
+                            {schoolInfo.cachet_url ? (
+                              <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-16 w-auto object-contain mx-auto" />
+                            ) : (
+                              <div className="h-14 w-32 border-2 border-dashed border-slate-300 rounded-xl mx-auto flex items-center justify-center text-[8px] font-bold text-slate-400 uppercase">
+                                Cachet Officiel
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </DocumentPrintContainer>
                     {/* 1. MODEL PREMIUM (Stripe / Canva style) */}
                     {selectedTemplateStyle === "premium" && (
                       <Card className="relative overflow-hidden border border-slate-100 shadow-2xl bg-white text-slate-800 p-8 md:p-12 rounded-[2rem] font-sans print:shadow-none print:border-none print:p-0">

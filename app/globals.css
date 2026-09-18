@@ -300,13 +300,17 @@ a, button, input, select, textarea,
 }
 
 /* ═══════════════════════════════════════════════
-   PRINT STYLES — Strict A4 Document Isolation
+   PRINT ENGINE — Universal Document Isolation
    ═══════════════════════════════════════════════ */
+
+/* Screen Mode: Hide the print portal container */
+#document-print-portal {
+  display: none;
+}
 
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 10mm;
+    margin: 5mm;
   }
 
   html, body {
@@ -317,63 +321,98 @@ a, button, input, select, textarea,
     width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    font-size: 11pt;
   }
 
-  /* 1. Hide EVERYTHING under body by default during print */
-  body * {
-    visibility: hidden !important;
+  /* 1. Hide EVERYTHING directly under body EXCEPT #document-print-portal */
+  body > *:not(#document-print-portal) {
+    display: none !important;
   }
 
-  /* 2. Explicitly make ONLY printable document elements and their contents visible */
-  #printable-document-container,
-  #printable-document-container *,
-  .printable-area,
-  .printable-area *,
-  #printable-document,
-  #printable-document * {
+  /* 2. Display ONLY the print portal with full unconstrained layout */
+  #document-print-portal {
+    display: block !important;
     visibility: visible !important;
-  }
-
-  /* 3. Position the printable document at absolute top-left (0,0) to isolate it completely from the page layout */
-  #printable-document-container,
-  .printable-area,
-  #printable-document {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     box-shadow: none !important;
     border: none !important;
+    overflow: visible !important;
+    z-index: 99999999 !important;
+  }
+
+  #document-print-portal * {
+    visibility: visible !important;
+  }
+
+  /* 3. Fallback for legacy pages printing in-place */
+  body:not(:has(#document-print-portal *)) .printable-area,
+  body:not(:has(#document-print-portal *)) #printable-document {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
     z-index: 999999 !important;
   }
 
-  /* 4. Hide interactive elements, buttons, overlays, and sidebars */
-  button,
-  nav,
-  aside,
-  header,
-  .no-print,
-  .print\:hidden,
-  .no-print-system-alert,
-  [role="alert"],
-  [data-sidebar] {
+  body:not(:has(#document-print-portal *)) aside,
+  body:not(:has(#document-print-portal *)) nav,
+  body:not(:has(#document-print-portal *)) header,
+  body:not(:has(#document-print-portal *)) [role="dialog"]:not(:has(.printable-area)) {
     display: none !important;
-    visibility: hidden !important;
   }
 
-  /* 5. Prevent page breaks inside cards or table rows */
-  table, tr, td, th, .card, .printable-card {
+  /* 4. Format specific paper size containers — Fixed paper surface at (0,0) */
+  .document-print-wrapper.format-a5,
+  .print-page-a5 {
+    width: 148mm !important;
+    max-width: 148mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  .document-print-wrapper.format-a4,
+  .print-page-a4 {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  /* 5. Hide interactive buttons and non-printable elements */
+  button,
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 6. Prevent awkward page breaks in tables, cards, and sections */
+  table, tr, td, th, .card, .printable-card, .avoid-page-break {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
-  /* 6. Strip auto-generated link URLs */
+  /* 7. Strip auto-generated link URLs */
   a[href]:after {
     content: "" !important;
   }
