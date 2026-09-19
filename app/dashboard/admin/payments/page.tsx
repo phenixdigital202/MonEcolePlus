@@ -103,6 +103,7 @@ export default function AdminPaymentsPage() {
 
   const [paymentToDelete, setPaymentToDelete] = useState<any>(null)
   const [receiptPayment, setReceiptPayment] = useState<any>(null)
+  const [receiptFormat, setReceiptFormat] = useState<"A4" | "A5">("A4")
   const [schoolInfo, setSchoolInfo] = useState<any>(null)
 
   const fetchData = async () => {
@@ -647,20 +648,20 @@ export default function AdminPaymentsPage() {
 
       {/* REÇU MODAL & PRINT PORTAL */}
       {receiptPayment && (
-        <DocumentPrintContainer pageSize="a5">
+        <DocumentPrintContainer pageSize={receiptFormat === "A4" ? "a4" : "a5"}>
           <PaymentReceiptDocument
             payment={receiptPayment}
             schoolInfo={schoolInfo}
             totalPaidByStudent={payments
               .filter((p) => p.id_utilisateur === receiptPayment.id_utilisateur && p.status === "paye")
               .reduce((acc, p) => acc + Number(p.montant), 0)}
-            printFormat="A5"
+            printFormat={receiptFormat}
           />
         </DocumentPrintContainer>
       )}
 
       <Dialog open={!!receiptPayment} onOpenChange={(open) => !open && setReceiptPayment(null)}>
-        <DialogContent className="sm:max-w-2xl rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
           {receiptPayment && (
             <div className="space-y-4">
               <PaymentReceiptDocument
@@ -669,13 +670,38 @@ export default function AdminPaymentsPage() {
                 totalPaidByStudent={payments
                   .filter((p) => p.id_utilisateur === receiptPayment.id_utilisateur && p.status === "paye")
                   .reduce((acc, p) => acc + Number(p.montant), 0)}
-                printFormat="A5"
+                printFormat={receiptFormat}
               />
 
               <DialogFooter className="gap-2 sm:gap-0 print:hidden no-print pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center">
-                <div className="text-[11px] text-slate-500 italic">
-                  Format conseillé : A5 / A4 Portrait
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <span>Format :</span>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setReceiptFormat("A4")}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        receiptFormat === "A4"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      A4 Pleine Page
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptFormat("A5")}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        receiptFormat === "A5"
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      A5 Demie Page
+                    </button>
+                  </div>
                 </div>
+
                 <div className="flex gap-2">
                   <Button variant="outline" className="rounded-xl font-bold" onClick={() => setReceiptPayment(null)}>
                     Fermer
@@ -688,7 +714,7 @@ export default function AdminPaymentsPage() {
                       downloadDocumentAsPdf({
                         elementId: "printable-document",
                         filename: `Recu_Paiement_REC-${String(receiptPayment.id).padStart(6, "0")}`,
-                        format: "a5"
+                        format: receiptFormat.toLowerCase() as "a4" | "a5"
                       })
                     }}
                   >
