@@ -10,13 +10,11 @@ import {
   Printer, 
   LineChart as LineChartIcon,
   TrendingUp,
-  Award,
   CheckCircle2,
   QrCode,
   Building2,
   ArrowLeft,
   Loader2,
-  UserCheck,
   ChevronRight
 } from "lucide-react"
 import { 
@@ -33,6 +31,436 @@ import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 
+interface BulletinTemplateProps {
+  student: any
+  schoolInfo: any
+  selectedSemester: string
+  templateStyle: "classique" | "premium" | "ministere" | "custom"
+}
+
+function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle }: BulletinTemplateProps) {
+  if (!student) return null
+
+  const activeYear = schoolInfo?.activeSchoolYear || "2026-2027"
+
+  return (
+    <>
+      {/* 1. MODEL CLASSIQUE (Standard A4 Full Page) */}
+      {templateStyle === "classique" && (
+        <div
+          id="printable-document"
+          className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[280mm] mx-auto bg-white p-8 sm:p-10 border-4 border-slate-200 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
+        >
+          <div className="space-y-6">
+            {/* Header Branding */}
+            <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-4">
+              <div className="flex gap-4 items-center">
+                <div className="h-16 w-16 bg-primary flex items-center justify-center text-white rounded-2xl font-bold overflow-hidden p-1">
+                  {schoolInfo.logo_url ? (
+                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                  ) : (
+                    <Building2 className="h-8 w-8" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-lg md:text-xl font-black uppercase text-slate-900">{schoolInfo.nom}</h2>
+                  <p className="text-xs font-bold text-slate-600">{schoolInfo.adresse} {schoolInfo.telephone && `| ${schoolInfo.telephone}`}</p>
+                  <p className="text-xs text-primary italic font-semibold">&quot;L&apos;Excellence est notre engagement&quot;</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <h1 className="text-xl md:text-2xl font-black italic text-slate-900">BULLETIN SCOLAIRE</h1>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary">
+                  Trimestre {selectedSemester} &bull; Année {activeYear}
+                </p>
+              </div>
+            </div>
+
+            {/* Student Metadata Table */}
+            <div className="grid grid-cols-4 gap-3 mb-4 text-xs sm:text-sm bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div>ÉLÈVE : <span className="font-black text-slate-900 uppercase">{student.nom}</span></div>
+              <div>CLASSE : <span className="font-black text-slate-900">{student.classNom}</span></div>
+              <div>EFFECTIF : <span className="font-black text-slate-900">{student.totalStudents}</span></div>
+              <div className="text-right">RANG : <span className="font-black text-primary">#{student.rank}</span></div>
+            </div>
+
+            {/* Subjects Grid */}
+            <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm mb-4">
+              <thead className="bg-slate-100 uppercase font-black text-slate-700">
+                <tr>
+                  <th className="border border-slate-300 p-2.5 text-left">Matières</th>
+                  <th className="border border-slate-300 p-2.5 text-center">Coef</th>
+                  <th className="border border-slate-300 p-2.5 text-center">Moyenne / 20</th>
+                  <th className="border border-slate-300 p-2.5 text-left">Appréciation du Professeur</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.subjects?.map((m: any, i: number) => (
+                  <tr key={i} className="border-b border-slate-200">
+                    <td className="border border-slate-300 p-2.5 font-bold text-slate-900">{m.name}</td>
+                    <td className="border border-slate-300 p-2.5 text-center">{m.coef}</td>
+                    <td className="border border-slate-300 p-2.5 text-center font-black text-primary bg-primary/5">{m.avg.toFixed(2)}</td>
+                    <td className="border border-slate-300 p-2.5 text-xs italic text-slate-600">{m.feedback}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="grid grid-cols-2 gap-6 mb-4">
+              <div className="space-y-3">
+                <div className="p-4 border border-slate-300 bg-slate-50 text-center rounded-2xl">
+                  <p className="text-xs uppercase font-bold text-slate-500">Moyenne Générale</p>
+                  <p className="text-3xl font-black text-slate-900">{student.overallAvg.toFixed(2)} / 20</p>
+                </div>
+                <div className="p-3 border border-slate-300 rounded-2xl text-xs">
+                  <p className="font-bold text-slate-600">Assiduité & Absences :</p>
+                  <p className="text-slate-800 font-bold mt-1">{student.totalAbsences} absence(s) enregistrée(s)</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-4 border border-slate-300 bg-primary/10 text-center rounded-2xl">
+                  <p className="text-xs uppercase font-bold text-primary">Rang de Classe</p>
+                  <p className="text-3xl font-black text-primary">#{student.rank} <span className="text-xs font-bold text-slate-500">/ {student.totalStudents}</span></p>
+                </div>
+                <div className="p-3 border border-slate-300 rounded-2xl min-h-[60px] text-xs">
+                  <p className="font-bold text-slate-600 mb-1">Décision du Conseil de Classe :</p>
+                  <p className="font-bold italic text-slate-900">{student.decision}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer & Signatures */}
+          <div className="flex justify-between items-end border-t border-slate-200 pt-6 mt-4">
+            <div className="flex gap-3 items-center">
+              <QrCode className="h-14 w-14 text-slate-900" />
+              <p className="text-[9px] font-mono leading-tight text-slate-500">DOCUMENT SÉCURISÉ<br/>ID : BULLETIN-2026-X89<br/>Vérifié par MonÉcole+</p>
+            </div>
+            <div className="text-center w-56">
+              <p className="text-xs font-black uppercase mb-8 text-slate-800">Cachet & Signature du Directeur</p>
+              {schoolInfo.cachet_url ? (
+                <div className="relative mx-auto h-20 w-32 flex items-center justify-center -rotate-6">
+                  <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-32 object-contain" />
+                </div>
+              ) : (
+                <div className="relative mx-auto h-16 w-32 border-2 border-dashed border-rose-600/40 rounded-xl flex items-center justify-center -rotate-6">
+                  <p className="text-[7px] font-black text-rose-600 text-center uppercase tracking-widest opacity-60">DIRECTION GENERALE<br/>AUTHENTIFIÉ</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. MODEL PREMIUM (Stripe / Canva style A4 Full Page) */}
+      {templateStyle === "premium" && (
+        <div
+          id="printable-document"
+          className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[280mm] mx-auto bg-white p-8 sm:p-10 border border-slate-200 text-slate-800 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between relative"
+        >
+          {/* Subtle Premium Watermark */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.03] rotate-12">
+            <p className="text-9xl font-black tracking-widest text-slate-900">OFFICIEL</p>
+          </div>
+
+          <div className="space-y-6 relative z-10">
+            {/* Top layout */}
+            <div className="flex justify-between items-start border-b border-slate-200 pb-6 mb-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-14 w-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-bold overflow-hidden p-1">
+                    {schoolInfo.logo_url ? (
+                      <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                    ) : (
+                      <Building2 className="h-7 w-7" />
+                    )}
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-extrabold uppercase tracking-wider text-slate-900">{schoolInfo.nom}</h2>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">{schoolInfo.adresse} {schoolInfo.telephone && `• ${schoolInfo.telephone}`} {schoolInfo.email && `• ${schoolInfo.email}`}</p>
+              </div>
+              <div className="text-right space-y-1.5">
+                <span className="text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-100">
+                  Bulletin de Notes
+                </span>
+                <p className="text-xs font-bold text-slate-500 mt-1">Trimestre {selectedSemester} &bull; Année {activeYear}</p>
+              </div>
+            </div>
+
+            {/* Student Metadata Card */}
+            <div className="grid grid-cols-4 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200/80 mb-6 text-xs sm:text-sm">
+              <div>
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Élève</p>
+                <p className="font-extrabold text-slate-900 text-sm mt-0.5 uppercase">{student.nom}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Classe</p>
+                <p className="font-bold text-slate-800 text-sm mt-0.5">{student.classNom}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Effectif</p>
+                <p className="font-bold text-slate-800 text-sm mt-0.5">{student.totalStudents} élèves</p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Rang de Classe</p>
+                <p className="font-extrabold text-indigo-600 text-sm mt-0.5">#{student.rank}</p>
+              </div>
+            </div>
+
+            {/* Table without vertical borders */}
+            <table className="w-full text-xs sm:text-sm text-left mb-6">
+              <thead>
+                <tr className="border-b-2 border-slate-200 text-slate-400 uppercase tracking-widest font-black text-[9px] pb-3">
+                  <th className="py-3 font-bold">Matière</th>
+                  <th className="py-3 text-center font-bold">Coeff.</th>
+                  <th className="py-3 text-center font-bold">Moyenne / 20</th>
+                  <th className="py-3 pl-4 font-bold">Appréciation & Observations</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {student.subjects?.map((m: any, i: number) => (
+                  <tr key={i} className="hover:bg-slate-50/40 transition-colors">
+                    <td className="py-3.5 font-bold text-slate-950">{m.name}</td>
+                    <td className="py-3.5 text-center text-slate-500 font-medium">{m.coef}</td>
+                    <td className="py-3.5 text-center font-extrabold text-slate-900 bg-slate-50 rounded-xl px-2">{m.avg.toFixed(2)}</td>
+                    <td className="py-3.5 pl-4 text-slate-500 italic leading-relaxed">{m.feedback}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Performance Grid */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="p-5 bg-slate-900 text-white rounded-2xl flex flex-col justify-between">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Moyenne Générale</p>
+                <p className="text-3xl font-black tracking-tight mt-2">{student.overallAvg.toFixed(2)} <span className="text-xs font-bold text-slate-400">/ 20</span></p>
+              </div>
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Décision</p>
+                <p className="text-sm font-extrabold text-slate-800 mt-2 italic">&quot;{student.decision}&quot;</p>
+              </div>
+              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Assiduité</p>
+                <p className="text-sm font-bold text-slate-800 mt-2">{student.totalAbsences} absence(s)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Premium Footer with QR Code and Hand Signature */}
+          <div className="flex justify-between items-end border-t border-slate-200 pt-6 mt-4 relative z-10">
+            <div className="flex gap-4 items-center">
+              <div className="p-1 border rounded-xl bg-slate-50">
+                <QrCode className="h-12 w-12 text-slate-800" />
+              </div>
+              <div className="text-[8px] font-mono text-slate-400 leading-normal uppercase">
+                <p className="font-extrabold text-slate-600">Document Authentique</p>
+                <p>ID: {student.id || `B-${Date.now().toString().substring(7)}`}</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Direction des Études</p>
+              <div className="relative h-16 w-36 mx-auto flex items-center justify-center">
+                {schoolInfo.cachet_url ? (
+                  <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-16 w-auto object-contain mx-auto" />
+                ) : (
+                  <>
+                    <svg className="absolute inset-0 text-indigo-700 opacity-80" viewBox="0 0 100 50" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10,25 C30,10 50,40 70,20 C85,5 90,30 95,25 C80,30 40,45 20,35" />
+                    </svg>
+                    <div className="absolute h-14 w-14 border border-dashed border-rose-600/30 rounded-full flex items-center justify-center rotate-12 opacity-60">
+                      <span className="text-[5px] font-black text-rose-600 uppercase text-center tracking-tighter">DIRECTION<br/>DE L'ECOLE</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. MODEL MINISTERE (Official Governmental A4 Full Page) */}
+      {templateStyle === "ministere" && (
+        <div
+          id="printable-document"
+          className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[280mm] mx-auto bg-white p-8 sm:p-10 border-4 border-slate-900 text-slate-900 font-serif shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
+        >
+          <div className="space-y-6">
+            {/* Ministry Header */}
+            <div className="grid grid-cols-3 border-b-4 border-slate-900 pb-4 mb-4 items-start text-xs sm:text-sm">
+              <div>
+                <p className="font-black tracking-wide">RÉPUBLIQUE DE CÔTE D'IVOIRE</p>
+                <p className="text-[9px] font-medium leading-tight text-slate-600 mt-1">Ministère de l'Éducation Nationale et de l'Alphabétisation</p>
+                <p className="font-bold text-slate-800 mt-2 uppercase">DRENA: ABIDJAN 1</p>
+              </div>
+              <div className="text-center flex flex-col items-center">
+                <div className="h-10 w-10 border-2 border-slate-800 rounded-full flex items-center justify-center font-bold text-[8px] tracking-tighter uppercase p-1">
+                  M+
+                </div>
+                <span className="text-[8px] font-black tracking-widest mt-1">UNION &bull; DISCIPLINE &bull; TRAVAIL</span>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                {schoolInfo.logo_url && (
+                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-10 w-10 object-contain mb-1" />
+                )}
+                <h2 className="text-sm font-extrabold uppercase">{schoolInfo.nom}</h2>
+                <p className="text-[9px] text-slate-500">{schoolInfo.adresse}</p>
+                <p className="text-[9px] font-bold text-slate-700">{schoolInfo.telephone}</p>
+              </div>
+            </div>
+
+            <div className="text-center my-4">
+              <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-slate-900 underline underline-offset-4">
+                BULLETIN DE NOTES DU {selectedSemester}e TRIMESTRE
+              </h1>
+              <p className="text-xs font-bold text-slate-600 mt-1.5">
+                ANNÉE SCOLAIRE : {activeYear}
+              </p>
+            </div>
+
+            {/* Student Details */}
+            <div className="border border-slate-400 p-4 rounded-xl mb-4 text-xs sm:text-sm grid grid-cols-2 gap-4 bg-slate-50/50">
+              <div>
+                <p>Nom & Prénom(s) : <strong className="uppercase">{student.nom}</strong></p>
+                <p className="mt-1">Classe : <strong>{student.classNom}</strong></p>
+              </div>
+              <div className="text-right">
+                <p>Rang : <strong>{student.rank} sur {student.totalStudents}</strong></p>
+                <p className="mt-1">Moyenne Générale : <strong>{student.overallAvg.toFixed(2)} / 20</strong></p>
+              </div>
+            </div>
+
+            {/* Government Grid Table */}
+            <table className="w-full border-collapse border-2 border-slate-800 text-xs sm:text-sm mb-4">
+              <thead className="bg-slate-100 font-bold uppercase text-slate-800 text-center border-b-2 border-slate-800">
+                <tr>
+                  <th className="border border-slate-400 p-2.5 text-left">Disciplines</th>
+                  <th className="border border-slate-400 p-2.5">Coef</th>
+                  <th className="border border-slate-400 p-2.5">Moyenne / 20</th>
+                  <th className="border border-slate-400 p-2.5">Appréciations & Décisions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.subjects?.map((m: any, i: number) => (
+                  <tr key={i} className="border-b border-slate-400">
+                    <td className="border border-slate-400 p-2.5 font-bold">{m.name}</td>
+                    <td className="border border-slate-400 p-2.5 text-center">{m.coef}</td>
+                    <td className="border border-slate-400 p-2.5 text-center font-extrabold">{m.avg.toFixed(2)}</td>
+                    <td className="border border-slate-400 p-2.5 italic pl-4 text-slate-700">{m.feedback}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Ministry footer stamp */}
+          <div className="grid grid-cols-2 gap-8 mt-6 pt-4 border-t-2 border-slate-800 text-xs sm:text-sm">
+            <div>
+              <p className="font-bold uppercase tracking-wider text-slate-600">Décision d'orientation :</p>
+              <p className="font-extrabold italic mt-2 text-slate-900">&quot;{student.decision}&quot;</p>
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-slate-800 uppercase">Le Principal de l'Établissement</p>
+              <div className="relative mx-auto mt-4 h-20 w-36 border-2 border-rose-600 rounded-2xl flex items-center justify-center rotate-3">
+                {schoolInfo.cachet_url ? (
+                  <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-16 w-auto object-contain" />
+                ) : (
+                  <p className="text-[7px] font-black text-rose-600 text-center uppercase tracking-wider">MINISTÈRE DE L'ÉDUCATION<br/>CACHET OFFICIEL</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. MODEL CUSTOMIZABLE (Branded accent A4 Full Page) */}
+      {templateStyle === "custom" && (
+        <div
+          id="printable-document"
+          className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[280mm] mx-auto bg-white p-8 sm:p-10 border-t-8 border-indigo-600 border-x border-b border-slate-200 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
+        >
+          <div className="space-y-6">
+            {/* Branded Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center font-bold overflow-hidden p-1">
+                  {schoolInfo.logo_url ? (
+                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+                  ) : (
+                    <Building2 className="h-7 w-7" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-lg text-slate-900">{schoolInfo.nom}</h3>
+                  <p className="text-xs text-slate-500">{schoolInfo.adresse} {schoolInfo.telephone && `• ${schoolInfo.telephone}`}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-4 py-1.5 rounded-xl text-xs font-bold uppercase">
+                  Trimestre {selectedSemester} &bull; {activeYear}
+                </span>
+              </div>
+            </div>
+
+            {/* Student Badge Card */}
+            <div className="p-6 bg-indigo-600/5 rounded-2xl my-4 flex justify-between items-center border border-indigo-100">
+              <div>
+                <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Élève Beneficiaire</p>
+                <h2 className="text-xl font-black text-slate-900 mt-1 uppercase">{student.nom}</h2>
+                <p className="text-xs font-semibold text-slate-600 mt-1">Classe: {student.classNom} &bull; Rang: #{student.rank}/{student.totalStudents}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Moyenne Trimestrielle</p>
+                <h2 className="text-3xl font-black text-indigo-600 mt-1">{student.overallAvg.toFixed(2)} / 20</h2>
+              </div>
+            </div>
+
+            {/* Simple table style */}
+            <table className="w-full text-xs sm:text-sm text-left mb-6">
+              <thead>
+                <tr className="border-b-2 border-slate-200 text-slate-400 uppercase tracking-widest font-black text-[9px] pb-3">
+                  <th className="py-3">Matière</th>
+                  <th className="py-3 text-center">Coeff</th>
+                  <th className="py-3 text-center">Note / 20</th>
+                  <th className="py-3 pl-4">Observations</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {student.subjects?.map((m: any, i: number) => (
+                  <tr key={i}>
+                    <td className="py-3.5 font-bold text-slate-900">{m.name}</td>
+                    <td className="py-3.5 text-center text-slate-500">{m.coef}</td>
+                    <td className="py-3.5 text-center font-extrabold text-indigo-600 bg-indigo-50/50 rounded-xl px-2">{m.avg.toFixed(2)}</td>
+                    <td className="py-3.5 pl-4 text-slate-500 italic">{m.feedback}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Custom signatures */}
+          <div className="flex justify-between items-end border-t border-slate-200 pt-6 mt-4">
+            <div className="flex gap-3 items-center">
+              <QrCode className="h-12 w-12 text-slate-800" />
+              <p className="text-[9px] font-mono text-slate-400">ID: B-CUSTOM-2026<br/>Vérifié en Ligne par MonÉcole+</p>
+            </div>
+            <div className="text-center w-52 border border-slate-200 bg-slate-50 p-4 rounded-2xl">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-600 mb-4">La Direction</p>
+              <div className="h-12 flex items-center justify-center text-xs italic text-slate-500">
+                {schoolInfo.cachet_url ? (
+                  <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-12 w-auto object-contain mx-auto" />
+                ) : (
+                  "Signé électroniquement"
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function BulletinBatchPage() {
   const searchParams = useSearchParams()
   const classIdParam = searchParams.get("classId")
@@ -44,7 +472,7 @@ export default function BulletinBatchPage() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [reportData, setReportData] = useState<any>(null)
   const [selectedStudentIndex, setSelectedStudentIndex] = useState(0)
-  const [selectedTemplateStyle, setSelectedTemplateStyle] = useState<"classique" | "premium" | "ministere" | "custom">("premium")
+  const [selectedTemplateStyle, setSelectedTemplateStyle] = useState<"classique" | "premium" | "ministere" | "custom">("classique")
   const [schoolInfo, setSchoolInfo] = useState<any>({
     nom: "MonÉcole+ Groupe Scolaire",
     adresse: "Abidjan, Côte d'Ivoire",
@@ -204,14 +632,14 @@ export default function BulletinBatchPage() {
                       <div className="flex items-center gap-1.5">
                          <span className="text-[10px] font-black uppercase text-slate-500">Design :</span>
                          <Select value={selectedTemplateStyle} onValueChange={(val: any) => setSelectedTemplateStyle(val)}>
-                            <SelectTrigger className="h-9 border-slate-200 rounded-xl text-xs bg-white w-40">
+                            <SelectTrigger className="h-9 border-slate-200 rounded-xl text-xs bg-white w-44 font-bold">
                                <SelectValue placeholder="Style du PDF" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
-                               <SelectItem value="classique" className="text-xs">Classique (Standard)</SelectItem>
-                               <SelectItem value="premium" className="text-xs">Premium (Stripe/Canva)</SelectItem>
-                               <SelectItem value="ministere" className="text-xs">Ministère Ivoirien</SelectItem>
-                               <SelectItem value="custom" className="text-xs">Personnalisable</SelectItem>
+                               <SelectItem value="classique" className="text-xs font-medium">Classique (Standard)</SelectItem>
+                               <SelectItem value="premium" className="text-xs font-medium">Premium (Stripe/Canva)</SelectItem>
+                               <SelectItem value="ministere" className="text-xs font-medium">Ministère Ivoirien</SelectItem>
+                               <SelectItem value="custom" className="text-xs font-medium">Personnalisable</SelectItem>
                             </SelectContent>
                          </Select>
                       </div>
@@ -219,485 +647,40 @@ export default function BulletinBatchPage() {
                         if (!currentStudent) return
                         toast.info("Génération du bulletin PDF...")
                         downloadDocumentAsPdf({
-                          elementId: "bulletin-document",
-                          filename: `Bulletin_${currentStudent.nom?.replace(/\s+/g, '_')}_T${selectedSemester}`,
+                          elementId: "printable-document",
+                          filename: `Bulletin_${currentStudent.nom?.replace(/\s+/g, '_')}_T${selectedSemester}_${selectedTemplateStyle}`,
                           format: "a4"
                         })
                       }}>
                         <Download className="h-4 w-4" /> Télécharger PDF
                       </Button>
-                      <Button size="sm" className="bg-primary text-white font-bold rounded-xl gap-2" onClick={handlePrint}>
+                      <Button size="sm" className="bg-primary text-white font-bold rounded-xl gap-2 border-none shadow-md shadow-primary/20" onClick={handlePrint}>
                         <Printer className="h-4 w-4" /> Imprimer
                       </Button>
                    </div>
                 </div>
 
-                {/* High-Fidelity Printable Bulletin Template */}
+                {/* Print Portal Container & Screen Preview */}
                 {currentStudent ? (
-                  <div id="printable-document" className="relative printable-area print:w-full print:max-w-none print:m-0 print:p-0">
+                  <div className="relative">
                     <DocumentPrintContainer pageSize="a4">
-                      <div id="bulletin-document" className="printable-area w-full bg-white p-8 rounded-3xl text-slate-900 border border-slate-200">
-                        {/* Header */}
-                        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6">
-                          <div className="flex gap-4 items-center">
-                            {schoolInfo.logo_url && (
-                              <img src={schoolInfo.logo_url} alt="Logo" className="h-16 w-auto max-w-[120px] object-contain" />
-                            )}
-                            <div>
-                              <h2 className="text-xl font-black uppercase text-slate-950">{schoolInfo.nom}</h2>
-                              <p className="text-xs text-slate-600 font-medium">{schoolInfo.adresse} &bull; {schoolInfo.telephone}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <h1 className="text-2xl font-black uppercase tracking-wider text-slate-900">BULLETIN DE NOTES</h1>
-                            <p className="text-xs font-bold uppercase tracking-widest text-primary">Trimestre {selectedSemester} &bull; Année 2025-2026</p>
-                          </div>
-                        </div>
-
-                        {/* Student Metadata */}
-                        <div className="grid grid-cols-4 gap-3 mb-6 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                          <div>ÉLÈVE : <span className="font-black text-slate-900 uppercase">{currentStudent.nom}</span></div>
-                          <div>CLASSE : <span className="font-black text-slate-900">{currentStudent.classNom}</span></div>
-                          <div>EFFECTIF : <span className="font-black text-slate-900">{currentStudent.totalStudents}</span></div>
-                          <div className="text-right">RANG : <span className="font-black text-primary">#{currentStudent.rank}</span></div>
-                        </div>
-
-                        {/* Subjects Table */}
-                        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-                          <thead className="bg-slate-100 uppercase font-black text-slate-700">
-                            <tr>
-                              <th className="border border-slate-300 p-2 text-left">Matières</th>
-                              <th className="border border-slate-300 p-2 text-center">Coef</th>
-                              <th className="border border-slate-300 p-2 text-center">Moyenne / 20</th>
-                              <th className="border border-slate-300 p-2 text-left">Appréciation</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {currentStudent.subjects?.map((m: any, i: number) => (
-                              <tr key={i} className="border-b border-slate-200">
-                                <td className="border border-slate-300 p-2 font-bold text-slate-900">{m.name}</td>
-                                <td className="border border-slate-300 p-2 text-center">{m.coef}</td>
-                                <td className="border border-slate-300 p-2 text-center font-black text-primary bg-primary/5">{m.avg.toFixed(2)}</td>
-                                <td className="border border-slate-300 p-2 text-[11px] italic text-slate-600">{m.feedback}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        {/* Summary */}
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                          <div className="p-4 border border-slate-300 bg-slate-50 text-center rounded-2xl">
-                            <p className="text-[10px] uppercase font-bold text-slate-500">Moyenne Générale</p>
-                            <p className="text-3xl font-black text-slate-900">{currentStudent.overallAvg.toFixed(2)} / 20</p>
-                          </div>
-                          <div className="p-4 border border-slate-300 bg-primary/10 text-center rounded-2xl">
-                            <p className="text-[10px] uppercase font-bold text-primary">Rang de Classe</p>
-                            <p className="text-3xl font-black text-primary">#{currentStudent.rank} <span className="text-xs font-bold text-slate-500">/ {currentStudent.totalStudents}</span></p>
-                          </div>
-                        </div>
-
-                        {/* Signatures */}
-                        <div className="flex justify-between items-end border-t border-slate-200 pt-6">
-                          <div className="flex gap-3 items-center">
-                            <QrCode className="h-12 w-12 text-slate-900" />
-                            <p className="text-[8px] font-mono leading-tight text-slate-500">DOCUMENT SÉCURISÉ<br/>Vérifié par MonÉcole+</p>
-                          </div>
-                          <div className="text-center w-56">
-                            <p className="text-[10px] font-black uppercase mb-10 text-slate-800">Cachet & Signature du Directeur</p>
-                            {schoolInfo.cachet_url ? (
-                              <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-16 w-auto object-contain mx-auto" />
-                            ) : (
-                              <div className="h-14 w-32 border-2 border-dashed border-slate-300 rounded-xl mx-auto flex items-center justify-center text-[8px] font-bold text-slate-400 uppercase">
-                                Cachet Officiel
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <BulletinTemplate
+                        student={currentStudent}
+                        schoolInfo={schoolInfo}
+                        selectedSemester={selectedSemester}
+                        templateStyle={selectedTemplateStyle}
+                      />
                     </DocumentPrintContainer>
-                    {/* 1. MODEL PREMIUM (Stripe / Canva style) */}
-                    {selectedTemplateStyle === "premium" && (
-                      <Card className="relative overflow-hidden border border-slate-100 shadow-2xl bg-white text-slate-800 p-8 md:p-12 rounded-[2rem] font-sans print:shadow-none print:border-none print:p-0">
-                        {/* Subtle Premium Watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.03] rotate-12">
-                          <p className="text-8xl font-black tracking-widest text-slate-900">OFFICIEL</p>
-                        </div>
 
-                        {/* Top layout */}
-                        <div className="flex justify-between items-start border-b border-slate-100 pb-6 mb-8">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold overflow-hidden p-1">
-                                {schoolInfo.logo_url ? (
-                                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
-                                ) : (
-                                  <Building2 className="h-6 w-6" />
-                                )}
-                              </div>
-                              <h2 className="text-base font-extrabold uppercase tracking-wider text-slate-900">{schoolInfo.nom}</h2>
-                            </div>
-                            <p className="text-[10px] text-slate-400 font-medium">{schoolInfo.adresse} • {schoolInfo.telephone} • {schoolInfo.email}</p>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                              Bulletin de Notes
-                            </span>
-                            <p className="text-xs font-bold text-slate-400 mt-1">Trimestre {selectedSemester} • 2023-2024</p>
-                          </div>
-                        </div>
-
-                        {/* Student Metadata Card */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50/50 p-5 rounded-3xl border border-slate-100/50 mb-8 text-xs">
-                          <div>
-                            <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Élève</p>
-                            <p className="font-extrabold text-slate-900 text-sm mt-0.5 uppercase">{currentStudent.nom}</p>
-                          </div>
-                          <div>
-                            <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Classe</p>
-                            <p className="font-bold text-slate-800 text-sm mt-0.5">{currentStudent.classNom}</p>
-                          </div>
-                          <div>
-                            <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Effectif</p>
-                            <p className="font-bold text-slate-800 text-sm mt-0.5">{currentStudent.totalStudents} élèves</p>
-                          </div>
-                          <div className="sm:text-right">
-                            <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Rang de Classe</p>
-                            <p className="font-extrabold text-indigo-600 text-sm mt-0.5">#{currentStudent.rank}</p>
-                          </div>
-                        </div>
-
-                        {/* Clean Table with no vertical borders */}
-                        <table className="w-full text-xs text-left mb-8">
-                          <thead>
-                            <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-widest font-black text-[9px] pb-3">
-                              <th className="py-3 font-bold">Matière</th>
-                              <th className="py-3 text-center font-bold">Coeff.</th>
-                              <th className="py-3 text-center font-bold">Moyenne / 20</th>
-                              <th className="py-3 pl-4 font-bold">Appréciation & Observations</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {currentStudent.subjects.map((m: any, i: number) => (
-                              <tr key={i} className="hover:bg-slate-50/40 transition-colors">
-                                <td className="py-3.5 font-bold text-slate-950">{m.name}</td>
-                                <td className="py-3.5 text-center text-slate-500 font-medium">{m.coef}</td>
-                                <td className="py-3.5 text-center font-extrabold text-slate-900 bg-slate-50/40 rounded-xl px-2">{m.avg.toFixed(2)}</td>
-                                <td className="py-3.5 pl-4 text-slate-500 italic leading-relaxed">{m.feedback}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        {/* Performance Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                          <div className="p-5 bg-slate-900 text-white rounded-3xl flex flex-col justify-between">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Moyenne Générale</p>
-                            <p className="text-3xl font-black tracking-tight mt-2">{currentStudent.overallAvg.toFixed(2)} <span className="text-xs font-bold text-slate-400">/ 20</span></p>
-                          </div>
-                          <div className="p-5 bg-slate-50 border border-slate-100 rounded-3xl flex flex-col justify-between">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Décision</p>
-                            <p className="text-sm font-extrabold text-slate-800 mt-2 italic">&quot;{currentStudent.decision}&quot;</p>
-                          </div>
-                          <div className="p-5 bg-slate-50 border border-slate-100 rounded-3xl flex flex-col justify-between">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Assiduité</p>
-                            <p className="text-sm font-bold text-slate-800 mt-2">{currentStudent.totalAbsences} absence(s)</p>
-                          </div>
-                        </div>
-
-                        {/* Premium Footer with QR Code and Hand Signature */}
-                        <div className="flex justify-between items-end border-t border-slate-100 pt-6 mt-8">
-                          <div className="flex gap-4 items-center">
-                            <div className="p-1 border rounded-xl bg-slate-50">
-                              <QrCode className="h-12 w-12 text-slate-800" />
-                            </div>
-                            <div className="text-[8px] font-mono text-slate-400 leading-normal uppercase">
-                              <p className="font-extrabold text-slate-600">Document Authentique</p>
-                              <p>ID: {currentStudent.id || `B-${Date.now().toString().substring(7)}`}</p>
-                              <p>SHA256: {(() => {
-                                const str = JSON.stringify(currentStudent);
-                                let hash = 5381;
-                                for (let i = 0; i < str.length; i++) {
-                                  hash = (hash * 33) ^ str.charCodeAt(i);
-                                }
-                                return (hash >>> 0).toString(16).padEnd(16, "f");
-                              })()}</p>
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Direction des Études</p>
-                            <div className="relative h-16 w-32 mx-auto flex items-center justify-center">
-                              {/* Hand Signature Path Drawing */}
-                              <svg className="absolute inset-0 text-indigo-700 opacity-80" viewBox="0 0 100 50" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10,25 C30,10 50,40 70,20 C85,5 90,30 95,25 C80,30 40,45 20,35" />
-                              </svg>
-                              {/* Circular Stamp */}
-                              <div className="absolute h-14 w-14 border border-dashed border-rose-600/30 rounded-full flex items-center justify-center rotate-12 opacity-60">
-                                <span className="text-[5px] font-black text-rose-600 uppercase text-center tracking-tighter">DIRECTION<br/>DE L'ECOLE</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* 2. MODEL MINISTERE (Official Côte d'Ivoire Governmental Template) */}
-                    {selectedTemplateStyle === "ministere" && (
-                      <Card className="border-4 border-slate-800 shadow-2xl bg-white text-slate-900 p-8 rounded-3xl font-serif print:shadow-none print:border-none print:p-0">
-                        {/* Ministry Header */}
-                        <div className="grid grid-cols-3 border-b-4 border-slate-900 pb-4 mb-6 items-start text-xs">
-                          <div>
-                            <p className="font-black tracking-wide">RÉPUBLIQUE DE CÔTE D'IVOIRE</p>
-                            <p className="text-[9px] font-medium leading-tight text-slate-500 mt-1">Ministère de l'Éducation Nationale et de l'Alphabétisation</p>
-                            <p className="font-bold text-slate-800 mt-2 uppercase">DRENA: ABIDJAN 1</p>
-                          </div>
-                          <div className="text-center flex flex-col items-center">
-                            {/* Coat of arms shape */}
-                            <div className="h-10 w-10 border-2 border-slate-800 rounded-full flex items-center justify-center font-bold text-[8px] tracking-tighter uppercase p-1">
-                              S.P.Q.R
-                            </div>
-                            <span className="text-[8px] font-black tracking-widest mt-1">UNION • DISCIPLINE • TRAVAIL</span>
-                          </div>
-                          <div className="text-right flex flex-col items-end">
-                            {schoolInfo.logo_url && (
-                              <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-10 w-10 object-contain mb-1" />
-                            )}
-                            <h2 className="text-sm font-extrabold uppercase">{schoolInfo.nom}</h2>
-                            <p className="text-[9px] text-slate-500">{schoolInfo.adresse}</p>
-                            <p className="text-[9px] font-bold text-slate-700">{schoolInfo.telephone}</p>
-                          </div>
-                        </div>
-
-                        <div className="text-center my-4">
-                          <h1 className="text-xl font-black uppercase tracking-wider text-slate-900 decoration-double underline underline-offset-4">BULLETIN DE NOTES DU {selectedSemester}er TRIMESTRE</h1>
-                          <p className="text-[10px] font-bold text-slate-500 mt-1">ANNÉE SCOLAIRE : {schoolInfo.activeSchoolYear}</p>
-                        </div>
-
-                        {/* Student Details */}
-                        <div className="border border-slate-400 p-4 rounded-xl mb-6 text-xs grid grid-cols-2 gap-4">
-                          <div>
-                            <p>Nom & Prénom(s) : <strong className="uppercase">{currentStudent.nom}</strong></p>
-                            <p className="mt-1">Classe : <strong>{currentStudent.classNom}</strong></p>
-                          </div>
-                          <div className="text-right">
-                            <p>Rang : <strong>{currentStudent.rank} sur {currentStudent.totalStudents}</strong></p>
-                            <p className="mt-1">Moyenne Générale : <strong>{currentStudent.overallAvg.toFixed(2)} / 20</strong></p>
-                          </div>
-                        </div>
-
-                        {/* Government Grid Table */}
-                        <table className="w-full border-collapse border-2 border-slate-800 text-xs mb-6">
-                          <thead className="bg-slate-50 font-bold uppercase text-slate-800 text-center border-b-2 border-slate-800">
-                            <tr>
-                              <th className="border border-slate-400 p-2.5 text-left">Disciplines</th>
-                              <th className="border border-slate-400 p-2.5">Coef</th>
-                              <th className="border border-slate-400 p-2.5">Moyenne / 20</th>
-                              <th className="border border-slate-400 p-2.5">Appréciations & Décisions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {currentStudent.subjects.map((m: any, i: number) => (
-                              <tr key={i} className="border-b border-slate-400">
-                                <td className="border border-slate-400 p-2.5 font-bold">{m.name}</td>
-                                <td className="border border-slate-400 p-2.5 text-center">{m.coef}</td>
-                                <td className="border border-slate-400 p-2.5 text-center font-extrabold">{m.avg.toFixed(2)}</td>
-                                <td className="border border-slate-400 p-2.5 italic pl-4">{m.feedback}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        {/* Ministry footer stamp */}
-                        <div className="grid grid-cols-2 gap-8 mt-8 pt-6 border-t border-slate-800 text-xs">
-                          <div>
-                            <p className="font-bold uppercase tracking-wider text-slate-500">Décision d'orientation :</p>
-                            <p className="font-extrabold italic mt-2">{currentStudent.decision}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="font-bold text-slate-800 uppercase">Le Principal de l'Établissement</p>
-                            <div className="relative mx-auto mt-4 h-16 w-32 border-2 border-rose-600 rounded-2xl flex items-center justify-center rotate-3">
-                              <p className="text-[7px] font-black text-rose-600 text-center uppercase tracking-wider">MINISTERE DE L'EDUCATION<br/>CACHET OFFICIEL</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* 3. MODEL CUSTOMIZABLE (Branded accent color selector) */}
-                    {selectedTemplateStyle === "custom" && (
-                      <Card className="border-t-8 border-indigo-600 shadow-2xl bg-white text-slate-900 p-8 rounded-3xl font-sans relative print:shadow-none print:border-none print:p-0">
-                        {/* Branded Header */}
-                        <div className="flex justify-between items-center pb-6 border-b border-slate-100">
-                          <div className="flex items-center gap-3">
-                             <div className="h-12 w-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold overflow-hidden p-1">
-                                {schoolInfo.logo_url ? (
-                                  <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
-                                ) : (
-                                  <Building2 className="h-6 w-6" />
-                                )}
-                             </div>
-                            <div>
-                              <h3 className="font-extrabold text-base text-slate-900">{schoolInfo.nom}</h3>
-                              <p className="text-[10px] text-slate-400">{schoolInfo.adresse}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-xl text-xs font-bold uppercase">
-                              Trimestre {selectedSemester}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Student Badge Card */}
-                        <div className="p-6 bg-indigo-600/5 rounded-3xl my-6 flex justify-between items-center">
-                          <div>
-                            <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Élève</p>
-                            <h2 className="text-lg font-black text-slate-800 mt-1 uppercase">{currentStudent.nom}</h2>
-                            <p className="text-xs text-slate-500 mt-0.5">Classe: {currentStudent.classNom}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Moyenne Trimestrielle</p>
-                            <h2 className="text-2xl font-black text-indigo-600 mt-1">{currentStudent.overallAvg.toFixed(2)} / 20</h2>
-                          </div>
-                        </div>
-
-                        {/* Simple table style */}
-                        <table className="w-full text-xs text-left mb-6">
-                          <thead>
-                            <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-widest font-black text-[9px] pb-3">
-                              <th className="py-2.5">Matière</th>
-                              <th className="py-2.5 text-center">Coeff</th>
-                              <th className="py-2.5 text-center">Note / 20</th>
-                              <th className="py-2.5 pl-4">Observations</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {currentStudent.subjects.map((m: any, i: number) => (
-                              <tr key={i}>
-                                <td className="py-3 font-bold text-slate-800">{m.name}</td>
-                                <td className="py-3 text-center text-slate-500">{m.coef}</td>
-                                <td className="py-3 text-center font-extrabold text-indigo-600 bg-indigo-50/50 rounded-xl px-2">{m.avg.toFixed(2)}</td>
-                                <td className="py-3 pl-4 text-slate-500 italic">{m.feedback}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        {/* Custom signatures */}
-                        <div className="flex justify-between items-end border-t border-slate-100 pt-6 mt-6">
-                          <div className="flex gap-3 items-center">
-                            <QrCode className="h-12 w-12 text-slate-800" />
-                            <p className="text-[8px] font-mono text-slate-400">ID: B-CUSTOM-2026<br/>Vérifié en Ligne</p>
-                          </div>
-                          <div className="text-center w-48 border border-slate-100 bg-slate-50/50 p-3 rounded-2xl">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-6">La Direction</p>
-                            <div className="h-10 flex items-center justify-center text-[10px] italic text-slate-400">
-                              Signé électroniquement
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* 4. MODEL CLASSIQUE (Original clean layout) */}
-                    {selectedTemplateStyle === "classique" && (
-                      <Card className="border-4 border-slate-200 shadow-2xl overflow-hidden bg-white text-slate-900 font-sans p-8 md:p-10 relative rounded-3xl print:shadow-none print:border-none">
-                         {/* Header Branding */}
-                         <div className="flex justify-between border-b-2 border-slate-900 pb-4 mb-6">
-                            <div className="flex gap-4 items-center">
-                               <div className="h-16 w-16 bg-primary flex items-center justify-center text-white rounded-2xl font-bold overflow-hidden p-1">
-                                  {schoolInfo.logo_url ? (
-                                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
-                                  ) : (
-                                    <Building2 className="h-8 w-8" />
-                                  )}
-                               </div>
-                               <div>
-                                  <h2 className="text-lg md:text-xl font-black uppercase text-slate-900">{schoolInfo.nom}</h2>
-                                  <p className="text-[10px] font-bold text-slate-600">{schoolInfo.adresse} | {schoolInfo.telephone}</p>
-                                  <p className="text-[10px] text-primary italic font-semibold">&quot;L&apos;Excellence est notre engagement&quot;</p>
-                               </div>
-                            </div>
-                            <div className="text-right">
-                               <h1 className="text-xl md:text-2xl font-black italic text-slate-900">BULLETIN SCOLAIRE</h1>
-                               <p className="text-xs font-bold uppercase tracking-widest text-primary">Trimestre {selectedSemester} - 2023-2024</p>
-                            </div>
-                         </div>
-
-                         {/* Student Metadata Table */}
-                         <div className="grid grid-cols-4 gap-3 mb-6 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                            <div>ÉLÈVE : <span className="font-black text-slate-900 uppercase">{currentStudent.nom}</span></div>
-                            <div>CLASSE : <span className="font-black text-slate-900">{currentStudent.classNom}</span></div>
-                            <div>EFFECTIF : <span className="font-black text-slate-900">{currentStudent.totalStudents}</span></div>
-                            <div className="text-right">RANG : <span className="font-black text-primary">#{currentStudent.rank}</span></div>
-                         </div>
-
-                         {/* Subjects Grid */}
-                         <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-                            <thead className="bg-slate-100 uppercase font-black text-slate-700">
-                              <tr>
-                                 <th className="border border-slate-300 p-2 text-left">Matières</th>
-                                 <th className="border border-slate-300 p-2 text-center">Coef</th>
-                                 <th className="border border-slate-300 p-2 text-center">Moyenne / 20</th>
-                                 <th className="border border-slate-300 p-2 text-left">Appréciation du Professeur</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {currentStudent.subjects.map((m: any, i: number) => (
-                                 <tr key={i} className="border-b border-slate-200">
-                                    <td className="border border-slate-300 p-2 font-bold text-slate-900">{m.name}</td>
-                                    <td className="border border-slate-300 p-2 text-center">{m.coef}</td>
-                                    <td className="border border-slate-300 p-2 text-center font-black text-primary bg-primary/5">{m.avg.toFixed(2)}</td>
-                                    <td className="border border-slate-300 p-2 text-[11px] italic text-slate-600">{m.feedback}</td>
-                                 </tr>
-                              ))}
-                            </tbody>
-                         </table>
-
-                         <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div className="space-y-3">
-                               <div className="p-4 border border-slate-300 bg-slate-50 text-center rounded-2xl">
-                                  <p className="text-[10px] uppercase font-bold text-slate-500">Moyenne Générale</p>
-                                  <p className="text-3xl font-black text-slate-900">{currentStudent.overallAvg.toFixed(2)} / 20</p>
-                               </div>
-                               <div className="p-3 border border-slate-300 rounded-2xl text-xs">
-                                  <p className="font-bold text-slate-600">Assiduité & Absences :</p>
-                                  <p className="text-slate-800 font-bold mt-1">{currentStudent.totalAbsences} absence(s) enregistrée(s)</p>
-                               </div>
-                            </div>
-
-                            <div className="space-y-3">
-                               <div className="p-4 border border-slate-300 bg-primary/10 text-center rounded-2xl">
-                                  <p className="text-[10px] uppercase font-bold text-primary">Rang de Classe</p>
-                                  <p className="text-3xl font-black text-primary">#{currentStudent.rank} <span className="text-xs font-bold text-slate-500">/ {currentStudent.totalStudents}</span></p>
-                               </div>
-                               <div className="p-3 border border-slate-300 rounded-2xl min-h-[60px] text-xs">
-                                  <p className="font-bold text-slate-600 mb-1">Décision du Conseil de Classe :</p>
-                                  <p className="font-bold italic text-slate-900">{currentStudent.decision}</p>
-                               </div>
-                            </div>
-                         </div>
-
-                         {/* Footer & Signatures */}
-                         <div className="flex justify-between items-end border-t border-slate-200 pt-6">
-                            <div className="flex gap-3 items-center">
-                               <QrCode className="h-14 w-14 text-slate-900" />
-                               <p className="text-[8px] font-mono leading-tight text-slate-500">DOCUMENT SÉCURISÉ<br/>ID : BULLETIN-2026-X89<br/>Vérifié par MonÉcole+</p>
-                            </div>
-                            <div className="text-center w-56">
-                               <p className="text-[10px] font-black uppercase mb-10 text-slate-800">Cachet & Signature du Directeur</p>
-                               {schoolInfo.cachet_url ? (
-                                  <div className="relative mx-auto h-20 w-32 flex items-center justify-center -rotate-6">
-                                     <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-32 object-contain" />
-                                  </div>
-                               ) : (
-                                  <div className="relative mx-auto h-16 w-32 border-2 border-rose-600/40 rounded-xl flex items-center justify-center -rotate-6">
-                                     <p className="text-[6px] font-black text-rose-600 text-center uppercase tracking-widest opacity-60">DIRECTION GENERALE<br/>AUTHENTIFIÉ</p>
-                                  </div>
-                               )}
-                            </div>
-                         </div>
-                      </Card>
-                    )}
+                    {/* Screen Preview */}
+                    <div className="bg-slate-200/50 p-4 rounded-3xl overflow-x-auto flex justify-center border border-slate-200">
+                      <BulletinTemplate
+                        student={currentStudent}
+                        schoolInfo={schoolInfo}
+                        selectedSemester={selectedSemester}
+                        templateStyle={selectedTemplateStyle}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="p-16 text-center text-slate-400 italic bg-white rounded-3xl border">
