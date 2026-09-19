@@ -28,9 +28,20 @@ interface DocumentsPortalProps {
   userRole: string
   studentName?: string
   documentCounts?: any
+  recentDocuments?: Array<{
+    id: string | number
+    name: string
+    type: string
+    date: string
+    size: string
+    status: string
+    studentId?: number
+    classId?: number
+    href?: string
+  }>
 }
 
-export function DocumentsPortal({ userRole, studentName, documentCounts }: DocumentsPortalProps) {
+export function DocumentsPortal({ userRole, studentName, documentCounts, recentDocuments }: DocumentsPortalProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [viewingDoc, setViewingDoc] = useState<any>(null)
   const isAdmin = userRole === "admin" || userRole === "teacher"
@@ -42,7 +53,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts }: Docum
       description: "Attestation officielle d'inscription",
       icon: GraduationCap,
       href: "/dashboard/documents/cert",
-      count: documentCounts?.certificates || (isAdmin ? 12 : 1),
+      count: documentCounts?.certificates ?? 0,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
@@ -52,7 +63,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts }: Docum
       description: "Résultats trimestriels des élèves",
       icon: ClipboardList,
       href: "/dashboard/documents/bulletin",
-      count: documentCounts?.reports || (isAdmin ? 48 : 2),
+      count: documentCounts?.reports ?? 0,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
     },
@@ -62,7 +73,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts }: Docum
       description: "Certificat de passage ou d'examen",
       icon: Award,
       href: "/dashboard/documents/cert",
-      count: 0,
+      count: documentCounts?.attestations ?? 0,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
     },
@@ -72,21 +83,15 @@ export function DocumentsPortal({ userRole, studentName, documentCounts }: Docum
       description: "Détail des notes par matière",
       icon: FileText,
       href: "/dashboard/grades",
-      count: documentCounts?.transcripts || (isAdmin ? 96 : 3),
+      count: documentCounts?.transcripts ?? 0,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
   ]
 
-  const adminRecentDocs = [
-    { id: 1, name: "Bulletin_3A_T1_2026.pdf", type: "Bulletin scolaire", date: "Aujourd'hui", size: "245 Ko", status: "Signé" },
-    { id: 2, name: "Certificat_Abou_Traore.pdf", type: "Certificat de scolarité", date: "Hier", size: "128 Ko", status: "Signé" },
-    { id: 3, name: "Bulletin_Terminale_T1.pdf", type: "Bulletin scolaire", date: "Il y a 2 jours", size: "310 Ko", status: "Signé" },
-  ]
-
-  const docs = isAdmin ? adminRecentDocs : [
-    { id: 1, name: `Certificat_Scolarite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Certificat de scolarité", date: "Aujourd'hui", size: "125 Ko", status: "Signé" },
-    { id: 2, name: `Bulletin_Notes_T1_2026.pdf`, type: "Bulletin scolaire", date: "Récent", size: "240 Ko", status: "Signé" }
+  const docs = recentDocuments && recentDocuments.length > 0 ? recentDocuments : [
+    { id: 1, name: `Certificat_Scolarite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Certificat de scolarité", date: "Aujourd'hui", size: "125 Ko", status: "Signé", href: "/dashboard/documents/cert" },
+    { id: 2, name: `Bulletin_Notes_T1_2026.pdf`, type: "Bulletin scolaire", date: "Récent", size: "240 Ko", status: "Signé", href: "/dashboard/documents/bulletin" }
   ]
 
   const filteredDocuments = docs.filter(d => 
@@ -95,8 +100,12 @@ export function DocumentsPortal({ userRole, studentName, documentCounts }: Docum
   )
 
   const handleDownload = (doc: any) => {
-    toast.success(`Téléchargement de ${doc.name} démarré...`)
-    window.print()
+    toast.success(`Redirection vers ${doc.type}...`)
+    if (doc.href) {
+      window.location.href = doc.href
+    } else {
+      window.print()
+    }
   }
 
   return (

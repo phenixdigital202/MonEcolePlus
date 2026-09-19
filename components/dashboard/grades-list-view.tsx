@@ -36,6 +36,8 @@ import { Label } from "@/components/ui/label"
 import { deleteGradeAction, updateGradeAction } from "@/lib/grades-actions"
 import { toast } from "sonner"
 
+import * as XLSX from "xlsx"
+
 interface GradesListViewProps {
   initialNotes: any[]
   classes: any[]
@@ -105,75 +107,62 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
     setActionLoading(false)
   }
 
-  const handleExportCSV = () => {
-    const headers = [
-      "Date",
-      "Élève",
-      "Classe",
-      "Matière",
-      "Enseignant",
-      "Note /20",
-      "Coefficient",
-      "Moyenne",
-      "Observation",
-      "Statut"
-    ]
-
-    const escapeCsvCell = (val: any) => {
-      const str = val === null || val === undefined ? "" : String(val)
-      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
-        return `"${str.replace(/"/g, '""')}"`
-      }
-      return str
+  const handleExportExcel = () => {
+    if (!filteredNotes || filteredNotes.length === 0) {
+      toast.error("Aucune note à exporter")
+      return
     }
 
-    const csvRows = filteredNotes.map(n => {
-      const dateVal = n.evaluation?.date_eval ? new Date(n.evaluation.date_eval).toLocaleDateString("fr-FR") : ""
+    const excelRows = filteredNotes.map(n => {
+      const dateVal = n.evaluation?.date_eval ? new Date(n.evaluation.date_eval).toLocaleDateString("fr-FR") : "N/A"
       const studentName = n.user?.nom || "Non renseigné"
       const className = n.evaluation?.classe?.nom || "Non inscrite"
-      const subjectName = n.evaluation?.matiere || ""
-      const teacherName = n.teacherName || "Non assigné"
+      const subjectName = n.evaluation?.matiere || "Non précisée"
       const gradeVal = Number(n.valeur).toFixed(2)
-      const coeffVal = n.coefficient || 2
-      const classAverage = n.classAverage !== undefined ? Number(n.classAverage).toFixed(2) : "N/A"
       
       const score = Number(n.valeur)
-      let observation = n.commentaire || ""
-      if (!observation) {
-        if (score >= 16) observation = "Excellent"
-        else if (score >= 14) observation = "Très Bien"
-        else if (score >= 12) observation = "Bien"
-        else if (score >= 10) observation = "Passable"
-        else observation = "Insuffisant"
+      let actionText = "Validé"
+      if (n.commentaire) {
+        actionText = `Validé (${n.commentaire})`
+      } else if (score >= 16) {
+        actionText = "Validé (Excellent)"
+      } else if (score >= 14) {
+        actionText = "Validé (Très Bien)"
+      } else if (score >= 12) {
+        actionText = "Validé (Bien)"
+      } else if (score >= 10) {
+        actionText = "Validé (Passable)"
+      } else {
+        actionText = "Alerte (Insuffisant)"
       }
 
-      const statut = score >= 10 ? "Validé" : "Alerte"
-
-      return [
-        escapeCsvCell(dateVal),
-        escapeCsvCell(studentName),
-        escapeCsvCell(className),
-        escapeCsvCell(subjectName),
-        escapeCsvCell(teacherName),
-        escapeCsvCell(gradeVal),
-        escapeCsvCell(coeffVal),
-        escapeCsvCell(classAverage),
-        escapeCsvCell(observation),
-        escapeCsvCell(statut)
-      ]
+      return {
+        "Date": dateVal,
+        "Élève": studentName,
+        "Classe": className,
+        "Matière": subjectName,
+        "Note / 20": gradeVal,
+        "Actions": actionText
+      }
     })
 
-    const csvContent = "\uFEFF" + [headers, ...csvRows].map(e => e.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", `tableau_notes_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast.success("Tableau des notes exporté en CSV (Format Excel)")
+    const worksheet = XLSX.utils.json_to_sheet(excelRows)
+    
+    worksheet["!cols"] = [
+      { wch: 15 }, // Date
+      { wch: 30 }, // Élève
+      { wch: 16 }, // Classe
+      { wch: 22 }, // Matière
+      { wch: 14 }, // Note / 20
+      { wch: 28 }  // Actions
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tableau des Notes")
+    
+    const filename = `Tableau_Notes_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(workbook, filename)
+    toast.success("Tableau des notes exporté en fichier Excel (.xlsx) !")
   }
 
   return (
@@ -226,9 +215,9 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
             )}
           </div>
 
-          <Button variant="outline" className="rounded-xl gap-2 hover:bg-slate-50" onClick={handleExportCSV}>
-            <Download className="h-4 w-4" />
-            Exporter CSV
+          <Button variant="outline" className="rounded-xl gap-2 hover:bg-emerald-50 border-slate-300 font-bold text-slate-700" onClick={handleExportExcel}>
+            <Download className="h-4 w-4 text-emerald-600" />
+            Exporter (Excel)
           </Button>
         </div>
 
