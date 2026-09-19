@@ -35,7 +35,7 @@ interface BulletinTemplateProps {
   student: any
   schoolInfo: any
   selectedSemester: string
-  templateStyle: "classique" | "premium" | "ministere" | "custom"
+  templateStyle: "officiel" | "classique" | "premium" | "ministere" | "custom"
 }
 
 function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle }: BulletinTemplateProps) {
@@ -45,6 +45,130 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
 
   return (
     <>
+      {/* 0. MODEL OFFICIEL (Éducation Nationale A4 Full Page - Default #1) */}
+      {templateStyle === "officiel" && (
+        <div
+          id="printable-document"
+          className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-2 border-indigo-950 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
+        >
+          <div className="space-y-6 flex-1 flex flex-col justify-between">
+            <div>
+              {/* Header */}
+              <div className="flex justify-between items-start border-b-2 border-indigo-950 pb-5 mb-5">
+                <div className="flex items-center gap-4">
+                  {schoolInfo?.logo_url ? (
+                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-16 w-16 object-contain" />
+                  ) : (
+                    <div className="h-16 w-16 bg-indigo-950 text-white rounded-2xl flex items-center justify-center font-bold">
+                      <Building2 className="h-8 w-8" />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-indigo-950">RÉPUBLIQUE DE CÔTE D'IVOIRE</h2>
+                    <p className="text-xs text-slate-500 font-bold uppercase">Ministère de l'Éducation Nationale et de l'Alphabétisation</p>
+                    <p className="text-sm font-extrabold text-indigo-800 mt-1">ÉTABLISSEMENT : {schoolInfo?.nom || "MonÉcole+"}</p>
+                    <p className="text-xs text-slate-500">{schoolInfo?.adresse} {schoolInfo?.telephone && `• ${schoolInfo.telephone}`}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-wide">BULLETIN DE NOTES</h3>
+                  <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg text-xs font-bold uppercase mt-1 inline-block">
+                    Trimestre {selectedSemester} &bull; {activeYear}
+                  </span>
+                </div>
+              </div>
+
+              {/* Student Info Card */}
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 text-xs sm:text-sm mb-6">
+                <div>
+                  <p className="text-slate-400 font-bold uppercase text-[9px]">Nom & Prénom(s)</p>
+                  <p className="font-black text-slate-900 text-base uppercase mt-0.5">{student.nom || student.name}</p>
+                  <p className="mt-2 text-slate-600 font-bold">Classe : <span className="text-slate-900">{student.classNom || student.className || "N/A"}</span></p>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 font-bold uppercase text-[9px]">Moyenne Trimestrielle</p>
+                  <p className="font-black text-indigo-700 text-2xl mt-0.5">{(student.overallAvg ?? student.avg ?? 0).toFixed(2)} / 20</p>
+                  <p className="mt-1 text-slate-600 font-bold">
+                    Rang : <span className="text-indigo-600 font-black">#{student.rank}</span> sur {student.totalStudents} | Résultat : <span className={(student.overallAvg ?? student.avg ?? 0) >= 10 ? "text-emerald-600 font-extrabold" : "text-rose-600 font-extrabold"}>{(student.overallAvg ?? student.avg ?? 0) >= 10 ? "ADMIS" : "ÉCHEC"}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Subjects Table */}
+              <table className="w-full text-xs sm:text-sm text-left border-collapse border border-slate-300 mb-6">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-300 text-slate-800 uppercase font-black">
+                    <th className="p-3 border-r border-slate-300">Matière / Discipline</th>
+                    <th className="p-3 text-center border-r border-slate-300">Coeff</th>
+                    <th className="p-3 text-center border-r border-slate-300">Moyenne / 20</th>
+                    <th className="p-3 pl-4">Appréciation du Professeur</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {student.subjects && student.subjects.length > 0 ? (
+                    student.subjects.map((m: any, i: number) => (
+                      <tr key={i} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-bold text-slate-900 border-r border-slate-200">{m.name || m.matiere}</td>
+                        <td className="p-3 text-center text-slate-600 font-medium border-r border-slate-200">{m.coef || 1}</td>
+                        <td className="p-3 text-center font-extrabold text-indigo-900 bg-indigo-50/40 border-r border-slate-200">{(m.avg ?? m.valeur ?? 0).toFixed(2)}</td>
+                        <td className="p-3 pl-4 italic text-slate-600">{m.feedback || (m.avg >= 16 ? "Excellent travail" : m.avg >= 14 ? "Très Bon travail" : m.avg >= 12 ? "Bon travail" : m.avg >= 10 ? "Passable" : "Insuffisant")}</td>
+                      </tr>
+                    ))
+                  ) : student.notes && student.notes.length > 0 ? (
+                    student.notes.map((n: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="p-3 font-bold text-slate-900 border-r border-slate-200">{n.matiere}</td>
+                        <td className="p-3 text-center text-slate-600 font-medium border-r border-slate-200">1</td>
+                        <td className="p-3 text-center font-extrabold text-indigo-900 bg-indigo-50/40 border-r border-slate-200">{(n.valeur ?? 0).toFixed(2)}</td>
+                        <td className="p-3 pl-4 italic text-slate-600">{n.valeur >= 16 ? "Excellent travail" : n.valeur >= 14 ? "Très Bon travail" : n.valeur >= 12 ? "Bon travail" : n.valeur >= 10 ? "Passable" : "Insuffisant"}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-slate-400 italic">
+                        Aucune matière enregistrée pour cet élève ce trimestre.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {/* Performance Grid */}
+              <div className="grid grid-cols-2 gap-6 my-4">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <p className="text-xs font-bold text-slate-500 uppercase">Décision du Conseil de Classe</p>
+                  <p className="text-sm font-extrabold text-slate-900 mt-1 italic">&quot;{student.decision || ((student.overallAvg ?? student.avg ?? 0) >= 10 ? "Admis(e) en classe supérieure" : "Refusé(e) / À encourager")}&quot;</p>
+                </div>
+                <div className="p-4 bg-indigo-50/60 border border-indigo-100 rounded-2xl text-right">
+                  <p className="text-xs font-bold text-indigo-600 uppercase">Assiduité & Conduite</p>
+                  <p className="text-sm font-extrabold text-indigo-950 mt-1">{student.totalAbsences ?? 0} absence(s) signalée(s)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Signatures */}
+            <div className="flex justify-between items-end border-t-2 border-slate-900 pt-6 mt-4">
+              <div className="flex gap-3 items-center">
+                <QrCode className="h-14 w-14 text-indigo-950" />
+                <p className="text-[9px] font-mono leading-tight text-slate-500">DOCUMENT OFFICIEL<br/>VERIFICATION EN LIGNE<br/>ID: OFFICIEL-2026-N1</p>
+              </div>
+              <div className="text-center w-56">
+                <p className="text-xs font-black uppercase text-slate-800 mb-2">Signature & Cachet Officiel</p>
+                <div className="relative mx-auto h-20 w-40 flex items-center justify-center">
+                  {schoolInfo?.cachet_url ? (
+                    <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-auto object-contain" />
+                  ) : (
+                    <div className="h-16 w-36 border-2 border-dashed border-rose-600/50 rounded-xl flex items-center justify-center -rotate-3">
+                      <p className="text-[7px] font-black text-rose-600 text-center uppercase tracking-widest">MINISTÈRE DE L'ÉDUCATION<br/>LE CHEF D'ÉTABLISSEMENT</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. MODEL CLASSIQUE (Standard A4 Full Page) */}
       {templateStyle === "classique" && (
         <div
@@ -483,7 +607,7 @@ export default function BulletinBatchPage() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [reportData, setReportData] = useState<any>(null)
   const [selectedStudentIndex, setSelectedStudentIndex] = useState(0)
-  const [selectedTemplateStyle, setSelectedTemplateStyle] = useState<"classique" | "premium" | "ministere" | "custom">("classique")
+  const [selectedTemplateStyle, setSelectedTemplateStyle] = useState<"officiel" | "classique" | "premium" | "ministere" | "custom">("officiel")
   const [schoolInfo, setSchoolInfo] = useState<any>({
     nom: "MonÉcole+ Groupe Scolaire",
     adresse: "Abidjan, Côte d'Ivoire",
@@ -647,9 +771,10 @@ export default function BulletinBatchPage() {
                                <SelectValue placeholder="Style du PDF" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
+                               <SelectItem value="officiel" className="text-xs font-bold text-primary">Officiel Éducation Nationale (Par défaut)</SelectItem>
                                <SelectItem value="classique" className="text-xs font-medium">Classique (Standard)</SelectItem>
                                <SelectItem value="premium" className="text-xs font-medium">Premium (Stripe/Canva)</SelectItem>
-                               <SelectItem value="ministere" className="text-xs font-medium">Ministère Ivoirien</SelectItem>
+                               <SelectItem value="ministere" className="text-xs font-medium">Ministère Ivoirien (Grille M+)</SelectItem>
                                <SelectItem value="custom" className="text-xs font-medium">Personnalisable</SelectItem>
                             </SelectContent>
                          </Select>
