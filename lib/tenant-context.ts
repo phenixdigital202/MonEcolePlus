@@ -94,9 +94,24 @@ export async function getCurrentTenant() {
   return null
 }
 
+export function invalidateTenantCache(schoolId?: number, subdomain?: string) {
+  if (schoolId) {
+    cacheById.delete(schoolId)
+  } else {
+    cacheById.clear()
+  }
+  if (subdomain) {
+    cacheBySubdomain.delete(subdomain)
+  } else {
+    cacheBySubdomain.clear()
+  }
+  console.log(`[invalidateTenantCache] Tenant cache invalidated for schoolId=${schoolId}, subdomain=${subdomain}`)
+}
+
 export function getMasterPrisma() {
   return masterPrisma
 }
+
 
 export async function getPrisma() {
   // If in CLI/script context, we can override targeting using DATABASE_URL env

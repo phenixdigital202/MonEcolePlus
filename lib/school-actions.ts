@@ -1,6 +1,7 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
 
 export async function getAvailableSchools() {
   try {
@@ -35,22 +36,23 @@ export async function updateSchoolSettingsAction(formData: {
   whatsapp_access_token?: string
   whatsapp_phone_number_id?: string
 }) {
-  const { getPrisma } = require("./tenant-context")
+  const { getPrisma, getCurrentTenant, invalidateTenantCache } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
   
   try {
     const tenantPrisma = await getPrisma()
+    const activeTenant = await getCurrentTenant()
     
     // 1. Get current school from Tenant DB
     let ecole = await tenantPrisma.ecole.findFirst()
     
     const updateData: any = {
       nom: formData.nom,
-      directeur: formData.directeur,
-      adresse: formData.adresse,
-      telephone: formData.telephone,
-      email: formData.email,
-      website: formData.website,
+      directeur: formData.directeur || null,
+      adresse: formData.adresse || null,
+      telephone: formData.telephone || null,
+      email: formData.email || null,
+      website: formData.website || null,
       smtp_host: formData.smtp_host || null,
       smtp_port: formData.smtp_port ? Number(formData.smtp_port) : null,
       smtp_user: formData.smtp_user || null,
@@ -69,7 +71,11 @@ export async function updateSchoolSettingsAction(formData: {
     if (!ecole) {
       // Create ecole stub in Tenant DB if not present
       updated = await tenantPrisma.ecole.create({
-        data: updateData
+        data: {
+          ...updateData,
+          id: activeTenant?.id,
+          subdomain: activeTenant?.subdomain
+        }
       })
       ecole = updated
     } else {
@@ -79,21 +85,30 @@ export async function updateSchoolSettingsAction(formData: {
       })
     }
 
-    // 3. Sync to Master DB by ID or subdomain
+    // 3. Sync to Master DB by active tenant context, subdomain or ID
     try {
+      const targetMasterId = activeTenant?.id || ecole?.id
+      const targetSubdomain = activeTenant?.subdomain || ecole?.subdomain
       const masterSchool = await masterPrisma.ecole.findFirst({
-        where: { OR: [{ id: ecole.id }, { subdomain: ecole.subdomain }] }
+        where: {
+          OR: [
+            targetMasterId ? { id: targetMasterId } : null,
+            targetSubdomain ? { subdomain: targetSubdomain } : null
+          ].filter(Boolean)
+        }
       })
       if (masterSchool) {
         await masterPrisma.ecole.update({
           where: { id: masterSchool.id },
           data: updateData
         })
+        invalidateTenantCache(masterSchool.id, masterSchool.subdomain)
       }
     } catch (masterErr: any) {
       console.warn("[updateSchoolSettingsAction] Master DB sync warning:", masterErr.message)
     }
 
+    revalidatePath("/dashboard/settings/school")
     return { success: true, school: JSON.parse(JSON.stringify(updated)) }
   } catch (error: any) {
     console.error("Failed to update school settings:", error)
@@ -102,7 +117,7 @@ export async function updateSchoolSettingsAction(formData: {
 }
 
 export async function updateSchoolLogoAction(logoUrl: string) {
-  const { getPrisma } = require("./tenant-context")
+  const { getPrisma, getCurrentTenant, invalidateTenantCache } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
 
   try {
@@ -111,6 +126,7 @@ export async function updateSchoolLogoAction(logoUrl: string) {
     }
 
     const tenantPrisma = await getPrisma()
+    const activeTenant = await getCurrentTenant()
     const ecole = await tenantPrisma.ecole.findFirst()
 
     if (!ecole) {
@@ -118,21 +134,35 @@ export async function updateSchoolLogoAction(logoUrl: string) {
     }
 
     // 1. Update Tenant DB
-    const updated = await tenantPrisma.ecole.update({
+    await tenantPrisma.ecole.update({
       where: { id: ecole.id },
       data: { logo_url: logoUrl }
     })
 
     // 2. Sync to Master DB
     try {
-      await masterPrisma.ecole.update({
-        where: { id: ecole.id },
-        data: { logo_url: logoUrl }
+      const targetMasterId = activeTenant?.id || ecole?.id
+      const targetSubdomain = activeTenant?.subdomain || ecole?.subdomain
+      const masterSchool = await masterPrisma.ecole.findFirst({
+        where: {
+          OR: [
+            targetMasterId ? { id: targetMasterId } : null,
+            targetSubdomain ? { subdomain: targetSubdomain } : null
+          ].filter(Boolean)
+        }
       })
+      if (masterSchool) {
+        await masterPrisma.ecole.update({
+          where: { id: masterSchool.id },
+          data: { logo_url: logoUrl }
+        })
+        invalidateTenantCache(masterSchool.id, masterSchool.subdomain)
+      }
     } catch (masterErr: any) {
       console.warn("[updateSchoolLogoAction] Master DB sync warning:", masterErr.message)
     }
 
+    revalidatePath("/dashboard/settings/school")
     console.log(`[updateSchoolLogoAction] Logo updated for school ID=${ecole.id}`)
     return { success: true, logo_url: logoUrl }
   } catch (error: any) {
@@ -142,11 +172,12 @@ export async function updateSchoolLogoAction(logoUrl: string) {
 }
 
 export async function deleteSchoolLogoAction() {
-  const { getPrisma } = require("./tenant-context")
+  const { getPrisma, getCurrentTenant, invalidateTenantCache } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
 
   try {
     const tenantPrisma = await getPrisma()
+    const activeTenant = await getCurrentTenant()
     const ecole = await tenantPrisma.ecole.findFirst()
 
     if (!ecole) {
@@ -159,14 +190,28 @@ export async function deleteSchoolLogoAction() {
     })
 
     try {
-      await masterPrisma.ecole.update({
-        where: { id: ecole.id },
-        data: { logo_url: null }
+      const targetMasterId = activeTenant?.id || ecole?.id
+      const targetSubdomain = activeTenant?.subdomain || ecole?.subdomain
+      const masterSchool = await masterPrisma.ecole.findFirst({
+        where: {
+          OR: [
+            targetMasterId ? { id: targetMasterId } : null,
+            targetSubdomain ? { subdomain: targetSubdomain } : null
+          ].filter(Boolean)
+        }
       })
+      if (masterSchool) {
+        await masterPrisma.ecole.update({
+          where: { id: masterSchool.id },
+          data: { logo_url: null }
+        })
+        invalidateTenantCache(masterSchool.id, masterSchool.subdomain)
+      }
     } catch (masterErr: any) {
       console.warn("[deleteSchoolLogoAction] Master DB sync warning:", masterErr.message)
     }
 
+    revalidatePath("/dashboard/settings/school")
     return { success: true }
   } catch (error: any) {
     console.error("[deleteSchoolLogoAction] Error:", error)
@@ -175,7 +220,7 @@ export async function deleteSchoolLogoAction() {
 }
 
 export async function updateSchoolCachetAction(cachetUrl: string) {
-  const { getPrisma } = require("./tenant-context")
+  const { getPrisma, getCurrentTenant, invalidateTenantCache } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
 
   try {
@@ -184,6 +229,7 @@ export async function updateSchoolCachetAction(cachetUrl: string) {
     }
 
     const tenantPrisma = await getPrisma()
+    const activeTenant = await getCurrentTenant()
     const ecole = await tenantPrisma.ecole.findFirst()
 
     if (!ecole) {
@@ -198,14 +244,28 @@ export async function updateSchoolCachetAction(cachetUrl: string) {
 
     // 2. Sync to Master DB
     try {
-      await masterPrisma.ecole.update({
-        where: { id: ecole.id },
-        data: { cachet_url: cachetUrl }
+      const targetMasterId = activeTenant?.id || ecole?.id
+      const targetSubdomain = activeTenant?.subdomain || ecole?.subdomain
+      const masterSchool = await masterPrisma.ecole.findFirst({
+        where: {
+          OR: [
+            targetMasterId ? { id: targetMasterId } : null,
+            targetSubdomain ? { subdomain: targetSubdomain } : null
+          ].filter(Boolean)
+        }
       })
+      if (masterSchool) {
+        await masterPrisma.ecole.update({
+          where: { id: masterSchool.id },
+          data: { cachet_url: cachetUrl }
+        })
+        invalidateTenantCache(masterSchool.id, masterSchool.subdomain)
+      }
     } catch (masterErr: any) {
       console.warn("[updateSchoolCachetAction] Master DB sync warning:", masterErr.message)
     }
 
+    revalidatePath("/dashboard/settings/school")
     console.log(`[updateSchoolCachetAction] Cachet updated for school ID=${ecole.id}`)
     return { success: true, cachet_url: cachetUrl }
   } catch (error: any) {
@@ -215,11 +275,12 @@ export async function updateSchoolCachetAction(cachetUrl: string) {
 }
 
 export async function deleteSchoolCachetAction() {
-  const { getPrisma } = require("./tenant-context")
+  const { getPrisma, getCurrentTenant, invalidateTenantCache } = require("./tenant-context")
   const masterPrisma = require("./prisma").default
 
   try {
     const tenantPrisma = await getPrisma()
+    const activeTenant = await getCurrentTenant()
     const ecole = await tenantPrisma.ecole.findFirst()
 
     if (!ecole) {
@@ -232,18 +293,31 @@ export async function deleteSchoolCachetAction() {
     })
 
     try {
-      await masterPrisma.ecole.update({
-        where: { id: ecole.id },
-        data: { cachet_url: null }
+      const targetMasterId = activeTenant?.id || ecole?.id
+      const targetSubdomain = activeTenant?.subdomain || ecole?.subdomain
+      const masterSchool = await masterPrisma.ecole.findFirst({
+        where: {
+          OR: [
+            targetMasterId ? { id: targetMasterId } : null,
+            targetSubdomain ? { subdomain: targetSubdomain } : null
+          ].filter(Boolean)
+        }
       })
+      if (masterSchool) {
+        await masterPrisma.ecole.update({
+          where: { id: masterSchool.id },
+          data: { cachet_url: null }
+        })
+        invalidateTenantCache(masterSchool.id, masterSchool.subdomain)
+      }
     } catch (masterErr: any) {
       console.warn("[deleteSchoolCachetAction] Master DB sync warning:", masterErr.message)
     }
 
+    revalidatePath("/dashboard/settings/school")
     return { success: true }
   } catch (error: any) {
     console.error("[deleteSchoolCachetAction] Error:", error)
     return { success: false, error: error.message || String(error) }
   }
 }
-
