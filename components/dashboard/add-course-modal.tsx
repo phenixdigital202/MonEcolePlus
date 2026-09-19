@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { 
   Dialog, 
   DialogContent, 
@@ -39,9 +40,10 @@ interface AddCourseModalProps {
 }
 
 export function AddCourseModal({ isOpen, onClose, classes, teachers }: AddCourseModalProps) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [formData, setFormData] = useState({
-    id_classes: "",
+    id_classe: "",
     id_enseignant: "",
     matiere: "",
     jour: "Lundi",
@@ -60,6 +62,7 @@ export function AddCourseModal({ isOpen, onClose, classes, teachers }: AddCourse
       const result = await addCourse(data)
       if (result.success) {
         toast.success("Cours ajouté avec succès")
+        router.refresh()
         onClose()
       } else {
         toast.error(result.error || "Une erreur est survenue")
@@ -78,7 +81,7 @@ export function AddCourseModal({ isOpen, onClose, classes, teachers }: AddCourse
             <Label htmlFor="class">Classe</Label>
             <Select 
               value={formData.id_classe} 
-              onValueChange={(v) => setFormData(f => ({...f, id_classes: v}))}
+              onValueChange={(v) => setFormData(f => ({...f, id_classe: v}))}
               required
             >
               <SelectTrigger>

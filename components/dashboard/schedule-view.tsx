@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,9 +47,21 @@ interface ScheduleViewProps {
 }
 
 export function ScheduleView({ initialClasses, initialTeachers, initialSchedule, initialClassId, isReadOnly = false, userRole = "admin" }: ScheduleViewProps) {
+  const router = useRouter()
   const [selectedClassId, setSelectedClassId] = useState(initialClassId || initialClasses[0]?.id?.toString() || "")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (initialClassId) {
+      setSelectedClassId(initialClassId)
+    }
+  }, [initialClassId])
+
+  const handleClassChange = (classId: string) => {
+    setSelectedClassId(classId)
+    router.push(`/dashboard/schedule?classId=${classId}`)
+  }
 
   // Calculate week range
   const weekRange = useMemo(() => {
@@ -89,13 +102,13 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
       if (!grid[item.jour]) grid[item.jour] = {}
       grid[item.jour][hourStr] = {
         subject: item.matiere,
-        teacher: userRole === "teacher" && item.classes?.nom ? `Classe : ${item.classes.nom}` : item.user.nom,
+        teacher: userRole === "teacher" && (item.classe?.nom || item.classes?.nom) ? `Classe : ${item.classe?.nom || item.classes?.nom}` : (item.user?.nom || "Enseignant"),
         room: item.salle,
         color: colorMap[item.matiere] || colorMap.default
       }
     })
     return grid
-  }, [initialSchedule])
+  }, [initialSchedule, userRole])
 
   return (
     <>
@@ -112,7 +125,7 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
                 Mon Emploi du Temps
               </div>
             ) : (
-              <Select value={selectedClassId} onValueChange={setSelectedClassId} disabled={isReadOnly}>
+              <Select value={selectedClassId} onValueChange={handleClassChange} disabled={isReadOnly}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Choisir une classe" />
                 </SelectTrigger>
