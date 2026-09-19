@@ -24,7 +24,9 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { getClasses } from "@/lib/grades-actions"
-import { getSchoolInfoAction, DocumentPrintContainer, downloadDocumentAsPdf } from "@/lib/documents-actions"
+import { getSchoolInfoAction } from "@/lib/documents-actions"
+import { DocumentPrintContainer } from "@/components/documents/document-print-container"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "sonner"
 
