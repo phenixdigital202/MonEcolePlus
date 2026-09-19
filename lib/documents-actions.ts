@@ -65,14 +65,15 @@ export async function getSchoolInfoAction() {
     return {
       success: true,
       data: {
-        nom: school?.nom || "MonÉcole+ Groupe Scolaire",
-        adresse: (school as any)?.adresse || "Abidjan, Côte d'Ivoire",
-        telephone: (school as any)?.telephone || "+225 07 00 00 00 00",
-        email: (school as any)?.email || "contact@monecoleplus.ci",
-        directeur: (school as any)?.directeur || "Le Chef d'Établissement",
+        nom: school?.nom || "",
+        adresse: (school as any)?.adresse || "",
+        telephone: (school as any)?.telephone || "",
+        email: (school as any)?.email || "",
+        directeur: (school as any)?.directeur || "",
+        website: (school as any)?.website || "",
         logo_url: school?.logo_url || null,
         cachet_url: (school as any)?.cachet_url || null,
-        activeSchoolYear: activeYear?.label || "2026-2027"
+        activeSchoolYear: activeYear?.label || ""
       }
     }
   } catch (error: any) {
