@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import * as XLSX from "xlsx"
 import { 
   CreditCard, 
@@ -19,7 +19,8 @@ import {
   User,
   ArrowUpRight,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  ChevronDown
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -90,6 +91,8 @@ export default function AdminPaymentsPage() {
 
   const [selectedUserForPay, setSelectedUserForPay] = useState("")
   const [userSearchForModal, setUserSearchForModal] = useState("")
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const userDropdownRef = useRef<HTMLDivElement>(null)
   const [amount, setAmount] = useState("")
   const [paymentType, setPaymentType] = useState<"scolarite" | "inscription" | "examen" | any>("scolarite")
   const [paymentStatus, setPaymentStatus] = useState<"paye" | "en_attente" | "annule" | any>("paye")
@@ -126,6 +129,16 @@ export default function AdminPaymentsPage() {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setIsUserDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUserForPay || !amount || parseFloat(amount) <= 0) {
@@ -156,6 +169,7 @@ export default function AdminPaymentsPage() {
         setMmPhone("")
         setSelectedUserForPay("")
         setUserSearchForModal("")
+        setIsUserDropdownOpen(false)
         fetchData()
       } else {
         toast.error(res.error || "Erreur de paiement Mobile Money")
@@ -174,6 +188,7 @@ export default function AdminPaymentsPage() {
         setAmount("")
         setSelectedUserForPay("")
         setUserSearchForModal("")
+        setIsUserDropdownOpen(false)
         fetchData()
       } else {
         toast.error(res.error || "Erreur de création")
@@ -341,37 +356,38 @@ export default function AdminPaymentsPage() {
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative" ref={userDropdownRef}>
                     <Label htmlFor="user-select">Utilisateur / Élève</Label>
-                    <Input
-                      type="text"
-                      placeholder="Saisir un nom pour filtrer..."
-                      value={userSearchForModal}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setUserSearchForModal(val)
-                        const matchingUser = users.find(u => u.nom.toLowerCase().trim() === val.toLowerCase().trim())
-                        if (matchingUser) {
-                          setSelectedUserForPay(matchingUser.id.toString())
-                        }
-                      }}
-                      className="rounded-xl text-xs mb-1"
-                    />
-                    <Select 
-                      value={selectedUserForPay} 
-                      onValueChange={(val) => {
-                        setSelectedUserForPay(val)
-                        const selectedObj = users.find(u => u.id.toString() === val)
-                        if (selectedObj) {
-                          setUserSearchForModal(selectedObj.nom)
-                        }
-                      }} 
-                      required
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Sélectionner un bénéficiaire" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl max-h-[250px]">
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="Saisissez un nom ou recherchez un bénéficiaire..."
+                        value={userSearchForModal}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setUserSearchForModal(val)
+                          setIsUserDropdownOpen(true)
+                          const matchingUser = users.find(u => u.nom.toLowerCase().trim() === val.toLowerCase().trim())
+                          if (matchingUser) {
+                            setSelectedUserForPay(matchingUser.id.toString())
+                          } else {
+                            setSelectedUserForPay("")
+                          }
+                        }}
+                        onFocus={() => setIsUserDropdownOpen(true)}
+                        className="rounded-xl pr-10 text-sm font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isUserDropdownOpen && "rotate-180")} />
+                      </button>
+                    </div>
+
+                    {isUserDropdownOpen && (
+                      <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto rounded-2xl bg-white border border-slate-200 shadow-2xl py-1 text-slate-900 animate-in fade-in-50 duration-150">
                         {users
                           .filter(u => 
                             !userSearchForModal || 
@@ -379,13 +395,40 @@ export default function AdminPaymentsPage() {
                             (u.email && u.email.toLowerCase().includes(userSearchForModal.toLowerCase()))
                           )
                           .map(u => (
-                            <SelectItem key={u.id} value={u.id.toString()}>
-                              {u.nom} ({u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role})
-                            </SelectItem>
-                          ))
-                        }
-                      </SelectContent>
-                    </Select>
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedUserForPay(u.id.toString())
+                                setUserSearchForModal(u.nom)
+                                setIsUserDropdownOpen(false)
+                              }}
+                              className={cn(
+                                "w-full text-left px-4 py-2.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0",
+                                selectedUserForPay === u.id.toString() && "bg-primary/10 font-bold text-primary"
+                              )}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-900 text-xs">{u.nom}</span>
+                                {u.email && <span className="text-[10px] text-slate-400">{u.email}</span>}
+                              </div>
+                              <Badge variant="outline" className="text-[10px] font-bold uppercase rounded-lg px-2 py-0.5 border-slate-200 text-slate-600">
+                                {u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role}
+                              </Badge>
+                            </button>
+                          ))}
+
+                        {users.filter(u => 
+                          !userSearchForModal || 
+                          u.nom.toLowerCase().includes(userSearchForModal.toLowerCase()) ||
+                          (u.email && u.email.toLowerCase().includes(userSearchForModal.toLowerCase()))
+                        ).length === 0 && (
+                          <div className="px-4 py-3 text-xs text-slate-400 text-center font-medium">
+                            Aucun bénéficiaire correspondant
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
