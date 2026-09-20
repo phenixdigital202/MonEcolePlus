@@ -61,7 +61,6 @@ const navigationConfig = {
         { name: "Evaluations & Devoirs", href: "/dashboard/grades/evaluations" },
         { name: "Saisie vocale 🎤", href: "/dashboard/grades/voice" },
         { name: "Tableau des notes", href: "/dashboard/grades/list" },
-        { name: "Générer bulletin PDF", href: "/dashboard/grades/pdf" },
       ]
     },
     { 

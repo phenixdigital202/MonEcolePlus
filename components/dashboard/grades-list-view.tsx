@@ -238,7 +238,6 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
                     <th className="p-4 font-black text-slate-400 text-[10px] uppercase tracking-widest">Classe</th>
                     <th className="p-4 font-black text-slate-400 text-[10px] uppercase tracking-widest">Matière</th>
                     <th className="p-4 font-black text-slate-400 text-[10px] uppercase tracking-widest text-center">Note / 20</th>
-                    <th className="p-4 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -268,36 +267,12 @@ export function GradesListView({ initialNotes, classes }: GradesListViewProps) {
                             {val.toFixed(2)}/20
                           </Badge>
                         </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-full text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                              onClick={() => {
-                                setEditingNote(note)
-                                setEditValue(Number(note.valeur).toString())
-                                setEditComment(note.commentaire || "")
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                              onClick={() => setNoteToDelete(note)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
                       </tr>
                     )
                   })}
                   {filteredNotes.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-20 text-center text-slate-400 italic">
+                      <td colSpan={5} className="py-20 text-center text-slate-400 italic">
                         Aucune note correspondant à vos critères de recherche.
                       </td>
                     </tr>

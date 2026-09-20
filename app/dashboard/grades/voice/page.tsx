@@ -93,7 +93,7 @@ export default function VoiceGradesPage() {
       const fetchEvs = async () => {
         const id = parseInt(selectedClass)
         const [evs, stds] = await Promise.all([
-          getEvaluationsByClass(id, { forEntryOnly: true }),
+          getEvaluationsByClass(id),
           getStudentsByClass(id)
         ])
         setEvaluations(evs)
@@ -179,6 +179,10 @@ export default function VoiceGradesPage() {
       toast.success("Notes vocales enregistrées avec succès en base de données !")
       setResults([])
       setTranscript("")
+      if (selectedClass) {
+        const evs = await getEvaluationsByClass(parseInt(selectedClass))
+        setEvaluations(evs)
+      }
     } else {
       toast.error(res.error || "Erreur de sauvegarde")
     }
@@ -218,7 +222,7 @@ export default function VoiceGradesPage() {
               <SelectContent className="rounded-xl">
                 {evaluations.map(e => (
                   <SelectItem key={e.id} value={e.id.toString()}>
-                    {e.matiere} - {new Date(e.date_eval).toLocaleDateString("fr-FR")}
+                    {e.matiere} - {new Date(e.date_eval).toLocaleDateString("fr-FR")} {e.isFullyCompleted ? "✔ (Complétée)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
