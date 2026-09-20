@@ -28,93 +28,97 @@ import { toast } from "sonner"
 
 function CertificateTemplate({ student, schoolInfo, certNumber, id }: { student: any; schoolInfo: any; certNumber: string; id?: string }) {
   return (
-    <Card id={id || "printable-document"} className="printable-area border-4 border-slate-200 shadow-2xl overflow-hidden bg-white text-slate-900 font-serif p-8 md:p-12 relative rounded-3xl print:shadow-none print:border-none print:p-0 print:m-0 print:w-full">
+    <Card id={id || "printable-document"} className="printable-area border-4 border-slate-200 shadow-2xl overflow-hidden bg-white text-slate-900 font-serif p-10 md:p-14 print:p-10 relative rounded-3xl print:shadow-none print:border-none print:m-0 print:w-full min-h-[280mm] print:min-h-[285mm] flex flex-col justify-between">
       {/* Security Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none flex flex-wrap gap-4 p-4">
-        {Array.from({length: 80}).map((_, i) => <ShieldCheck key={i} className="h-12 w-12" />)}
+      <div className="absolute inset-0 opacity-[0.025] pointer-events-none flex flex-wrap gap-6 p-6">
+        {Array.from({length: 120}).map((_, i) => <ShieldCheck key={i} className="h-14 w-14" />)}
       </div>
 
-      {/* 1. HEADER (Branding) */}
-      <div className="relative z-10 flex justify-between border-b-2 border-slate-900 pb-6 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="h-20 w-20 bg-primary/10 border-2 border-slate-900 flex items-center justify-center rounded-2xl overflow-hidden p-1">
-            {schoolInfo.logo_url ? (
-              <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
-            ) : (
-              <Building2 className="h-10 w-10 text-primary" />
-            )}
+      <div>
+        {/* 1. HEADER (Branding) */}
+        <div className="relative z-10 flex justify-between border-b-2 border-slate-900 pb-6 mb-8">
+          <div className="flex items-center gap-5">
+            <div className="h-24 w-24 bg-primary/10 border-2 border-slate-900 flex items-center justify-center rounded-2xl overflow-hidden p-1.5 shrink-0">
+              {schoolInfo.logo_url ? (
+                <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-full w-full object-contain" />
+              ) : (
+                <Building2 className="h-12 w-12 text-primary" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black uppercase leading-none text-slate-900">{schoolInfo.nom}</h1>
+              <p className="text-sm font-bold mt-1 text-slate-700">Enseignement Primaire & Secondaire</p>
+              <p className="text-xs items-center gap-1.5 flex mt-2 text-slate-600"><MapPin className="h-3.5 w-3.5 text-primary" /> {schoolInfo.adresse}</p>
+              <p className="text-xs items-center gap-1.5 flex text-slate-600"><Phone className="h-3.5 w-3.5 text-primary" /> {schoolInfo.telephone} | <Mail className="h-3.5 w-3.5 text-primary" /> {schoolInfo.email}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-black uppercase leading-none text-slate-900">{schoolInfo.nom}</h1>
-            <p className="text-xs font-bold mt-1 text-slate-700">Enseignement Primaire & Secondaire</p>
-            <p className="text-[10px] items-center gap-1 flex mt-2 text-slate-600"><MapPin className="h-2.5 w-2.5" /> {schoolInfo.adresse}</p>
-            <p className="text-[10px] items-center gap-1 flex text-slate-600"><Phone className="h-2.5 w-2.5" /> {schoolInfo.telephone} | <Mail className="h-2.5 w-2.5" /> {schoolInfo.email}</p>
+          <div className="text-right flex flex-col justify-between">
+            <Badge variant="outline" className="border-slate-900 font-mono text-xs px-3 py-1.5 rounded-md">{certNumber}</Badge>
+            <div className="mt-4">
+              <QrCode className="h-16 w-16 ml-auto text-slate-900" />
+              <p className="text-[9px] font-mono mt-1 text-slate-500 text-center">Authenticité QR</p>
+            </div>
           </div>
         </div>
-        <div className="text-right flex flex-col justify-between">
-          <Badge variant="outline" className="border-slate-900 font-mono text-[10px] px-2 py-1 rounded-md">{certNumber}</Badge>
-          <div className="mt-4">
-            <QrCode className="h-14 w-14 ml-auto text-slate-900" />
-            <p className="text-[8px] font-mono mt-1 text-slate-500 text-center">Authenticité QR</p>
-          </div>
-        </div>
-      </div>
 
-      {/* 2. TITRE */}
-      <div className="relative z-10 text-center mb-10">
-        <h2 className="text-2xl md:text-3xl font-black underline underline-offset-8 decoration-2 text-slate-900">CERTIFICAT DE SCOLARITÉ</h2>
-      </div>
-
-      {/* 3 & 4. CORPS DU TEXTE */}
-      <div className="relative z-10 space-y-6 text-base md:text-lg leading-relaxed px-2 text-slate-800">
-        <p>
-          Je soussigné, <strong>{schoolInfo.directeur}</strong>, certifie par la présente que l&apos;élève :
-        </p>
-        
-        <div className="bg-slate-50 p-6 border-x-4 border-primary space-y-2 rounded-2xl border-y border-slate-100">
-          <p><strong className="text-slate-900">Nom & Prénom :</strong> <span className="uppercase font-bold text-primary">{student.nom}</span></p>
-          <p><strong className="text-slate-900">Classe :</strong> <strong className="text-slate-800">{student.classe}</strong></p>
-          <p><strong className="text-slate-900">Email / Identifiant :</strong> {student.email}</p>
-          <p><strong className="text-slate-900">Année Scolaire :</strong> {schoolInfo.activeSchoolYear}</p>
+        {/* 2. TITRE */}
+        <div className="relative z-10 text-center my-10">
+          <h2 className="text-3xl md:text-4xl font-black underline underline-offset-8 decoration-4 text-slate-900 tracking-wide uppercase">CERTIFICAT DE SCOLARITÉ</h2>
         </div>
 
-        <p>
-          Est régulièrement inscrit(e) et fréquente assidûment les cours au sein de notre institution pour l&apos;année académique en cours.
-        </p>
-
-        <p>
-          En foi de quoi, le présent certificat de scolarité lui est délivré pour servir et valoir ce que de droit.
-        </p>
-      </div>
-
-      {/* 6 & 7. DATE & SIGNATURE */}
-      <div className="relative z-10 mt-16 flex justify-between items-end">
-        <div className="text-xs italic text-slate-600">
-          Fait le {new Date().toLocaleDateString('fr-FR')}
-        </div>
-        <div className="text-center relative">
-          <p className="text-xs font-bold mb-10 text-slate-800">{schoolInfo.directeur}</p>
+        {/* 3 & 4. CORPS DU TEXTE */}
+        <div className="relative z-10 space-y-8 text-lg md:text-xl leading-relaxed px-4 text-slate-800 my-8">
+          <p className="text-lg md:text-xl">
+            Je soussigné, <strong>{schoolInfo.directeur}</strong>, certifie par la présente que l&apos;élève :
+          </p>
           
-          {/* Signature & Official Stamp Overlay */}
-          <div className="absolute -bottom-2 -left-10 w-64 h-24 flex flex-col items-center justify-center pointer-events-none overflow-hidden opacity-90">
-            {schoolInfo.cachet_url ? (
-              <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-24 w-24 object-contain rotate-6" />
-            ) : (
-              <div className="absolute h-20 w-20 border-4 border-rose-600 rounded-full flex flex-col items-center justify-center rotate-12 opacity-40">
-                <p className="text-[5px] font-black text-rose-600 text-center uppercase tracking-tighter">DIRECTION GÉNÉRALE<br/>AUTHENTIFIÉ</p>
-              </div>
-            )}
-            <p className="text-3xl font-serif italic text-indigo-900 -rotate-6 ml-4">Direction</p>
+          <div className="bg-slate-50 p-8 border-x-4 border-primary space-y-3 rounded-2xl border-y border-slate-200 shadow-sm text-lg md:text-xl my-6">
+            <p><strong className="text-slate-900">Nom & Prénom :</strong> <span className="uppercase font-extrabold text-primary text-xl md:text-2xl ml-2">{student.nom}</span></p>
+            <p><strong className="text-slate-900">Classe :</strong> <strong className="text-slate-800 ml-2">{student.classe}</strong></p>
+            <p><strong className="text-slate-900">Email / Identifiant :</strong> <span className="ml-2 font-mono text-base md:text-lg">{student.email}</span></p>
+            <p><strong className="text-slate-900">Année Scolaire :</strong> <span className="ml-2 font-bold">{schoolInfo.activeSchoolYear}</span></p>
           </div>
 
-          <p className="text-xs font-bold pt-4 border-t border-slate-300">Cachet & Signature Officielle</p>
+          <p className="text-lg md:text-xl leading-relaxed">
+            Est régulièrement inscrit(e) et fréquente assidûment les cours au sein de notre institution pour l&apos;année académique en cours.
+          </p>
+
+          <p className="text-lg md:text-xl leading-relaxed">
+            En foi de quoi, le présent certificat de scolarité lui est délivré pour servir et valoir ce que de droit.
+          </p>
         </div>
       </div>
 
-      {/* 8. FOOTER SECURITY */}
-      <div className="absolute bottom-6 left-12 right-12 flex justify-between items-center text-[8px] font-mono text-slate-400 border-t border-slate-100 pt-3">
-        <span>MonÉcole+ SaaS | Document Sécurisé</span>
-        <span>Validation : {certNumber}</span>
+      {/* FOOTER & SIGNATURE SECTION (ANCHORED TO BOTTOM) */}
+      <div className="relative z-10 mt-auto pt-10">
+        <div className="flex justify-between items-end pb-8">
+          <div className="text-sm italic text-slate-600 font-medium">
+            Fait le {new Date().toLocaleDateString('fr-FR')}
+          </div>
+          <div className="text-center relative">
+            <p className="text-sm font-bold mb-12 text-slate-800">{schoolInfo.directeur}</p>
+            
+            {/* Signature & Official Stamp Overlay */}
+            <div className="absolute -bottom-2 -left-10 w-64 h-28 flex flex-col items-center justify-center pointer-events-none overflow-hidden opacity-90">
+              {schoolInfo.cachet_url ? (
+                <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-28 w-28 object-contain rotate-6" />
+              ) : (
+                <div className="absolute h-24 w-24 border-4 border-rose-600 rounded-full flex flex-col items-center justify-center rotate-12 opacity-40">
+                  <p className="text-[6px] font-black text-rose-600 text-center uppercase tracking-tighter">DIRECTION GÉNÉRALE<br/>AUTHENTIFIÉ</p>
+                </div>
+              )}
+              <p className="text-3xl font-serif italic text-indigo-900 -rotate-6 ml-4">Direction</p>
+            </div>
+
+            <p className="text-xs font-bold pt-4 border-t-2 border-slate-400 min-w-[200px]">Cachet & Signature Officielle</p>
+          </div>
+        </div>
+
+        {/* SECURITY FOOTER */}
+        <div className="flex justify-between items-center text-[10px] font-mono text-slate-400 border-t border-slate-200 pt-4 mt-4">
+          <span>MonÉcole+ SaaS | Document Officiel & Sécurisé</span>
+          <span>Validation : {certNumber}</span>
+        </div>
       </div>
     </Card>
   )
