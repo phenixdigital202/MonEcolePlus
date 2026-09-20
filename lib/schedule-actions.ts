@@ -360,13 +360,200 @@ export async function getTeachers() {
 
 export async function getScheduleData(classId?: number) {
   const prisma = await getPrisma()
-  return await prisma.emploiDuTemps.findMany({
-    where: { id_classe: classId },
+  const data = await prisma.emploiDuTemps.findMany({
+    where: classId ? { id_classe: classId } : undefined,
     include: {
       user: true,
       classe: true
     }
   })
+  return JSON.parse(JSON.stringify(data))
+}
+
+/**
+ * Automate scheduling optimization or generation for a specific class
+ */
+export async function optimizeOrGenerateScheduleForClass(classId: number) {
+  const prisma = await getPrisma()
+  try {
+    const existingCourses = await prisma.emploiDuTemps.findMany({
+      where: { id_classe: classId },
+      include: { user: true, classe: true }
+    })
+
+    if (existingCourses.length === 0) {
+      // Generate AI schedule for this specific class
+      const classe = await prisma.class.findUnique({
+        where: { id: classId },
+        include: {
+          classSubjects: {
+            include: {
+              teachers: {
+                include: { teacher: true }
+              }
+            },
+            orderBy: [{ ordre: 'asc' }, { id: 'asc' }]
+          }
+        }
+      })
+
+      if (!classe) return { success: false, error: "Classe introuvable" }
+
+      const allTeachers = await prisma.user.findMany({
+        where: { role: 'teacher' },
+        include: { teacherSubjects: true }
+      })
+
+      const existingOtherSchedules = await prisma.emploiDuTemps.findMany({
+        where: { id_classe: { not: classId } }
+      })
+
+      const busyTeacherSlots = new Set<string>()
+      const busyRoomSlots = new Set<string>()
+
+      existingOtherSchedules.forEach(s => {
+        const hour = new Date(s.heure_debut).toISOString().substring(11, 16)
+        busyTeacherSlots.add(`${s.id_enseignant}_${s.jour}_${hour}`)
+        if (s.salle) busyRoomSlots.add(`${s.salle}_${s.jour}_${hour}`)
+      })
+
+      const days: any[] = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
+      const defaultSubjects = ["Mathématiques", "Français", "Anglais", "SVT", "Physique-Chimie", "Histoire-Géo", "EPS"]
+      const configuredSubjects = classe.classSubjects || []
+      const newEntries: any[] = []
+
+      if (configuredSubjects.length > 0) {
+        for (const cs of configuredSubjects) {
+          const matName = cs.matiere
+          const hoursNeeded = Math.min(cs.volume_horaire_hebdo || 4, 6)
+          let assignedTeacherObjects = cs.teachers.map((cst: any) => cst.teacher)
+
+          if (assignedTeacherObjects.length === 0) {
+            assignedTeacherObjects = allTeachers.filter(t => {
+              const allowed = new Set<string>()
+              if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
+              t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
+              return allowed.has(matName.trim().toLowerCase())
+            })
+          }
+          if (assignedTeacherObjects.length === 0) assignedTeacherObjects = allTeachers
+
+          let hoursScheduled = 0
+          for (const day of days) {
+            if (hoursScheduled >= hoursNeeded) break
+            const availableDaySlots = day === "Mercredi" ? ["08:00", "09:00", "10:00", "11:00"] : ["08:00", "09:00", "10:00", "11:00", "14:00", "15:00"]
+
+            for (const slot of availableDaySlots) {
+              if (hoursScheduled >= hoursNeeded) break
+
+              const freeTeacher = assignedTeacherObjects.find((t: any) => !busyTeacherSlots.has(`${t.id}_${day}_${slot}`))
+              if (!freeTeacher) continue
+
+              let roomNum = (classId % 10) + 101
+              let roomName = `Salle ${roomNum}`
+              while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
+                roomNum++
+                roomName = `Salle ${roomNum}`
+              }
+
+              busyTeacherSlots.add(`${freeTeacher.id}_${day}_${slot}`)
+              busyRoomSlots.add(`${roomName}_${day}_${slot}`)
+
+              const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
+              const endHour = parseInt(slot.split(":")[0]) + 1
+              const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+              newEntries.push({
+                id_classe: classId,
+                id_enseignant: freeTeacher.id,
+                matiere: matName,
+                jour: day,
+                heure_debut,
+                heure_fin,
+                salle: roomName
+              })
+
+              hoursScheduled++
+            }
+          }
+        }
+      } else {
+        // Fallback default generation
+        for (const day of days) {
+          const daySlots = ["08:00", "09:00", "10:00", "11:00"]
+          if (day !== "Mercredi") daySlots.push("14:00")
+
+          for (let idx = 0; idx < daySlots.length; idx++) {
+            const slot = daySlots[idx]
+            const subject = defaultSubjects[(classId + days.indexOf(day) + idx) % defaultSubjects.length]
+
+            let selectedTeacher = allTeachers.find(t => {
+              const allowed = new Set<string>()
+              if (t.matiere) allowed.add(t.matiere.trim().toLowerCase())
+              t.teacherSubjects.forEach(ts => allowed.add(ts.matiere.trim().toLowerCase()))
+              return allowed.has(subject.toLowerCase()) && !busyTeacherSlots.has(`${t.id}_${day}_${slot}`)
+            })
+
+            if (!selectedTeacher) selectedTeacher = allTeachers.find(t => !busyTeacherSlots.has(`${t.id}_${day}_${slot}`))
+            if (!selectedTeacher && allTeachers[0]) selectedTeacher = allTeachers[0]
+            if (!selectedTeacher) continue
+
+            let roomNum = (classId % 10) + 101
+            let roomName = `Salle ${roomNum}`
+            while (busyRoomSlots.has(`${roomName}_${day}_${slot}`) && roomNum < 120) {
+              roomNum++
+              roomName = `Salle ${roomNum}`
+            }
+
+            busyTeacherSlots.add(`${selectedTeacher.id}_${day}_${slot}`)
+            busyRoomSlots.add(`${roomName}_${day}_${slot}`)
+
+            const heure_debut = new Date(`1970-01-01T${slot}:00Z`)
+            const endHour = parseInt(slot.split(":")[0]) + 1
+            const heure_fin = new Date(`1970-01-01T${endHour < 10 ? '0' + endHour : endHour}:00:00Z`)
+
+            newEntries.push({
+              id_classe: classId,
+              id_enseignant: selectedTeacher.id,
+              matiere: subject,
+              jour: day,
+              heure_debut,
+              heure_fin,
+              salle: roomName
+            })
+          }
+        }
+      }
+
+      if (newEntries.length > 0) {
+        await prisma.emploiDuTemps.createMany({
+          data: newEntries
+        })
+      }
+
+      const freshData = await getScheduleData(classId)
+      revalidatePath("/dashboard/schedule")
+      revalidatePath("/dashboard/schedule/edit")
+
+      return {
+        success: true,
+        message: `${newEntries.length} cours générés avec succès pour la classe par l'IA !`,
+        data: freshData
+      }
+    } else {
+      // Optimize existing
+      const optRes = await optimizeSchedule(classId)
+      const freshData = await getScheduleData(classId)
+      return {
+        success: true,
+        message: `${optRes.resolvedCount || 0} conflit(s) d'emploi du temps résolu(s) par l'IA !`,
+        data: freshData
+      }
+    }
+  } catch (error: any) {
+    console.error("Error in optimizeOrGenerateScheduleForClass:", error)
+    return { success: false, error: error.message || "Erreur de résolution par l'IA" }
+  }
 }
 
 /**

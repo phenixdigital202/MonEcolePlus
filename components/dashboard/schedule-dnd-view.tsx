@@ -21,8 +21,14 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { updateCoursePosition, checkCourseConflict, optimizeSchedule } from "@/lib/schedule-actions"
+import { 
+  updateCoursePosition, 
+  checkCourseConflict, 
+  getScheduleData, 
+  optimizeOrGenerateScheduleForClass 
+} from "@/lib/schedule-actions"
 import { getSchoolInfoAction } from "@/lib/documents-actions"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
 import { toast } from "sonner"
 import { useEffect } from "react"
 
@@ -55,6 +61,10 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
   const [schoolInfo, setSchoolInfo] = useState<any>(null)
 
   useEffect(() => {
+    setSchedule(initialSchedule)
+  }, [initialSchedule])
+
+  useEffect(() => {
     getSchoolInfoAction().then(res => {
       if (res.success) setSchoolInfo(res.data)
     })
@@ -68,9 +78,21 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
   const grid = useMemo(() => {
     const res: Record<string, Record<string, any>> = {}
     schedule.forEach(item => {
-      const hour = new Date(item.heure_debut).toISOString().substring(11, 16)
+      let hour = ""
+      if (item.heure_debut) {
+        const d = new Date(item.heure_debut)
+        if (!isNaN(d.getTime())) {
+          const h = d.getUTCHours()
+          const m = d.getUTCMinutes()
+          hour = `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`
+        }
+      }
+      if (!hour && typeof item.heure_debut === "string") {
+        const match = item.heure_debut.match(/(\d{2}:\d{2})/)
+        if (match) hour = match[1]
+      }
       if (!res[item.jour]) res[item.jour] = {}
-      res[item.jour][hour] = item
+      if (hour) res[item.jour][hour] = item
     })
     return res
   }, [schedule])
@@ -111,7 +133,6 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
     // Update local state for immediate feedback
     const updatedSchedule = schedule.map(item => {
       if (item.id === courseId) {
-        // Construct new date with the target hour
         const newHeureDebut = new Date(item.heure_debut)
         newHeureDebut.setUTCHours(parseInt(hour.split(":")[0]), parseInt(hour.split(":")[1]), 0)
         
@@ -130,26 +151,68 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
     // Save to DB
     const res = await updateCoursePosition(courseId, day as any, hour)
     if (res.success) {
-      toast.success("Cours déplacé avec succès")
+      toast.success("Cours déplacé avec succès dans la base de données")
     } else {
-      toast.error("Erreur lors du déplacement")
-      // Revert on error
+      toast.error(res.error || "Erreur lors du déplacement")
       setSchedule(initialSchedule)
     }
     setIsSaving(false)
   }
 
-  // Handle Automatic Optimization
+  // Handle Automatic AI Optimization / Generation
   const handleAutoOptimize = async () => {
     setIsSaving(true)
-    const res = await optimizeSchedule(selectedClassId)
-    if (res.success) {
-      toast.success(`${res.resolvedCount} conflit(s) résolu(s) automatiquement !`)
-      router.refresh()
-    } else {
-      toast.error(res.error || "Erreur de résolution automatique")
+    try {
+      const res = await optimizeOrGenerateScheduleForClass(selectedClassId)
+      if (res.success) {
+        toast.success(res.message || "Résolution IA effectuée avec succès !")
+        if (res.data) setSchedule(res.data)
+        router.refresh()
+      } else {
+        toast.error(res.error || "Erreur de résolution automatique")
+      }
+    } catch (e: any) {
+      toast.error("Erreur lors de la résolution IA")
+    } finally {
+      setIsSaving(false)
     }
-    setIsSaving(false)
+  }
+
+  // Handle PDF Export / Printing
+  const handlePrintPdf = async () => {
+    try {
+      toast.info("Génération du document PDF en cours...")
+      const className = initialClasses.find(c => c.id === selectedClassId)?.nom || "Classe"
+      const success = await downloadDocumentAsPdf({
+        elementId: "printable-document",
+        filename: `Emploi_du_temps_${className.replace(/\s+/g, "_")}.pdf`,
+        format: "a4",
+        orientation: "landscape"
+      })
+
+      if (!success) {
+        window.print()
+      } else {
+        toast.success("PDF téléchargé avec succès !")
+      }
+    } catch (err) {
+      window.print()
+    }
+  }
+
+  // Handle Reset from DB
+  const handleReset = async () => {
+    setIsSaving(true)
+    try {
+      const freshData = await getScheduleData(selectedClassId)
+      setSchedule(freshData)
+      router.refresh()
+      toast.success("Emploi du temps réinitialisé avec les données de la base.")
+    } catch (err) {
+      toast.error("Erreur lors de la réinitialisation")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -206,14 +269,14 @@ export function ScheduleDndView({ initialClasses, initialSchedule, selectedClass
           </div>
 
           <div className="flex gap-2 flex-wrap print:hidden no-print">
-            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 gap-1.5 font-bold" onClick={handleAutoOptimize}>
+            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 gap-1.5 font-bold hover:bg-primary/5" onClick={handleAutoOptimize} disabled={isSaving}>
               <Sparkles className="h-4 w-4 text-primary" />
               Résolution IA
             </Button>
-            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4" onClick={() => window.print()}>
+            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 hover:bg-slate-50" onClick={handlePrintPdf}>
               Imprimer / PDF
             </Button>
-            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4" onClick={() => router.refresh()}>
+            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 hover:bg-slate-50" onClick={handleReset} disabled={isSaving}>
               <RotateCcw className="h-4 w-4 mr-2" />
               Réinitialiser
             </Button>
