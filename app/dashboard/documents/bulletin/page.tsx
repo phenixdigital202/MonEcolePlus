@@ -36,19 +36,21 @@ interface BulletinTemplateProps {
   schoolInfo: any
   selectedSemester: string
   templateStyle: "officiel" | "classique" | "premium" | "ministere" | "custom"
+  id?: string
 }
 
-function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle }: BulletinTemplateProps) {
+function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle, id }: BulletinTemplateProps) {
   if (!student) return null
 
   const activeYear = schoolInfo?.activeSchoolYear || "2026-2027"
+  const containerId = id || "printable-document"
 
   return (
     <>
       {/* 0. MODEL OFFICIEL (Éducation Nationale A4 Full Page - Default #1) */}
       {templateStyle === "officiel" && (
         <div
-          id="printable-document"
+          id={containerId}
           className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-2 border-indigo-950 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
         >
           <div className="space-y-6 flex-1 flex flex-col justify-between">
@@ -172,7 +174,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
       {/* 1. MODEL CLASSIQUE (Standard A4 Full Page) */}
       {templateStyle === "classique" && (
         <div
-          id="printable-document"
+          id={containerId}
           className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-4 border-slate-200 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
         >
           <div className="space-y-6 flex-1 flex flex-col justify-between">
@@ -282,7 +284,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
       {/* 2. MODEL PREMIUM (Stripe / Canva style A4 Full Page) */}
       {templateStyle === "premium" && (
         <div
-          id="printable-document"
+          id={containerId}
           className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-2 border-indigo-100 text-slate-800 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between relative"
         >
           {/* Subtle Premium Watermark */}
@@ -413,7 +415,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
       {/* 3. MODEL MINISTERE (Official Governmental A4 Full Page) */}
       {templateStyle === "ministere" && (
         <div
-          id="printable-document"
+          id={containerId}
           className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-4 border-slate-900 text-slate-900 font-serif shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
         >
           <div className="space-y-6 flex-1 flex flex-col justify-between">
@@ -509,7 +511,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
       {/* 4. MODEL CUSTOMIZABLE (Branded accent A4 Full Page) */}
       {templateStyle === "custom" && (
         <div
-          id="printable-document"
+          id={containerId}
           className="printable-area print-page-a4 w-full max-w-[210mm] min-h-[285mm] mx-auto bg-white p-8 sm:p-10 border-t-8 border-indigo-600 border-x border-b border-slate-200 text-slate-900 font-sans shadow-sm print:shadow-none print:border-none box-border flex flex-col justify-between"
         >
           <div className="space-y-6 flex-1 flex flex-col justify-between">
@@ -779,14 +781,28 @@ export default function BulletinBatchPage() {
                             </SelectContent>
                          </Select>
                       </div>
-                      <Button size="sm" variant="outline" className="border-slate-300 font-bold rounded-xl gap-2 text-slate-700 bg-white" onClick={() => {
+                      <Button size="sm" variant="outline" className="border-slate-300 font-bold rounded-xl gap-2 text-slate-700 bg-white" onClick={async () => {
                         if (!currentStudent) return
-                        toast.info("Génération du bulletin PDF...")
-                        downloadDocumentAsPdf({
-                          elementId: "printable-document",
-                          filename: `Bulletin_${currentStudent.nom?.replace(/\s+/g, '_')}_T${selectedSemester}_${selectedTemplateStyle}`,
-                          format: "a4"
-                        })
+                        try {
+                          toast.info("Génération du bulletin PDF en cours...")
+                          const studentName = currentStudent.nom ? currentStudent.nom.replace(/\s+/g, '_') : 'Eleve'
+                          const success = await downloadDocumentAsPdf({
+                            elementId: "printable-document",
+                            filename: `Bulletin_${studentName}_T${selectedSemester}_${selectedTemplateStyle}.pdf`,
+                            format: "a4",
+                            orientation: "portrait"
+                          })
+                          if (!success) {
+                            toast.error("Échec de l'export PDF, ouverture de l'impression...")
+                            window.print()
+                          } else {
+                            toast.success("Bulletin PDF téléchargé avec succès !")
+                          }
+                        } catch (err) {
+                          console.error(err)
+                          toast.error("Erreur lors du téléchargement du PDF")
+                          window.print()
+                        }
                       }}>
                         <Download className="h-4 w-4" /> Télécharger PDF
                       </Button>
@@ -805,6 +821,7 @@ export default function BulletinBatchPage() {
                         schoolInfo={schoolInfo}
                         selectedSemester={selectedSemester}
                         templateStyle={selectedTemplateStyle}
+                        id="printable-document-portal"
                       />
                     </DocumentPrintContainer>
 
@@ -815,6 +832,7 @@ export default function BulletinBatchPage() {
                         schoolInfo={schoolInfo}
                         selectedSemester={selectedSemester}
                         templateStyle={selectedTemplateStyle}
+                        id="printable-document"
                       />
                     </div>
                   </div>
