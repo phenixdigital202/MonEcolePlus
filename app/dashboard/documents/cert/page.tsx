@@ -68,7 +68,34 @@ export default function CertificatePage() {
   }
 
   const handlePrint = () => {
-    window.print()
+    toast.info("Ouverture de la fenêtre d'impression...")
+    setTimeout(() => {
+      window.print()
+    }, 150)
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!selectedStudent) return
+    try {
+      toast.info("Génération du certificat PDF en cours...")
+      const studentName = selectedStudent.nom ? selectedStudent.nom.replace(/\s+/g, "_") : "Eleve"
+      const success = await downloadDocumentAsPdf({
+        elementId: "printable-document",
+        filename: `Certificat_Scolarite_${studentName}.pdf`,
+        format: "a4",
+        orientation: "portrait"
+      })
+
+      if (!success) {
+        window.print()
+      } else {
+        toast.success("Certificat de scolarité téléchargé en PDF avec succès !")
+      }
+    } catch (error) {
+      console.error("Error exporting PDF:", error)
+      toast.error("Erreur lors du téléchargement du PDF")
+      window.print()
+    }
   }
 
   const certNumber = selectedStudent 
@@ -234,19 +261,11 @@ export default function CertificatePage() {
                    <CardTitle className="text-lg font-bold">Actions & Export</CardTitle>
                  </CardHeader>
                  <CardContent className="space-y-3">
-                   <Button className="w-full h-12 shadow-lg rounded-2xl bg-primary text-white font-bold gap-2 border-none" onClick={() => window.print()}>
+                   <Button className="w-full h-12 shadow-lg rounded-2xl bg-primary text-white font-bold gap-2 border-none hover:bg-primary/90" onClick={handlePrint}>
                      <Printer className="h-4 w-4" /> Imprimer le certificat
                    </Button>
-                   <Button variant="outline" className="w-full h-12 bg-white rounded-2xl font-bold gap-2" onClick={() => {
-                     if (!selectedStudent) return
-                     toast.info("Génération du certificat PDF...")
-                     downloadDocumentAsPdf({
-                       elementId: "printable-document",
-                       filename: `Certificat_Scolarite_${selectedStudent.nom?.replace(/\s+/g, "_")}`,
-                       format: "a4"
-                     })
-                   }}>
-                     <Download className="h-4 w-4" /> Télécharger en PDF
+                   <Button variant="outline" className="w-full h-12 bg-white rounded-2xl font-bold gap-2 border-slate-200 hover:bg-slate-50 text-slate-800 shadow-sm" onClick={handleDownloadPdf}>
+                     <Download className="h-4 w-4 text-primary" /> Télécharger en PDF
                    </Button>
                  </CardContent>
                </Card>
