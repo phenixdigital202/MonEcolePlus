@@ -672,3 +672,79 @@ export async function optimizeSchedule(classId: number) {
     return { success: false, error: error.message }
   }
 }
+
+export async function resetClassScheduleAction(classId: number) {
+  const prisma = await getPrisma()
+  try {
+    await prisma.emploiDuTemps.deleteMany({
+      where: { id_classe: classId }
+    })
+    revalidatePath("/dashboard/schedule")
+    revalidatePath("/dashboard/schedule/edit")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error resetting class schedule:", error)
+    return { success: false, error: error.message || "Erreur de réinitialisation" }
+  }
+}
+
+export async function updateCourseDetailsAction(courseId: number, data: {
+  id_enseignant?: number
+  matiere?: string
+  salle?: string
+  jour?: any
+  hour?: string
+}) {
+  const prisma = await getPrisma()
+  try {
+    const existing = await prisma.emploiDuTemps.findUnique({ where: { id: courseId } })
+    if (!existing) return { success: false, error: "Cours introuvable" }
+
+    let heure_debut = existing.heure_debut
+    let heure_fin = existing.heure_fin
+
+    if (data.hour) {
+      heure_debut = new Date(`1970-01-01T${data.hour}:00Z`)
+      const endH = parseInt(data.hour.split(":")[0]) + 1
+      heure_fin = new Date(`1970-01-01T${endH < 10 ? '0' + endH : endH}:00:00Z`)
+    }
+
+    const updated = await prisma.emploiDuTemps.update({
+      where: { id: courseId },
+      data: {
+        ...(data.id_enseignant ? { id_enseignant: data.id_enseignant } : {}),
+        ...(data.matiere ? { matiere: data.matiere } : {}),
+        ...(data.salle !== undefined ? { salle: data.salle } : {}),
+        ...(data.jour ? { jour: data.jour } : {}),
+        ...(data.hour ? { heure_debut, heure_fin } : {})
+      },
+      include: {
+        user: true,
+        classe: true
+      }
+    })
+
+    revalidatePath("/dashboard/schedule")
+    revalidatePath("/dashboard/schedule/edit")
+    return { success: true, data: JSON.parse(JSON.stringify(updated)) }
+  } catch (error: any) {
+    console.error("Error updating course details:", error)
+    return { success: false, error: error.message || "Erreur lors de la modification" }
+  }
+}
+
+export async function deleteCourseAction(courseId: number) {
+  const prisma = await getPrisma()
+  try {
+    await prisma.emploiDuTemps.delete({
+      where: { id: courseId }
+    })
+    revalidatePath("/dashboard/schedule")
+    revalidatePath("/dashboard/schedule/edit")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error deleting course:", error)
+    return { success: false, error: error.message || "Erreur de suppression" }
+  }
+}
+

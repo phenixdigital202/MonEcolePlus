@@ -1,4 +1,4 @@
-import { getClasses, getScheduleData } from "@/lib/schedule-actions"
+import { getClasses, getScheduleData, getTeachers } from "@/lib/schedule-actions"
 import { ScheduleDndView } from "@/components/dashboard/schedule-dnd-view"
 import { cookies } from "next/headers"
 import { getPrisma } from "@/lib/tenant-context"
@@ -29,6 +29,7 @@ export default async function ScheduleEditPage({
   }
 
   const classes = await getClasses()
+  const teachers = await getTeachers()
   const classId = rawClassId ? parseInt(rawClassId) : (classes[0]?.id || 0)
   
   if (classes.length === 0) {
@@ -45,8 +46,10 @@ export default async function ScheduleEditPage({
   return (
     <ScheduleDndView 
       initialClasses={classes.map(c => ({ id: c.id, nom: c.nom }))}
+      initialTeachers={teachers.map(t => ({ id: t.id, nom: t.nom }))}
       initialSchedule={schedule}
       selectedClassId={classId}
     />
   )
 }
+
