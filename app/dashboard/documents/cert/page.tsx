@@ -185,14 +185,13 @@ export default function CertificatePage() {
         orientation: "portrait"
       })
 
-      if (!success) {
-        window.print()
-      } else {
+      if (success) {
         toast.success("Certificat de scolarité téléchargé en PDF avec succès !")
+      } else {
+        window.print()
       }
     } catch (error) {
       console.error("Error exporting PDF:", error)
-      toast.error("Erreur lors du téléchargement du PDF")
       window.print()
     }
   }

@@ -792,15 +792,13 @@ export default function BulletinBatchPage() {
                             format: "a4",
                             orientation: "portrait"
                           })
-                          if (!success) {
-                            toast.error("Échec de l'export PDF, ouverture de l'impression...")
-                            window.print()
-                          } else {
+                          if (success) {
                             toast.success("Bulletin PDF téléchargé avec succès !")
+                          } else {
+                            window.print()
                           }
                         } catch (err) {
                           console.error(err)
-                          toast.error("Erreur lors du téléchargement du PDF")
                           window.print()
                         }
                       }}>
