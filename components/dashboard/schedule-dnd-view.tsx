@@ -15,8 +15,17 @@ import {
   Sparkles,
   Edit3,
   Trash2,
-  Loader2
+  Loader2,
+  Printer,
+  FileDown,
+  ChevronDown
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { 
   Select, 
   SelectContent, 
@@ -200,9 +209,9 @@ export function ScheduleDndView({ initialClasses, initialTeachers = [], initialS
   }
 
   // Handle PDF Export / Printing
-  const handlePrintPdf = async () => {
+  const handleDownloadPdf = async () => {
     try {
-      toast.info("Génération du document PDF en cours...")
+      toast.info("Génération du fichier PDF en cours...")
       const className = initialClasses.find(c => c.id === selectedClassId)?.nom || "Classe"
       const success = await downloadDocumentAsPdf({
         elementId: "printable-document",
@@ -214,11 +223,18 @@ export function ScheduleDndView({ initialClasses, initialTeachers = [], initialS
       if (!success) {
         window.print()
       } else {
-        toast.success("PDF téléchargé avec succès !")
+        toast.success("Fichier PDF téléchargé avec succès !")
       }
     } catch (err) {
       window.print()
     }
+  }
+
+  const handleDirectPrint = () => {
+    toast.info("Ouverture de la fenêtre d'impression...")
+    setTimeout(() => {
+      window.print()
+    }, 150)
   }
 
   // Handle Direct Reset (wipes schedule for this class)
@@ -361,9 +377,33 @@ export function ScheduleDndView({ initialClasses, initialTeachers = [], initialS
               <Sparkles className="h-4 w-4 text-primary" />
               Résolution IA
             </Button>
-            <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 hover:bg-slate-50" onClick={handlePrintPdf}>
-              Imprimer / PDF
-            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 gap-1.5 font-bold hover:bg-slate-50 border-slate-200">
+                  <Printer className="h-4 w-4 text-slate-600" />
+                  Imprimer / PDF
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-2xl w-56 p-1.5 shadow-xl border-slate-100 bg-white">
+                <DropdownMenuItem onClick={handleDownloadPdf} className="rounded-xl cursor-pointer p-2.5 font-medium gap-2 hover:bg-slate-50">
+                  <FileDown className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-800 text-xs">Télécharger le PDF</span>
+                    <span className="text-[10px] text-slate-500">Exporter en fichier .pdf</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDirectPrint} className="rounded-xl cursor-pointer p-2.5 font-medium gap-2 hover:bg-slate-50">
+                  <Printer className="h-4 w-4 text-slate-700 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-800 text-xs">Imprimer la grille</span>
+                    <span className="text-[10px] text-slate-500">Ouvrir l'impression navigateur</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="outline" size="sm" className="rounded-xl h-10 px-4 hover:bg-red-50 text-red-600 border-red-200 font-medium" onClick={handleReset} disabled={isSaving}>
               <RotateCcw className="h-4 w-4 mr-2 text-red-500" />
               Réinitialiser
