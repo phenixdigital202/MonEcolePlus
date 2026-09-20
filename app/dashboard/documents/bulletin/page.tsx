@@ -59,7 +59,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
               <div className="flex justify-between items-start border-b-2 border-indigo-950 pb-5 mb-5">
                 <div className="flex items-center gap-4">
                   {schoolInfo?.logo_url ? (
-                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-16 w-16 object-contain" />
+                    <img src={schoolInfo.logo_url} alt="Logo Établissement" className="h-16 w-16 object-contain" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-16 w-16 bg-indigo-950 text-white rounded-2xl flex items-center justify-center font-bold">
                       <Building2 className="h-8 w-8" />
@@ -158,7 +158,7 @@ function BulletinTemplate({ student, schoolInfo, selectedSemester, templateStyle
                 <p className="text-xs font-black uppercase text-slate-800 mb-2">Signature & Cachet Officiel</p>
                 <div className="relative mx-auto h-20 w-40 flex items-center justify-center">
                   {schoolInfo?.cachet_url ? (
-                    <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-auto object-contain" />
+                    <img src={schoolInfo.cachet_url} alt="Cachet Officiel" className="h-20 w-auto object-contain" crossOrigin="anonymous" />
                   ) : (
                     <div className="h-16 w-36 border-2 border-dashed border-rose-600/50 rounded-xl flex items-center justify-center -rotate-3">
                       <p className="text-[7px] font-black text-rose-600 text-center uppercase tracking-widest">MINISTÈRE DE L'ÉDUCATION<br/>LE CHEF D'ÉTABLISSEMENT</p>
