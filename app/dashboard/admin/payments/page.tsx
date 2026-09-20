@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import * as XLSX from "xlsx"
 import { 
   CreditCard, 
   Plus, 
@@ -88,6 +89,7 @@ export default function AdminPaymentsPage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   const [selectedUserForPay, setSelectedUserForPay] = useState("")
+  const [userSearchForModal, setUserSearchForModal] = useState("")
   const [amount, setAmount] = useState("")
   const [paymentType, setPaymentType] = useState<"scolarite" | "inscription" | "examen" | any>("scolarite")
   const [paymentStatus, setPaymentStatus] = useState<"paye" | "en_attente" | "annule" | any>("paye")
@@ -153,6 +155,7 @@ export default function AdminPaymentsPage() {
         setAmount("")
         setMmPhone("")
         setSelectedUserForPay("")
+        setUserSearchForModal("")
         fetchData()
       } else {
         toast.error(res.error || "Erreur de paiement Mobile Money")
@@ -170,6 +173,7 @@ export default function AdminPaymentsPage() {
         setIsAddPaymentOpen(false)
         setAmount("")
         setSelectedUserForPay("")
+        setUserSearchForModal("")
         fetchData()
       } else {
         toast.error(res.error || "Erreur de création")
@@ -240,6 +244,50 @@ export default function AdminPaymentsPage() {
     setActionLoading(false)
   }
 
+  const handleExportJournalExcel = () => {
+    try {
+      if (!filteredPayments || filteredPayments.length === 0) {
+        toast.error("Aucun paiement à exporter")
+        return
+      }
+
+      const dataToExport = filteredPayments.map((p) => ({
+        "Date": p.date_paiement ? new Date(p.date_paiement).toLocaleDateString("fr-FR") : "-",
+        "Bénéficiaire": p.user?.nom || "Non renseigné",
+        "Email": p.user?.email || "-",
+        "Type de frais": p.type ? p.type.toUpperCase() : "-",
+        "Montant (FCFA)": p.montant || 0,
+        "Statut": p.status === "paye" ? "Payé" : p.status === "en_attente" ? "En attente" : p.status === "annule" ? "Annulé" : p.status || "-",
+        "Mode de paiement": p.provider ? `${p.provider.toUpperCase()} (${p.phoneNumber || ""})` : "Classique",
+        "Référence Transaction": p.transactionRef || "-",
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const colWidths = [
+        { wch: 12 },
+        { wch: 25 },
+        { wch: 30 },
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 12 },
+        { wch: 25 },
+        { wch: 25 },
+      ]
+      worksheet["!cols"] = colWidths
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Journal Paiements")
+
+      const dateStr = new Date().toISOString().split("T")[0]
+      XLSX.writeFile(workbook, `Journal_Paiements_${dateStr}.xlsx`)
+
+      toast.success("Journal des paiements téléchargé avec succès !")
+    } catch (error) {
+      console.error("Erreur lors de l'export Excel:", error)
+      toast.error("Erreur lors du téléchargement du journal Excel")
+    }
+  }
+
   const filteredPayments = payments.filter(p => {
     const userName = p.user?.nom || ""
     const userEmail = p.user?.email || ""
@@ -295,16 +343,47 @@ export default function AdminPaymentsPage() {
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
                     <Label htmlFor="user-select">Utilisateur / Élève</Label>
-                    <Select value={selectedUserForPay} onValueChange={setSelectedUserForPay} required>
+                    <Input
+                      type="text"
+                      placeholder="Saisir un nom pour filtrer..."
+                      value={userSearchForModal}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setUserSearchForModal(val)
+                        const matchingUser = users.find(u => u.nom.toLowerCase().trim() === val.toLowerCase().trim())
+                        if (matchingUser) {
+                          setSelectedUserForPay(matchingUser.id.toString())
+                        }
+                      }}
+                      className="rounded-xl text-xs mb-1"
+                    />
+                    <Select 
+                      value={selectedUserForPay} 
+                      onValueChange={(val) => {
+                        setSelectedUserForPay(val)
+                        const selectedObj = users.find(u => u.id.toString() === val)
+                        if (selectedObj) {
+                          setUserSearchForModal(selectedObj.nom)
+                        }
+                      }} 
+                      required
+                    >
                       <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Sélectionner un bénéficiaire" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl max-h-[250px]">
-                        {users.map(u => (
-                          <SelectItem key={u.id} value={u.id.toString()}>
-                            {u.nom} ({u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role})
-                          </SelectItem>
-                        ))}
+                        {users
+                          .filter(u => 
+                            !userSearchForModal || 
+                            u.nom.toLowerCase().includes(userSearchForModal.toLowerCase()) ||
+                            (u.email && u.email.toLowerCase().includes(userSearchForModal.toLowerCase()))
+                          )
+                          .map(u => (
+                            <SelectItem key={u.id} value={u.id.toString()}>
+                              {u.nom} ({u.role === 'student' ? 'Élève' : u.role === 'parent' ? 'Parent' : u.role})
+                            </SelectItem>
+                          ))
+                        }
                       </SelectContent>
                     </Select>
                   </div>
@@ -355,6 +434,7 @@ export default function AdminPaymentsPage() {
                           <SelectContent className="rounded-xl">
                             <SelectItem value="orange_money">Orange Money</SelectItem>
                             <SelectItem value="mtn_momo">MTN MoMo</SelectItem>
+                            <SelectItem value="moov_money">Moov Money</SelectItem>
                             <SelectItem value="wave">Wave</SelectItem>
                           </SelectContent>
                         </Select>
@@ -512,9 +592,9 @@ export default function AdminPaymentsPage() {
             <Button 
               variant="outline" 
               className="gap-2 rounded-2xl border-slate-200 hover:bg-slate-50 shrink-0"
-              onClick={() => window.print()}
+              onClick={handleExportJournalExcel}
             >
-              <Printer className="h-4 w-4" />
+              <Download className="h-4 w-4" />
               Imprimer le journal
             </Button>
           </div>

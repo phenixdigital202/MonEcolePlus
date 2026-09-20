@@ -526,11 +526,21 @@ export async function broadcastAnnouncementAction(formData: any) {
     console.log("[broadcastAnnouncementAction] Received:", formData)
     const title = formData.titre || formData.title
     const message = formData.message
-    const target = formData.cible || formData.target || 'tous'
+    const rawTarget = formData.cible || formData.target || 'tous'
     const authorId = formData.id_auteur || formData.authorId
 
     if (!title || !message) {
       return { success: false, error: "Le titre et le message de l'annonce sont requis." }
+    }
+
+    // Map raw target string to canonical AnnonceCible enum
+    let targetCible: string = 'tous'
+    if (rawTarget === 'teachers' || rawTarget === 'enseignants') {
+      targetCible = 'enseignants'
+    } else if (rawTarget === 'parents') {
+      targetCible = 'parents'
+    } else if (rawTarget === 'students' || rawTarget === 'eleves') {
+      targetCible = 'eleves'
     }
 
     const cookieStore = await cookies()
@@ -538,19 +548,50 @@ export async function broadcastAnnouncementAction(formData: any) {
     const parsedAuthorId = authorId ? parseInt(authorId) : (sessionUserId ? parseInt(sessionUserId) : 1)
 
     const prisma = await getPrismaClient()
-    await prisma.annonce.create({
+
+    // 1. Save announcement record in DB with strict target
+    const newAnnonce = await prisma.annonce.create({
       data: {
         titre: title,
         message: message,
-        cible: (target as any) || 'tous',
+        cible: (targetCible as any),
         id_auteur: parsedAuthorId,
         date_creation: new Date()
       }
     })
 
+    // 2. Map target roles to deliver targeted inbox messages ONLY to concerned recipients
+    const targetRoleMap: Record<string, string[]> = {
+      tous: ['admin', 'teacher', 'student', 'parent'],
+      enseignants: ['teacher'],
+      parents: ['parent'],
+      eleves: ['student']
+    }
+    const rolesToNotify = targetRoleMap[targetCible] || ['admin', 'teacher', 'student', 'parent']
+
+    const targetUsers = await prisma.user.findMany({
+      where: {
+        role: { in: rolesToNotify as any },
+        id: { not: parsedAuthorId }
+      },
+      select: { id: true }
+    })
+
+    if (targetUsers.length > 0) {
+      await prisma.message.createMany({
+        data: targetUsers.map(u => ({
+          id_expediteur: parsedAuthorId,
+          id_destinataire: u.id,
+          contenu: `📢 [Annonce] ${title}\n\n${message}`,
+          lu: false,
+          created_at: new Date()
+        }))
+      })
+    }
+
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/admin/communication")
-    return { success: true }
+    return { success: true, data: newAnnonce }
   } catch (error: any) {
     console.error("[broadcastAnnouncementAction] Error:", error)
     return { success: false, error: error?.message || "Erreur lors de la diffusion de l'annonce" }

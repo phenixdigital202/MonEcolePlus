@@ -13,6 +13,7 @@ import {
 import { getPrisma } from "@/lib/tenant-context"
 import { ClassesList } from "@/components/dashboard/classes-list"
 import { ClassActionsHeader } from "@/components/dashboard/class-actions-header"
+import { sortClasses } from "@/lib/utils"
 
 export default async function ClassesPage() {
   const cookieStore = await cookies()
@@ -100,6 +101,8 @@ export default async function ClassesPage() {
     }
   })
 
+  const sortedClasses = sortClasses(formattedClasses)
+
   return (
     <>
       <ClassActionsHeader userRole={user.role} />
@@ -168,7 +171,7 @@ export default async function ClassesPage() {
         </div>
 
         {/* Classes List */}
-        <ClassesList initialClasses={formattedClasses} userRole={user.role} />
+        <ClassesList initialClasses={sortedClasses} userRole={user.role} />
       </main>
     </>
   )

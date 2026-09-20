@@ -299,9 +299,11 @@ export async function generateAIScheduleAll() {
 
 export async function getClasses() {
   const prisma = await getPrisma()
-  return await prisma.class.findMany({
+  const { sortClasses } = require("@/lib/utils")
+  const classes = await prisma.class.findMany({
     orderBy: { nom: 'asc' }
   })
+  return sortClasses(classes)
 }
 
 export async function updateCoursePosition(courseId: number, day: any, hour: string) {

@@ -403,7 +403,7 @@ export async function getDocumentsPortalDataAction() {
     const [totalStudents, totalInscriptions, totalClasses, totalEvaluations, totalNotes] = await Promise.all([
       prisma.user.count({ where: { role: 'student' } }),
       prisma.inscription.count(),
-      prisma.classe.count(),
+      prisma.class.count(),
       prisma.evaluation.count(),
       prisma.note.count()
     ])

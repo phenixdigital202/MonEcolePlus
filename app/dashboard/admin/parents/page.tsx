@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import * as XLSX from "xlsx"
 import { 
   Users, 
   Search, 
@@ -200,6 +201,59 @@ export default function AdminParentsPage() {
                           (parent.email || "").toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
+
+  const handleExportExcel = () => {
+    if (!filteredParents || filteredParents.length === 0) {
+      toast.error("Aucun parent à exporter")
+      return
+    }
+
+    const excelRows = filteredParents.map((parent) => {
+      const links = parent.parentEleveAsParent || parent.parent_links || []
+      
+      const childrenNames = links
+        .map((link: any) => link.eleve?.nom)
+        .filter(Boolean)
+        .join(", ") || "Aucun enfant lié"
+
+      const childrenClasses = Array.from(
+        new Set(
+          links
+            .flatMap((link: any) => {
+              const activeInsc = link.eleve?.inscriptions?.find((i: any) => i.statut === "active")
+              const classObj = activeInsc?.classe || link.eleve?.classe
+              return classObj?.nom
+            })
+            .filter(Boolean)
+        )
+      ).join(", ") || "Non inscrite"
+
+      return {
+        "Nom du Parent": parent.nom || "N/A",
+        "Email": parent.email || "N/A",
+        "Enfants liés": childrenNames,
+        "Classe(s)": childrenClasses,
+        "Statut": "Actif"
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(excelRows)
+
+    worksheet["!cols"] = [
+      { wch: 25 }, // Nom du Parent
+      { wch: 30 }, // Email
+      { wch: 35 }, // Enfants liés
+      { wch: 20 }, // Classe(s)
+      { wch: 12 }  // Statut
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Gestion des Parents")
+
+    const filename = `Gestion_Parents_${new Date().toISOString().split("T")[0]}.xlsx`
+    XLSX.writeFile(workbook, filename)
+    toast.success("Liste des parents exportée en fichier Excel (.xlsx) !")
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-8 animate-in fade-in duration-700">
@@ -501,8 +555,12 @@ export default function AdminParentsPage() {
                 />
               </div>
             </div>
-            <Button variant="outline" className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50">
-              <Download className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              className="gap-2 rounded-xl border-slate-200 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 hover:border-emerald-200 font-bold"
+              onClick={handleExportExcel}
+            >
+              <Download className="h-4 w-4 text-emerald-600" />
               Exporter
             </Button>
           </div>

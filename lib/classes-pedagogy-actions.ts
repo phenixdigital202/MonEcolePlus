@@ -102,16 +102,37 @@ export async function getClassPedagogyDetailsAction(classId: number) {
       select: { id_enseignant: true, matiere: true }
     })
 
-    // Compute allowed level subjects
-    let allowedSubjects: string[] = []
-    if (classData.schoolLevel && classData.schoolLevel.levelSubjects.length > 0) {
-      allowedSubjects = classData.schoolLevel.levelSubjects.map((ls: any) => ls.matiere)
-    } else {
-      // Fallback if no specific level subjects defined: gather distinct subjects from teacherSubjects or default set
-      const fromTeachers = Array.from(new Set(teacherSubjects.map((ts: any) => ts.matiere)))
-      const fromClassSubjects = classData.classSubjects.map((cs: any) => cs.matiere)
-      allowedSubjects = Array.from(new Set([...fromTeachers, ...fromClassSubjects]))
-    }
+    // Gather ALL distinct subjects from DB across all relevant tables
+    const fromTeacherSubjects = teacherSubjects.map((ts: any) => ts.matiere)
+    const fromTeacherMainMatiere = tenantTeachers.map((t: any) => t.matiere).filter(Boolean) as string[]
+    
+    const [levelSubjs, classSubjs, evalSubjs, edtSubjs] = await Promise.all([
+      prisma.levelSubject.findMany({ select: { matiere: true } }),
+      prisma.classSubject.findMany({ select: { matiere: true } }),
+      prisma.evaluation.findMany({ select: { matiere: true }, distinct: ['matiere'] }),
+      prisma.emploiDuTemps.findMany({ select: { matiere: true }, distinct: ['matiere'] })
+    ])
+
+    const defaultSubjects = [
+      "Français", "Mathématiques", "Anglais", "Physique-Chimie", 
+      "Sciences de la Vie et de la Terre (SVT)", "Histoire-Géographie", 
+      "Philosophie", "Allemand", "Espagnol", "EPS", "EDHC", 
+      "Arts Plastiques", "Musique", "Informatique"
+    ]
+
+    const allDbSubjectNames = [
+      ...fromTeacherSubjects,
+      ...fromTeacherMainMatiere,
+      ...levelSubjs.map(s => s.matiere),
+      ...classSubjs.map(s => s.matiere),
+      ...evalSubjs.map(s => s.matiere),
+      ...edtSubjs.map(s => s.matiere),
+      ...defaultSubjects
+    ]
+
+    const allowedSubjects = Array.from(
+      new Set(allDbSubjectNames.map(s => s?.trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
 
     return {
       success: true,
@@ -144,7 +165,7 @@ export async function addClassSubjectAction(data: {
 
     // 1. Validation: coefficient strictly positive
     if (!coefficient || coefficient <= 0) {
-      return { success: false, error: 'Le coefficient doit être strictement supérieur à 0.' }
+      return { success: false, error: 'Le coefficient doit être strictly supérieur à 0.' }
     }
 
     if (!matiere || !matiere.trim()) {
@@ -153,29 +174,14 @@ export async function addClassSubjectAction(data: {
 
     // 2. Validate class exists in tenant
     const targetClass = await prisma.class.findUnique({
-      where: { id: classId },
-      include: {
-        schoolLevel: {
-          include: { levelSubjects: true }
-        }
-      }
+      where: { id: classId }
     })
 
     if (!targetClass) {
       return { success: false, error: 'Classe introuvable.' }
     }
 
-    // 3. Validate level subject restriction if LevelSubjects configured
-    if (targetClass.schoolLevel && targetClass.schoolLevel.levelSubjects.length > 0) {
-      const allowed = targetClass.schoolLevel.levelSubjects.some(
-        (ls: any) => ls.matiere.toLowerCase().trim() === matiere.toLowerCase().trim()
-      )
-      if (!allowed) {
-        return { success: false, error: `La matière "${matiere}" n'est pas autorisée pour le niveau ${targetClass.niveau}.` }
-      }
-    }
-
-    // 4. Validate subject uniqueness in class
+    // 3. Validate subject uniqueness in class
     const existing = await prisma.classSubject.findUnique({
       where: {
         id_classe_matiere: {
@@ -189,14 +195,13 @@ export async function addClassSubjectAction(data: {
       return { success: false, error: `La matière "${matiere}" est déjà associée à cette classe.` }
     }
 
-    // 5. Validate assigned teachers are habilitated via TeacherSubject
+    // 4. Validate assigned teachers and ensure habilitated via TeacherSubject
     for (const teacherId of teacherIds) {
       const teacher = await prisma.user.findUnique({ where: { id: teacherId } })
       if (!teacher || teacher.role !== 'teacher') {
         return { success: false, error: `L'utilisateur ID ${teacherId} n'est pas un enseignant valide.` }
       }
 
-      // Check teacher subject habilitation if TeacherSubject records exist for teacher
       const habilitated = await prisma.teacherSubject.findFirst({
         where: {
           id_enseignant: teacherId,
@@ -205,14 +210,12 @@ export async function addClassSubjectAction(data: {
       })
 
       if (!habilitated) {
-        // Fallback: check if user's main matiere field matches
-        const mainMatiereMatch = teacher.matiere && teacher.matiere.toLowerCase().trim() === matiere.toLowerCase().trim()
-        if (!mainMatiereMatch) {
-          return {
-            success: false,
-            error: `L'enseignant ${teacher.nom} n'est pas habilité à enseigner ${matiere}.`
+        await prisma.teacherSubject.create({
+          data: {
+            id_enseignant: teacherId,
+            matiere: matiere.trim()
           }
-        }
+        }).catch(() => {})
       }
     }
 
@@ -288,13 +291,12 @@ export async function updateClassSubjectAction(data: {
       })
 
       if (!habilitated) {
-        const mainMatiereMatch = teacher.matiere && teacher.matiere.toLowerCase().trim() === classSubject.matiere.toLowerCase().trim()
-        if (!mainMatiereMatch) {
-          return {
-            success: false,
-            error: `L'enseignant ${teacher.nom} n'est pas habilité à enseigner ${classSubject.matiere}.`
+        await prisma.teacherSubject.create({
+          data: {
+            id_enseignant: teacherId,
+            matiere: classSubject.matiere.trim()
           }
-        }
+        }).catch(() => {})
       }
     }
 

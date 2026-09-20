@@ -68,6 +68,27 @@ export class WaveProvider implements PaymentProvider {
   }
 }
 
+export class MoovMoneyProvider implements PaymentProvider {
+  async initiatePayment(amount: number, phone: string, reference: string) {
+    console.log(`[Moov Money API] Initiating payment of ${amount} CFA for ${phone} (Ref: ${reference})`)
+    return {
+      success: true,
+      transactionId: `MOOV_${Math.floor(100000 + Math.random() * 900000)}`,
+      message: "Demande Moov Money transmise au mobile du client."
+    }
+  }
+
+  async verifyPayment(transactionId: string) {
+    console.log(`[Moov Money API] Verifying transaction ${transactionId}`)
+    return { success: true, status: "paye" as const }
+  }
+
+  async refundPayment(transactionId: string, amount: number) {
+    console.log(`[Moov Money API] Refunding ${amount} CFA for transaction ${transactionId}`)
+    return { success: true }
+  }
+}
+
 export function getPaymentProvider(name: string): PaymentProvider {
   switch (name.toLowerCase()) {
     case "orange_money":
@@ -76,9 +97,13 @@ export function getPaymentProvider(name: string): PaymentProvider {
     case "mtn_momo":
     case "mtn":
       return new MtnMomoProvider()
+    case "moov_money":
+    case "moov":
+      return new MoovMoneyProvider()
     case "wave":
       return new WaveProvider()
     default:
       throw new Error(`Provider de paiement inconnu : ${name}`)
   }
 }
+

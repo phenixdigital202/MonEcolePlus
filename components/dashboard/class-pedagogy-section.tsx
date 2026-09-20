@@ -170,16 +170,59 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
     setDeletingId(null)
   }
 
-  // Filter teachers habilitated for selected subject in modal
-  const eligibleTeachersForModal = tenantTeachers.filter((t) => {
-    if (!formMatiere) return true
-    const targetMat = formMatiere.toLowerCase().trim()
-    const hasTS = teacherSubjects.some(
-      (ts) => ts.id_enseignant === t.id && ts.matiere.toLowerCase().trim() === targetMat
+  // Compute subjects taught by currently selected teacher(s) in modal
+  const selectedTeachersSubjects = Array.from(
+    new Set(
+      formSelectedTeacherIds.flatMap((tId) => {
+        const t = tenantTeachers.find((tch) => tch.id === tId)
+        const mainMat = t?.matiere ? [t.matiere.trim()] : []
+        const habMats = teacherSubjects
+          .filter((ts) => ts.id_enseignant === tId)
+          .map((ts) => ts.matiere.trim())
+        return [...mainMat, ...habMats]
+      }).filter(Boolean)
     )
-    const hasMainMat = t.matiere && t.matiere.toLowerCase().trim() === targetMat
-    return hasTS || hasMainMat
-  })
+  ).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }))
+
+  // Subject options in modal: if teachers selected, show their subjects; otherwise show all DB subjects
+  const availableSubjectOptions =
+    formSelectedTeacherIds.length > 0 && selectedTeachersSubjects.length > 0
+      ? selectedTeachersSubjects
+      : allowedSubjects
+
+  // Auto-sync selected Matiere when teacher selection changes
+  useEffect(() => {
+    if (formSelectedTeacherIds.length > 0 && selectedTeachersSubjects.length > 0) {
+      if (!selectedTeachersSubjects.includes(formMatiere)) {
+        setFormMatiere(selectedTeachersSubjects[0])
+      }
+    }
+  }, [formSelectedTeacherIds])
+
+  // Teachers list for modal, enriched with subject badges and sorted with matches first
+  const eligibleTeachersForModal = tenantTeachers
+    .map((t) => {
+      const mainMat = t.matiere ? [t.matiere.trim()] : []
+      const habMats = teacherSubjects
+        .filter((ts) => ts.id_enseignant === t.id)
+        .map((ts) => ts.matiere.trim())
+      const allMats = Array.from(new Set([...mainMat, ...habMats]))
+
+      const isMatchingSubject = formMatiere
+        ? allMats.some((m) => m.toLowerCase() === formMatiere.toLowerCase().trim())
+        : true
+
+      return {
+        ...t,
+        subjects: allMats,
+        isMatchingSubject
+      }
+    })
+    .sort((a, b) => {
+      if (a.isMatchingSubject && !b.isMatchingSubject) return -1
+      if (!a.isMatchingSubject && b.isMatchingSubject) return 1
+      return a.nom.localeCompare(b.nom)
+    })
 
   if (loading) {
     return (
@@ -384,7 +427,14 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
           <form onSubmit={handleSaveSubject} className="space-y-4 pt-2">
             {/* Matière choice */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Matière</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-700">Matière</Label>
+                {formSelectedTeacherIds.length > 0 && selectedTeachersSubjects.length > 0 && (
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    Filtré par enseignant sélectionné
+                  </span>
+                )}
+              </div>
               {editingSubject ? (
                 <Input value={formMatiere} disabled className="rounded-xl bg-slate-50 font-bold" />
               ) : (
@@ -393,7 +443,7 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
                   onChange={(e) => setFormMatiere(e.target.value)}
                   className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold text-slate-800"
                 >
-                  {allowedSubjects.map((mat) => (
+                  {availableSubjectOptions.map((mat) => (
                     <option key={mat} value={mat}>
                       {mat}
                     </option>
@@ -435,7 +485,7 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
             <div className="space-y-2 pt-2">
               <Label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                 <span>Enseignant(s) autorisé(s)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Filtrés par habilitation TeacherSubject</span>
+                <span className="text-[10px] text-slate-400 font-normal">Cocher un enseignant filtre ses matières</span>
               </Label>
 
               <div className="border border-slate-200 rounded-2xl p-3 max-h-48 overflow-y-auto space-y-2 bg-slate-50/50">
@@ -444,7 +494,11 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
                   return (
                     <label
                       key={teacher.id}
-                      className="flex items-center gap-3 p-2 rounded-xl bg-white border border-slate-100 hover:border-primary/20 cursor-pointer transition-all"
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        isChecked 
+                          ? "bg-primary/10 border-primary/40 shadow-sm" 
+                          : "bg-white border-slate-100 hover:border-slate-200"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -458,8 +512,15 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
                         }}
                         className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
                       />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-slate-800">{teacher.nom}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-bold text-slate-800 truncate">{teacher.nom}</p>
+                          {teacher.subjects.length > 0 && (
+                            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[140px]">
+                              {teacher.subjects.join(", ")}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-slate-400">{teacher.email}</p>
                       </div>
                     </label>
@@ -468,7 +529,7 @@ export function ClassPedagogySection({ classId, userRole = "admin" }: ClassPedag
 
                 {eligibleTeachersForModal.length === 0 && (
                   <p className="text-xs text-amber-500 italic p-2 text-center">
-                    Aucun enseignant du tenant n'est habilité pour cette matière.
+                    Aucun enseignant enregistré dans le système.
                   </p>
                 )}
               </div>

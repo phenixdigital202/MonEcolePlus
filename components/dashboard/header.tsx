@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input"
 import { useSidebar } from "@/hooks/use-sidebar"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { searchGlobalAction, getNotificationsAction } from "@/lib/header-actions"
+import { 
+  searchGlobalAction, 
+  getNotificationsAction, 
+  markNotificationReadAction, 
+  markAllNotificationsReadAction 
+} from "@/lib/header-actions"
 import { Badge } from "@/components/ui/badge"
 
 interface DashboardHeaderProps {
@@ -80,12 +85,14 @@ export function DashboardHeader({ title, subtitle, onMenuToggle, children }: Das
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })))
+    await markAllNotificationsReadAction()
   }
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n))
+    await markNotificationReadAction(id)
   }
 
   const getRoleLabel = (role: string) => {

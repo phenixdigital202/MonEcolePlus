@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Send, Mail, MessageSquare, Bell, Users, CheckCircle, AlertCircle, BarChart3, Clock, ChevronRight } from "lucide-react"
+import { broadcastAnnouncementAction } from "@/lib/admin-shortcut-actions"
 
 interface Campaign {
   id: number
@@ -43,16 +44,23 @@ export default function CommunicationCenterPage({ audienceStats }: Communication
     if (!title || !message) return
     setSending(true)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      await broadcastAnnouncementAction({
+        titre: title,
+        message: message,
+        cible: target
+      })
+    } catch (err) {
+      console.error("[CommunicationCenter] broadcast error:", err)
+    }
 
     const activeChannels = Object.entries(channels)
       .filter(([_, active]) => active)
       .map(([name]) => name)
 
-    const targetAudience = target === "all" 
+    const targetAudience = target === "all" || target === "tous"
       ? audienceStats.total 
-      : target === "teachers" 
+      : target === "teachers" || target === "enseignants"
       ? audienceStats.teachers 
       : target === "parents" 
       ? audienceStats.parents 
@@ -62,7 +70,7 @@ export default function CommunicationCenterPage({ audienceStats }: Communication
       id: Date.now(),
       title,
       channels: activeChannels,
-      target: target === "all" ? "Toute l'école" : target === "teachers" ? "Enseignants" : target === "parents" ? "Parents" : `Cible: ${target}`,
+      target: target === "all" || target === "tous" ? "Toute l'école" : target === "teachers" || target === "enseignants" ? "Enseignants" : target === "parents" ? "Parents" : `Cible: ${target}`,
       sentAt: new Date().toLocaleString("fr-FR", { hour12: false }).replace(",", ""),
       status: "success",
       stats: {
@@ -78,7 +86,7 @@ export default function CommunicationCenterPage({ audienceStats }: Communication
     setTitle("")
     setMessage("")
     setSending(false)
-    setSuccessMsg("Campagne de communication envoyée avec succès !")
+    setSuccessMsg("Campagne de communication diffusée aux destinataires ciblés avec succès !")
     setTimeout(() => setSuccessMsg(""), 4000)
   }
 

@@ -10,7 +10,8 @@ import {
   Clock, 
   Save, 
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from "lucide-react"
 import { 
   Select, 
