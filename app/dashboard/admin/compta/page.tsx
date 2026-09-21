@@ -80,7 +80,8 @@ export default function ComptaAdminPage() {
   const [description, setDescription] = useState("")
   const [reference, setReference] = useState("")
   const [compteCaisse, setCompteCaisse] = useState("Caisse Principale")
-  const [compteBanque, setCompteBanque] = useState("SG")
+  const [compteBanque, setCompteBanque] = useState("Société Générale (SG)")
+  const [operateurMobile, setOperateurMobile] = useState("Orange Money")
 
   const [activeTab, setActiveTab] = useState<"journal" | "grand_livre" | "balance">("journal")
 
@@ -117,7 +118,7 @@ export default function ComptaAdminPage() {
       description,
       reference,
       compte_caisse: modePaiement === "especes" ? compteCaisse : undefined,
-      compte_banque: modePaiement !== "especes" ? compteBanque : undefined
+      compte_banque: modePaiement === "mobile_money" ? operateurMobile : (modePaiement === "banque" ? compteBanque : undefined)
     })
 
     if (res.success) {
@@ -243,7 +244,7 @@ export default function ComptaAdminPage() {
                     </div>
                   </div>
 
-                  {modePaiement === "especes" ? (
+                  {modePaiement === "especes" && (
                     <div className="space-y-2">
                       <Label>Compte de Caisse</Label>
                       <Select value={compteCaisse} onValueChange={setCompteCaisse}>
@@ -256,7 +257,26 @@ export default function ComptaAdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  ) : (
+                  )}
+
+                  {modePaiement === "mobile_money" && (
+                    <div className="space-y-2">
+                      <Label>Opérateur Mobile Money</Label>
+                      <Select value={operateurMobile} onValueChange={setOperateurMobile}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="Orange Money">Orange Money</SelectItem>
+                          <SelectItem value="MTN MoMo">MTN MoMo</SelectItem>
+                          <SelectItem value="Moov Money">Moov Money</SelectItem>
+                          <SelectItem value="Wave">Wave</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {modePaiement === "banque" && (
                     <div className="space-y-2">
                       <Label>Banque Émettrice / Cible</Label>
                       <Select value={compteBanque} onValueChange={setCompteBanque}>
@@ -264,9 +284,9 @@ export default function ComptaAdminPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="SG">Société Générale (SG)</SelectItem>
+                          <SelectItem value="Société Générale (SG)">Société Générale (SG)</SelectItem>
                           <SelectItem value="Ecobank">Ecobank</SelectItem>
-                          <SelectItem value="BOA">Bank of Africa (BOA)</SelectItem>
+                          <SelectItem value="Bank of Africa (BOA)">Bank of Africa (BOA)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

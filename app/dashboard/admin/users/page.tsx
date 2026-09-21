@@ -167,6 +167,51 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole
   })
 
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      toast.info("Génération du fichier Excel des utilisateurs...")
+      const XLSX = await import("xlsx")
+
+      const exportData = filteredUsers.map((user) => {
+        const roleKey = user.role as keyof typeof roleConfig
+        const roleLabel = roleConfig[roleKey]?.label || user.role || "Utilisateur"
+        const dateStr = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : "N/A"
+
+        return {
+          "Utilisateur": user.nom ? `${user.nom} (${user.email})` : user.email,
+          "Rôle": roleLabel,
+          "Date création": dateStr,
+          "Actions": "Compte Actif (Voir profile / Modifier / Supprimer)"
+        }
+      })
+
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(exportData)
+
+      ws['!cols'] = [
+        { wch: 38 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 42 }
+      ]
+
+      XLSX.utils.book_append_sheet(wb, ws, "Utilisateurs")
+
+      const filename = `Gestion_Utilisateurs_${new Date().toISOString().split("T")[0]}.xlsx`
+      XLSX.writeFile(wb, filename)
+
+      toast.success(`Liste des utilisateurs exportée en fichier Excel (${filename}) avec succès !`)
+    } catch (error) {
+      console.error("Export users error:", error)
+      toast.error("Erreur lors de l'exportation Excel.")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // Computed counts for stats
   const teachersCount = users.filter(u => u.role === 'teacher').length
   const studentsCount = users.filter(u => u.role === 'student').length
@@ -304,8 +349,13 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" className="gap-2 rounded-2xl border-slate-200 hover:bg-slate-50 shrink-0">
-              <Download className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="gap-2 rounded-2xl border-slate-200 hover:bg-slate-50 shrink-0 font-bold"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Download className="h-4 w-4 text-primary" />}
               Exporter
             </Button>
           </div>

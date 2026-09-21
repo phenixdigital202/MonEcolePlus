@@ -34,23 +34,84 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { getAnalyticsData } from "@/lib/admin-shortcut-actions"
+import { toast } from "sonner"
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedClass, setSelectedClass] = useState<string>("all")
+  const [selectedYear, setSelectedYear] = useState<string>("2025-2026")
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+
+  const fetchData = async (cls: string, yr: string) => {
+    setLoading(true)
+    const res = await getAnalyticsData(cls, yr)
+    if (res.success) {
+      setData(res.data)
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
-    const fetch = async () => {
-      const res = await getAnalyticsData()
-      if (res.success) {
-        setData(res.data)
-      }
-      setLoading(false)
-    }
-    fetch()
-  }, [])
+    fetchData(selectedClass, selectedYear)
+  }, [selectedClass, selectedYear])
 
-  if (loading) {
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      toast.info("Génération du rapport Excel en cours...")
+      const XLSX = await import("xlsx")
+      
+      const className = selectedClass === "all" 
+        ? "Toutes_les_classes" 
+        : data?.classes?.find((c: any) => c.id.toString() === selectedClass)?.nom || "Classe"
+
+      const summaryData = [
+        { Indicateur: "Moyenne Générale", Valeur: `${data?.globalAverage || 0} / 20` },
+        { Indicateur: "Taux de Présence", Valeur: `${data?.attendanceRate || 0} %` },
+        { Indicateur: "Taux de Réussite", Valeur: `${data?.successRate || 0} %` },
+        { Indicateur: "Nombre d'Élèves Inscrits", Valeur: data?.totalStudents || 0 },
+        { Indicateur: "Classe Sélectionnée", Valeur: className },
+        { Indicateur: "Année Scolaire", Valeur: selectedYear },
+        { Indicateur: "Date d'Exportation", Valeur: new Date().toLocaleDateString("fr-FR") }
+      ]
+
+      const subjectData = (data?.subjectAverages || []).map((s: any) => ({
+        Discipline: s.subject,
+        Moyenne: s.average,
+        Statut: s.average >= 10 ? "Satisfaisant" : "Avis de soutien"
+      }))
+
+      const absenceData = (data?.absenceData || []).map((a: any) => ({
+        Mois: a.month,
+        "Absences Justifiées": a.justified,
+        "Absences Non Justifiées": a.unjustified,
+        Total: a.justified + a.unjustified
+      }))
+
+      const wb = XLSX.utils.book_new()
+      
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData)
+      const wsSubject = XLSX.utils.json_to_sheet(subjectData)
+      const wsAbsence = XLSX.utils.json_to_sheet(absenceData)
+
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Résumé Général")
+      XLSX.utils.book_append_sheet(wb, wsSubject, "Performances Matières")
+      XLSX.utils.book_append_sheet(wb, wsAbsence, "Suivi Absences")
+
+      const filename = `Rapport_Analytics_${className}_${selectedYear}_${new Date().toISOString().split("T")[0]}.xlsx`
+      XLSX.writeFile(wb, filename)
+
+      toast.success(`Rapport Excel téléversé (${filename}) avec succès !`)
+    } catch (error) {
+      console.error("Export error:", error)
+      toast.error("Erreur lors de la génération du fichier Excel.")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  if (loading && !data) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -58,7 +119,7 @@ export default function AnalyticsPage() {
     )
   }
 
-  const performanceData = [
+  const performanceData = data?.performanceData || [
     { month: "Sept", average: 12.5, target: 14 },
     { month: "Oct", average: 13.1, target: 14 },
     { month: "Nov", average: 13.4, target: 14 },
@@ -79,16 +140,34 @@ export default function AnalyticsPage() {
       <main className="p-6 animate-in fade-in duration-700">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center justify-between">
-          <div className="flex gap-2">
-            <select className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <div className="flex flex-wrap gap-3">
+            <select 
+              value={selectedClass} 
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            >
               <option value="all">Toutes les classes</option>
+              {data?.classes?.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
             </select>
-            <select className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="year">Année 2025-2026</option>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            >
+              {(data?.schoolYears || ["2025-2026", "2024-2025"]).map((y: string) => (
+                <option key={y} value={y}>Année {y}</option>
+              ))}
             </select>
           </div>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
+          <Button 
+            variant="outline" 
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="rounded-xl font-bold border-slate-200 shadow-sm hover:bg-slate-50 gap-2 text-slate-800"
+          >
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-primary" />}
             Exporter le rapport
           </Button>
         </div>
