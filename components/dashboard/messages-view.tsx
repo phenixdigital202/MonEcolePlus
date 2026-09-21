@@ -112,44 +112,86 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
   const [newStatusText, setNewStatusText] = useState("")
   const [isAddStatusOpen, setIsAddStatusOpen] = useState(false)
 
-  // Audio / Video Call Modals
+  // Audio / Video Call Modals & States
   const [isAudioCallActive, setIsAudioCallActive] = useState(false)
   const [isVideoCallActive, setIsVideoCallActive] = useState(false)
+  const [callStatus, setCallStatus] = useState<"ringing" | "connected">("ringing")
   const [callDuration, setCallDuration] = useState(0)
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const callTimerRef = useRef<any>(null)
+  const ringtoneAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ringTimeoutRef = useRef<any>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Voice Note states
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false)
-  const [recordingSeconds, setRecordingSeconds] = useState(0)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const timerIntervalRef = useRef<any>(null)
-
-  useEffect(() => {
-    if (initialTargetId) {
-      const match = allContactsList.find(c => c.id === initialTargetId)
-      if (match) {
-        setSelectedContact(match)
-        setShowChat(true)
+  // Ringtone synthesizer / Web Audio API player for call ringing
+  const playRingtone = () => {
+    try {
+      if (typeof window === "undefined") return
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      const playTone = () => {
+        if (!ctx || ctx.state === "closed") return
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = "sine"
+        osc.frequency.setValueAtTime(440, ctx.currentTime) // 440 Hz standard ring tone
+        osc.frequency.setValueAtTime(480, ctx.currentTime + 0.1)
+        gain.gain.setValueAtTime(0.15, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.8)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 1.8)
       }
+      playTone()
+      const interval = setInterval(playTone, 3000)
+      return () => {
+        clearInterval(interval)
+        try { ctx.close() } catch (e) {}
+      }
+    } catch (e) {
+      console.warn("Ringtone audio notice:", e)
     }
-  }, [initialTargetId])
+  }
 
+  // Handle Call Lifecycle (Ringing -> Answer -> Timer)
   useEffect(() => {
-    if (selectedContact) {
-      loadConversation(selectedContact.id)
-    }
-  }, [selectedContact])
+    let stopRingtoneFn: (() => void) | undefined
 
-  // Call timer handling
-  useEffect(() => {
     if (isAudioCallActive || isVideoCallActive) {
+      setCallStatus("ringing")
       setCallDuration(0)
+
+      // Start ringing sound
+      stopRingtoneFn = playRingtone()
+
+      // Simulate contact picking up the call after 3.5 seconds
+      ringTimeoutRef.current = setTimeout(() => {
+        if (stopRingtoneFn) stopRingtoneFn()
+        setCallStatus("connected")
+        toast.success(`${selectedContact?.name || "Le destinataire"} a décroché l'appel.`)
+      }, 3500)
+    } else {
+      setCallStatus("ringing")
+      setCallDuration(0)
+      if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current)
+      if (callTimerRef.current) clearInterval(callTimerRef.current)
+    }
+
+    return () => {
+      if (stopRingtoneFn) stopRingtoneFn()
+      if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current)
+      if (callTimerRef.current) clearInterval(callTimerRef.current)
+    }
+  }, [isAudioCallActive, isVideoCallActive])
+
+  // Timer starts strictly ONLY when call is connected
+  useEffect(() => {
+    if ((isAudioCallActive || isVideoCallActive) && callStatus === "connected") {
       callTimerRef.current = setInterval(() => {
         setCallDuration(prev => prev + 1)
       }, 1000)
@@ -159,7 +201,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
     return () => {
       if (callTimerRef.current) clearInterval(callTimerRef.current)
     }
-  }, [isAudioCallActive, isVideoCallActive])
+  }, [callStatus, isAudioCallActive, isVideoCallActive])
 
   // Polling every 5s
   useEffect(() => {
@@ -982,7 +1024,11 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
             </div>
             <div>
               <h3 className="text-xl font-black text-white">{selectedContact?.name}</h3>
-              <p className="text-xs text-emerald-400 font-mono mt-1">En cours... ({formatCallTime(callDuration)})</p>
+              {callStatus === "ringing" ? (
+                <p className="text-xs text-amber-400 font-bold animate-pulse mt-1">🔔 Appel en cours... Sonnerie...</p>
+              ) : (
+                <p className="text-xs text-emerald-400 font-mono mt-1">En communication... ({formatCallTime(callDuration)})</p>
+              )}
             </div>
           </div>
 
@@ -1012,28 +1058,47 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
         <DialogContent className="sm:max-w-lg rounded-3xl p-6 bg-slate-950 text-white border-slate-800 text-center space-y-4">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold text-slate-400 flex items-center justify-center gap-2">
-              <Video className="h-4 w-4 text-primary" /> Appel Vidéo HD MonÉcole+ ({formatCallTime(callDuration)})
+              <Video className="h-4 w-4 text-primary" /> Appel Vidéo HD MonÉcole+ 
+              {callStatus === "ringing" ? (
+                <span className="text-amber-400 font-semibold ml-2 animate-pulse">(Sonnerie en cours...)</span>
+              ) : (
+                <span className="text-emerald-400 font-mono ml-2">({formatCallTime(callDuration)})</span>
+              )}
             </DialogTitle>
           </DialogHeader>
 
           <div className="relative h-64 w-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center">
-            {isVideoOff ? (
-              <div className="text-center space-y-2">
-                <VideoOff className="h-10 w-10 text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-400">Caméra désactivée</p>
+            {/* Main Stream Window: Remote Contact Video Stream */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
+              <div className="h-24 w-24 rounded-full bg-primary/20 border-4 border-primary flex items-center justify-center font-black text-3xl shadow-xl shadow-primary/20 mb-2">
+                {selectedContact?.avatar || "V"}
               </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
-                <div className="h-20 w-20 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center font-black text-2xl">
-                  {selectedContact?.avatar || "V"}
-                </div>
-                <Badge className="absolute top-3 left-3 bg-rose-600 text-white font-bold text-[10px] animate-pulse">EN DIRECT</Badge>
-              </div>
-            )}
+              <h4 className="font-bold text-sm text-white">{selectedContact?.name}</h4>
+              {callStatus === "connected" ? (
+                <Badge className="mt-2 bg-rose-600 text-white font-bold text-[10px] animate-pulse">EN DIRECT (HD 1080p)</Badge>
+              ) : (
+                <Badge className="mt-2 bg-amber-500 text-slate-950 font-bold text-[10px] animate-pulse">SONNERIE EN COURS...</Badge>
+              )}
+            </div>
 
-            {/* Self picture-in-picture preview */}
-            <div className="absolute bottom-3 right-3 h-20 w-28 bg-slate-800 rounded-xl border border-white/20 flex items-center justify-center overflow-hidden">
-              <span className="text-[10px] font-bold text-slate-300">Ma Caméra</span>
+            {/* Self Picture-In-Picture Preview: Controlled by isVideoOff */}
+            <div className="absolute bottom-3 right-3 h-24 w-32 bg-slate-950 rounded-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center overflow-hidden z-20">
+              {isVideoOff ? (
+                <div className="flex flex-col items-center justify-center space-y-1 text-rose-400 p-2">
+                  <VideoOff className="h-6 w-6" />
+                  <span className="text-[9px] font-bold text-slate-400">Caméra Off</span>
+                </div>
+              ) : (
+                <div className="relative w-full h-full bg-slate-900 flex flex-col items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                    Moi
+                  </div>
+                  <span className="text-[9px] font-bold text-emerald-400 mt-1 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    Ma Cam
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1043,6 +1108,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
               size="icon" 
               className={cn("h-11 w-11 rounded-full border-slate-800 bg-slate-900 text-white hover:bg-slate-800", isMuted && "bg-rose-600 border-rose-600")}
               onClick={() => setIsMuted(!isMuted)}
+              title={isMuted ? "Réactiver le micro" : "Coupure micro"}
             >
               <MicOff className="h-5 w-5" />
             </Button>
@@ -1052,6 +1118,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
               size="icon" 
               className={cn("h-11 w-11 rounded-full border-slate-800 bg-slate-900 text-white hover:bg-slate-800", isVideoOff && "bg-rose-600 border-rose-600")}
               onClick={() => setIsVideoOff(!isVideoOff)}
+              title={isVideoOff ? "Activer ma caméra" : "Désactiver ma caméra"}
             >
               <VideoOff className="h-5 w-5" />
             </Button>
@@ -1060,6 +1127,7 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
               size="icon" 
               className="h-12 w-12 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-xl shadow-rose-900/50"
               onClick={() => { setIsVideoCallActive(false); toast.info("Appel vidéo terminé."); }}
+              title="Raccrocher l'appel vidéo"
             >
               <Phone className="h-5 w-5 rotate-[135deg]" />
             </Button>
