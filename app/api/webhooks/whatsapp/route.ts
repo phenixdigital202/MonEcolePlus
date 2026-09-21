@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getPrisma } from "@/lib/tenant-context"
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "MonEcolePlusVerifyToken123"
-
 /**
  * GET - Meta Webhook Verification
  */
 export async function GET(req: NextRequest) {
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN
+
+  if (!verifyToken) {
+    console.error("[WhatsApp Webhook] WHATSAPP_VERIFY_TOKEN is not configured in environment variables.")
+    return new NextResponse("Server Configuration Error", { status: 500 })
+  }
+
   const { searchParams } = new URL(req.url)
   const mode = searchParams.get("hub.mode")
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
   if (mode && token) {
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    if (mode === "subscribe" && token === verifyToken) {
       console.log("[WhatsApp Webhook] Verification successful!")
       return new NextResponse(challenge, { status: 200 })
     } else {

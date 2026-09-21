@@ -315,7 +315,7 @@ export default function ExamensAdminPage() {
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="convocation">Convocation Officielle</SelectItem>
-                    <SelectItem value="diplome">Attestation de Réussite / Diplôme</SelectItem>
+                    <SelectItem value="diplome">Attestation de Réussite / Certificat de passage</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

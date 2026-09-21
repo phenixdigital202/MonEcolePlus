@@ -6,15 +6,10 @@ export const getCachedUser = cache(async (userId: number) => {
     const prisma = await getPrisma()
     const master = require("./prisma").default
     
-    let masterUser = null
-    try {
-      masterUser = await master.user.findUnique({
-        where: { id: userId },
-        select: { id: true, email: true, role: true }
-      })
-    } catch (e) {
-      console.warn(`[getCachedUser] Master DB connection failed, using tenant fallback for ID ${userId}`)
-    }
+    const masterUser = await master.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true }
+    })
 
     if (masterUser && masterUser.email) {
       const user = await prisma.user.findUnique({
@@ -24,38 +19,11 @@ export const getCachedUser = cache(async (userId: number) => {
       if (user) return user
     }
 
-    // Fallback for offline/local development environments
-    let localUser = null
-    try {
-      localUser = await prisma.user.findFirst({
-        where: { id: userId },
-        include: { ecole: true }
-      }) || await prisma.user.findFirst({ include: { ecole: true } })
-    } catch (e) {}
-
-    if (localUser) return localUser
-
-    // Robust offline fallback user
-    return {
-      id: userId,
-      nom: "Administrateur MonÉcole+",
-      email: "admin@cocody.ci",
-      role: "admin",
-      points: 120,
-      niveau: 2,
-      ecole: { id: 1, nom: "Lycée Moderne de Cocody" }
-    }
+    console.warn(`[getCachedUser] User resolution failed for Master User ID ${userId}`)
+    return null
   } catch (error) {
     console.error(`[getCachedUser] Error fetching user ${userId}:`, error)
-    return {
-      id: userId,
-      nom: "Administrateur MonÉcole+",
-      email: "admin@cocody.ci",
-      role: "admin",
-      points: 120,
-      niveau: 2,
-      ecole: { id: 1, nom: "Lycée Moderne de Cocody" }
-    }
+    return null
   }
 })
 

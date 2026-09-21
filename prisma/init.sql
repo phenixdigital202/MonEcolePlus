@@ -106,9 +106,31 @@ CREATE TABLE "classes" (
     "capacite" INTEGER NOT NULL DEFAULT 60,
     "id_level" INTEGER,
     "id_annee_scolaire" INTEGER,
+    "id_professeur_principal" INTEGER,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "classes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "class_subjects" (
+    "id" SERIAL NOT NULL,
+    "id_classe" INTEGER NOT NULL,
+    "matiere" TEXT NOT NULL,
+    "coefficient" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "volume_horaire_hebdo" INTEGER NOT NULL DEFAULT 4,
+    "ordre" INTEGER NOT NULL DEFAULT 1,
+
+    CONSTRAINT "class_subjects_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "class_subject_teachers" (
+    "id" SERIAL NOT NULL,
+    "id_class_subject" INTEGER NOT NULL,
+    "id_enseignant" INTEGER NOT NULL,
+
+    CONSTRAINT "class_subject_teachers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -117,6 +139,12 @@ CREATE TABLE "ecoles" (
     "nom" TEXT NOT NULL,
     "subdomain" TEXT,
     "logo_url" TEXT,
+    "cachet_url" TEXT,
+    "directeur" TEXT,
+    "adresse" TEXT,
+    "telephone" TEXT,
+    "email" TEXT,
+    "website" TEXT,
     "stripe_customer_id" TEXT,
     "plan" "ecoles_plan" DEFAULT 'gratuit',
     "database_url" TEXT,
@@ -532,6 +560,24 @@ CREATE INDEX "classes_id_ecole_idx" ON "classes"("id_ecole");
 CREATE INDEX "classes_id_level_idx" ON "classes"("id_level");
 
 -- CreateIndex
+CREATE INDEX "classes_id_professeur_principal_idx" ON "classes"("id_professeur_principal");
+
+-- CreateIndex
+CREATE INDEX "class_subjects_id_classe_idx" ON "class_subjects"("id_classe");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "class_subjects_id_classe_matiere_key" ON "class_subjects"("id_classe", "matiere");
+
+-- CreateIndex
+CREATE INDEX "class_subject_teachers_id_class_subject_idx" ON "class_subject_teachers"("id_class_subject");
+
+-- CreateIndex
+CREATE INDEX "class_subject_teachers_id_enseignant_idx" ON "class_subject_teachers"("id_enseignant");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "class_subject_teachers_id_class_subject_id_enseignant_key" ON "class_subject_teachers"("id_class_subject", "id_enseignant");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ecoles_subdomain_key" ON "ecoles"("subdomain");
 
 -- CreateIndex
@@ -677,6 +723,18 @@ ALTER TABLE "classes" ADD CONSTRAINT "classes_id_ecole_fkey" FOREIGN KEY ("id_ec
 
 -- AddForeignKey
 ALTER TABLE "classes" ADD CONSTRAINT "classes_id_level_fkey" FOREIGN KEY ("id_level") REFERENCES "school_levels"("id") ON DELETE SET NULL ON UPDATE RESTRICT;
+
+-- AddForeignKey
+ALTER TABLE "classes" ADD CONSTRAINT "classes_id_professeur_principal_fkey" FOREIGN KEY ("id_professeur_principal") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "class_subjects" ADD CONSTRAINT "class_subjects_id_classe_fkey" FOREIGN KEY ("id_classe") REFERENCES "classes"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "class_subject_teachers" ADD CONSTRAINT "class_subject_teachers_id_class_subject_fkey" FOREIGN KEY ("id_class_subject") REFERENCES "class_subjects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "class_subject_teachers" ADD CONSTRAINT "class_subject_teachers_id_enseignant_fkey" FOREIGN KEY ("id_enseignant") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "eleve_badges" ADD CONSTRAINT "eleve_badges_id_eleve_fkey" FOREIGN KEY ("id_eleve") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE RESTRICT;

@@ -32,6 +32,17 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Fichier introuvable", { status: 404 })
     }
 
+    if (userRole !== "super_admin") {
+      const { getPrisma } = await import("@/lib/tenant-context")
+      const prisma = await getPrisma()
+      const log = await prisma.backupLog.findFirst({
+        where: { filename: safeFilename }
+      })
+      if (!log) {
+        return new NextResponse("Accès interdit", { status: 403 })
+      }
+    }
+
     const fileBuffer = fs.readFileSync(filePath)
 
     return new NextResponse(fileBuffer, {

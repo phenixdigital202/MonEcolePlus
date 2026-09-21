@@ -39,10 +39,27 @@ export default function ImportExportPage() {
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
 
-  // Handle file import parsing via SheetJS (xlsx)
+  // Handle file import parsing via SheetJS (xlsx) with strict security controls
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // 1. File Size Control (Max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("Fichier trop volumineux. La taille maximale autorisée est de 5 Mo.")
+      e.target.value = ""
+      return
+    }
+
+    // 2. Extension & MIME Control
+    const allowedExtensions = [".xlsx", ".xls", ".csv"]
+    const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase()
+    if (!allowedExtensions.includes(ext)) {
+      toast.error("Format de fichier non pris en charge. Utilisez .xlsx, .xls ou .csv.")
+      e.target.value = ""
+      return
+    }
 
     setFileName(file.name)
     setLoading(true)
@@ -51,13 +68,25 @@ export default function ImportExportPage() {
     reader.onload = async (evt) => {
       try {
         const data = evt.target?.result
-        const workbook = XLSX.read(data, { type: "binary" })
+        // 3. Safe Parsing: Disable formulas and HTML parsing to mitigate ReDoS and formula injection
+        const workbook = XLSX.read(data, { 
+          type: "binary",
+          cellFormula: false,
+          cellHTML: false,
+          cellText: true
+        })
         const sheetName = workbook.SheetNames[0]
         const sheet = workbook.Sheets[sheetName]
         const rows = XLSX.utils.sheet_to_json(sheet)
 
+        // 4. Max Rows Control (Max 5000 rows per batch)
         if (rows.length === 0) {
           toast.error("Le fichier importé est vide.")
+          setLoading(false)
+          return
+        }
+        if (rows.length > 5000) {
+          toast.error("Le fichier dépasse la limite maximale de 5 000 lignes par import.")
           setLoading(false)
           return
         }

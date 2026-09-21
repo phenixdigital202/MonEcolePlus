@@ -476,6 +476,21 @@ export async function getDocumentsPortalDataAction() {
       })
     })
 
+    recentStudents.slice(0, 3).forEach(st => {
+      const studentName = st.nom || "Élève"
+      const dateStr = st.created_at ? new Date(st.created_at).toLocaleDateString("fr-FR") : "Récent"
+      realDocs.push({
+        id: `attest-${st.id}`,
+        name: `Attestation_Reussite_${studentName.replace(/\s+/g, '_')}.pdf`,
+        type: "Attestation de réussite",
+        date: dateStr,
+        size: "185 Ko",
+        status: "Signé",
+        studentId: st.id,
+        href: "/dashboard/admin/examens"
+      })
+    })
+
     return {
       success: true,
       data: {

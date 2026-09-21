@@ -130,9 +130,23 @@ export async function registerUser(formData: FormData) {
     }
 
     // ─── STEP 8: Set session cookies ───
-    // IMPORTANT: user_id in cookie = Master user ID (used by login/getCachedUser)
+    const { createSessionToken } = require("./session")
     const cookieStore = await cookies()
     const sessionUserId = masterUser?.id || tenantUser.id
+
+    const token = createSessionToken({
+      userId: sessionUserId,
+      role: userRole,
+      schoolId: schoolId
+    })
+
+    cookieStore.set("session_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "lax",
+      path: "/",
+    })
 
     cookieStore.set("user_id", sessionUserId.toString(), {
       httpOnly: true,
@@ -155,7 +169,7 @@ export async function registerUser(formData: FormData) {
       path: "/",
     })
 
-    console.log(`[registerUser] Session cookies set: user_id=${sessionUserId}, user_role=${userRole}, school_id=${schoolId}`)
+    console.log(`[registerUser] Session token & cookies set: user_id=${sessionUserId}, user_role=${userRole}, school_id=${schoolId}`)
 
     return { success: true, url: `/signup/success?school=${encodeURIComponent(schoolName)}&subdomain=${slug}` }
     
@@ -213,12 +227,27 @@ export async function loginUser(formData: FormData) {
 
     let tenantUserId = user.id;
 
-    // Set session cookie using the UNIFIED MASTER USER ID (avoids ID mismatches across tenant databases)
+    // Set signed session_token cookie
+    const { createSessionToken } = require("./session")
     const cookieStore = await cookies()
+    const token = createSessionToken({
+      userId: tenantUserId,
+      role: user.role,
+      schoolId: user.id_ecole
+    })
+
+    cookieStore.set("session_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "lax",
+      path: "/",
+    })
+
     cookieStore.set("user_id", tenantUserId.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 
@@ -230,7 +259,6 @@ export async function loginUser(formData: FormData) {
     })
     
     if (user.role === "super_admin") {
-      // Nettoyage complet de toute trace de tenant
       cookieStore.delete("school_id")
       cookieStore.delete("tenant_id")
       cookieStore.delete("tenant_slug")
@@ -255,6 +283,7 @@ export async function loginUser(formData: FormData) {
 
 export async function logoutUser() {
   const cookieStore = await cookies()
+  cookieStore.delete("session_token")
   cookieStore.delete("user_id")
   cookieStore.delete("user_role")
   cookieStore.delete("school_id")

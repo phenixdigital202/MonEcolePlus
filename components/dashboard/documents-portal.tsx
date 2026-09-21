@@ -72,26 +72,17 @@ export function DocumentsPortal({ userRole, studentName, documentCounts, recentD
       name: "Attestation de réussite",
       description: "Certificat de passage ou d'examen",
       icon: Award,
-      href: "/dashboard/documents/cert",
+      href: "/dashboard/admin/examens",
       count: documentCounts?.attestations ?? 0,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
     },
-    {
-      id: 4,
-      name: "Relevé de notes",
-      description: "Détail des notes par matière",
-      icon: FileText,
-      href: "/dashboard/grades",
-      count: documentCounts?.transcripts ?? 0,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
-    },
   ]
 
   const docs = recentDocuments && recentDocuments.length > 0 ? recentDocuments : [
-    { id: 1, name: `Certificat_Scolarite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Certificat de scolarité", date: "Aujourd'hui", size: "125 Ko", status: "Signé", href: "/dashboard/documents/cert" },
-    { id: 2, name: `Bulletin_Notes_T1_2026.pdf`, type: "Bulletin scolaire", date: "Récent", size: "240 Ko", status: "Signé", href: "/dashboard/documents/bulletin" }
+    { id: 1, name: `Certificat_Scolarite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Certificat de scolarité", date: "Aujourd'hui", size: "142 Ko", status: "Signé", href: "/dashboard/documents/cert" },
+    { id: 2, name: `Bulletin_Notes_T1_2026.pdf`, type: "Bulletin scolaire", date: "Récent", size: "240 Ko", status: "Signé", href: "/dashboard/documents/bulletin" },
+    { id: 3, name: `Attestation_Reussite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Attestation de réussite", date: "Récent", size: "185 Ko", status: "Signé", href: "/dashboard/admin/examens" }
   ]
 
   const filteredDocuments = docs.filter(d => 
@@ -120,7 +111,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts, recentD
       
       <main className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
         {/* Quick Access Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-3">
           {documentTypes.map((type) => (
             <Card 
               key={type.id} 

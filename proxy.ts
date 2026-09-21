@@ -37,8 +37,13 @@ const ROLE_ACCESS: Record<string, string[]> = {
   "/dashboard/settings":        ["admin", "teacher", "student", "parent"],
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Exception for public verify document route
+  if (pathname.startsWith("/api/verify-document")) {
+    return addSecurityHeaders(NextResponse.next())
+  }
 
   // Get authentication and role cookies
   const userId = request.cookies.get("user_id")?.value
@@ -100,6 +105,8 @@ export function middleware(request: NextRequest) {
 
   return addSecurityHeaders(NextResponse.next())
 }
+
+export const middleware = proxy
 
 // Config to specify matching routes
 export const config = {

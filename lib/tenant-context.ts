@@ -20,6 +20,32 @@ const CACHE_TTL_MS = 60 * 1000 // 60 seconds TTL
  */
 export async function getCurrentTenant() {
   try {
+    const { getAuthenticatedUser } = await import("./session")
+    const authUser = await getAuthenticatedUser()
+
+    if (authUser) {
+      if (authUser.role === "super_admin") {
+        console.log("[getCurrentTenant] Super Admin user -> returning null tenant.")
+        return null
+      }
+      if (authUser.schoolId) {
+        const parsedId = authUser.schoolId
+        const cached = cacheById.get(parsedId)
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+          return cached.school
+        }
+
+        const school = await masterPrisma.ecole.findUnique({
+          where: { id: parsedId }
+        })
+        console.log(`[getCurrentTenant] Resolved school by authenticated user schoolId: ID=${school?.id}, Name=${school?.nom}`)
+        if (school && school.database_url) {
+          cacheById.set(parsedId, { school, timestamp: Date.now() })
+          return school
+        }
+      }
+    }
+
     let cookieStore;
     try {
       cookieStore = await import("next/headers").then(m => m.cookies())
@@ -28,13 +54,11 @@ export async function getCurrentTenant() {
       return null
     }
     
-    // Isolation absolue : Aucun traitement de tenant pour le Super Admin
+    // Fallback context for public/unauthenticated requests
     const userRole = cookieStore.get("user_role")?.value
     const schoolId = cookieStore.get("school_id")?.value
-    console.log(`[getCurrentTenant] Session context -> userRole: ${userRole}, schoolId: ${schoolId}`)
 
     if (userRole === "super_admin") {
-      console.log("[getCurrentTenant] Super Admin user -> returning null tenant.")
       return null
     }
 
@@ -49,7 +73,6 @@ export async function getCurrentTenant() {
         const school = await masterPrisma.ecole.findUnique({
           where: { id: parsedId }
         })
-        console.log(`[getCurrentTenant] Resolved school by school_id cookie: ID=${school?.id}, Name=${school?.nom}, hasDbUrl=${!!school?.database_url}`)
         if (school && school.database_url) {
           cacheById.set(parsedId, { school, timestamp: Date.now() })
           return school

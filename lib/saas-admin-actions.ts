@@ -3,9 +3,20 @@
 import { getPrisma } from "@/lib/tenant-context"
 import { EcolePlan } from "@prisma/client"
 import { MigrationManager } from "./migration-manager"
+import { cookies } from "next/headers"
+
+async function verifySuperAdmin() {
+  const { getAuthenticatedUser } = require("./session")
+  const user = await getAuthenticatedUser()
+  if (!user || user.role !== "super_admin") {
+    throw new Error("Accès interdit : privilèges Super Admin requis.")
+  }
+  return user
+}
 
 // ── Statistiques globales SaaS ──────────────────────────────────────────────
 export async function getSaasStats() {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   
   const totalEcoles = await prisma.ecole.count()
@@ -41,6 +52,7 @@ export async function getSaasStats() {
 
 // ── Gestion des écoles (CRUD) ────────────────────────────────────────────────
 export async function getEcoles() {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   const ecoles = await prisma.ecole.findMany({
     orderBy: { created_at: "desc" }
@@ -49,6 +61,7 @@ export async function getEcoles() {
 }
 
 export async function createEcole(nom: string, subdomain: string, plan: EcolePlan) {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   try {
     const newEcole = await prisma.ecole.create({
@@ -73,6 +86,7 @@ export async function createEcole(nom: string, subdomain: string, plan: EcolePla
 }
 
 export async function updateEcolePlan(id: number, plan: EcolePlan) {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   try {
     const updated = await prisma.ecole.update({
@@ -86,6 +100,7 @@ export async function updateEcolePlan(id: number, plan: EcolePlan) {
 }
 
 export async function deleteEcole(id: number) {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   try {
     await prisma.ecole.delete({
@@ -99,6 +114,7 @@ export async function deleteEcole(id: number) {
 
 // ── Abonnements ─────────────────────────────────────────────────────────────
 export async function getTarifPlans() {
+  await verifySuperAdmin()
   return {
     success: true,
     data: [
@@ -111,6 +127,7 @@ export async function getTarifPlans() {
 
 // ── Tickets de support ──────────────────────────────────────────────────────
 export async function getTickets() {
+  await verifySuperAdmin()
   return {
     success: true,
     data: [
@@ -123,6 +140,7 @@ export async function getTickets() {
 
 // ── Sauvegardes Globales ────────────────────────────────────────────────────
 export async function getBackupLogs() {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   const logs = await prisma.backupLog.findMany({
     orderBy: { createdAt: "desc" }
@@ -131,6 +149,7 @@ export async function getBackupLogs() {
 }
 
 export async function createBackup(backupType: string) {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   try {
     const filename = `backup_${backupType}_${Date.now()}.sql`
@@ -151,6 +170,7 @@ export async function createBackup(backupType: string) {
 
 // ── Notifications (Email & WhatsApp) ────────────────────────────────────────
 export async function getEmailLogs() {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   const logs = await prisma.notificationEmail.findMany({
     orderBy: { sentAt: "desc" },
@@ -160,6 +180,7 @@ export async function getEmailLogs() {
 }
 
 export async function getWhatsappLogs() {
+  await verifySuperAdmin()
   const prisma = await getPrisma()
   const logs = await prisma.notificationWhatsapp.findMany({
     orderBy: { sentAt: "desc" },
@@ -170,6 +191,7 @@ export async function getWhatsappLogs() {
 
 // ── Configuration ───────────────────────────────────────────────────────────
 export async function toggleModule(moduleId: string, enabled: boolean) {
+  await verifySuperAdmin()
   return {
     success: true,
     message: `Module ${moduleId} ${enabled ? 'activé' : 'désactivé'} avec succès`
@@ -177,6 +199,7 @@ export async function toggleModule(moduleId: string, enabled: boolean) {
 }
 
 export async function getSystemLogsAction() {
+  await verifySuperAdmin()
   const masterPrisma = require("./prisma").default
   try {
     const logs = await masterPrisma.systemLog.findMany({
