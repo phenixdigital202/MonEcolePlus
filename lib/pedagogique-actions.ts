@@ -2,6 +2,16 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { revalidatePath } from "next/cache"
+import { getAuthenticatedUser } from "@/lib/session"
+
+export async function getCurrentUserRoleAction() {
+  try {
+    const user = await getAuthenticatedUser()
+    return { success: true, role: user?.role || "student" }
+  } catch (error) {
+    return { success: true, role: "student" }
+  }
+}
 
 export async function getLivresPedagogiques() {
   try {

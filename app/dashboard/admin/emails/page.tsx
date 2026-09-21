@@ -40,6 +40,202 @@ const templates = [
   { id: "verification", name: "Email de Vérification", desc: "Code de validation d'inscription" }
 ]
 
+function getTemplatePreviewHtml(templateId: string, templateName: string) {
+  const primaryColor = "#3b82f6"
+  const schoolName = "MonÉcole+ Groupe Scolaire"
+  const dateStr = new Date().toLocaleDateString("fr-FR")
+
+  let contentHtml = ""
+
+  switch (templateId) {
+    case "new_grade":
+      contentHtml = `
+        <h2 style="color:#1e293b;margin-top:0;">Nouvelle Note Publiée</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Une nouvelle note a été enregistrée pour votre enfant <strong>Bamba Judith</strong> :</p>
+        <div style="background:#f8fafc;padding:16px;border-left:4px solid #3b82f6;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Discipline :</strong> Mathématiques</p>
+          <p style="margin:4px 0;"><strong>Évaluation :</strong> Devoir de Synthèse N°2</p>
+          <p style="margin:4px 0;"><strong>Note obtenue :</strong> <span style="font-size:20px;font-weight:bold;color:#10b981;">16.5 / 20</span></p>
+          <p style="margin:4px 0;"><strong>Moyenne de la classe :</strong> 12.4 / 20</p>
+          <p style="margin:4px 0;"><strong>Appréciation :</strong> Excellent travail, poursuivez ainsi !</p>
+        </div>
+        <p>Connectez-vous sur votre espace parent MonÉcole+ pour consulter le détail des notes.</p>
+      `
+      break
+    case "new_absence":
+      contentHtml = `
+        <h2 style="color:#e11d48;margin-top:0;">Notification d'Absence</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Nous vous informons de l'absence suivante enregistrée au nom de votre enfant <strong>Bamba Judith</strong> :</p>
+        <div style="background:#fff1f2;padding:16px;border-left:4px solid #f43f5e;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Date d'absence :</strong> ${dateStr}</p>
+          <p style="margin:4px 0;"><strong>Créneau :</strong> Matinée (08h00 - 12h00)</p>
+          <p style="margin:4px 0;"><strong>Motif / Statut :</strong> <span style="color:#e11d48;font-weight:bold;">Non Justifiée</span></p>
+        </div>
+        <p>Merci de contacter le bureau de la vie scolaire ou de transmettre un justificatif depuis votre portail.</p>
+      `
+      break
+    case "payment_received":
+      contentHtml = `
+        <h2 style="color:#059669;margin-top:0;">Reçu de Paiement - Scolarité</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Nous vous confirmons la bonne réception de votre versement pour la scolarité :</p>
+        <div style="background:#ecfdf5;padding:16px;border-left:4px solid #10b981;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Référence Reçu :</strong> REC-2026-8892</p>
+          <p style="margin:4px 0;"><strong>Montant payé :</strong> <span style="font-size:18px;font-weight:bold;color:#059669;">150 000 FCFA</span></p>
+          <p style="margin:4px 0;"><strong>Mode de paiement :</strong> Mobile Money (Orange Money)</p>
+          <p style="margin:4px 0;"><strong>Tranche concernée :</strong> 2ème Tranche 2025-2026</p>
+        </div>
+        <p>Le reçu officiel au format PDF est téléchargeable dans votre espace comptabilité.</p>
+      `
+      break
+    case "late_payment":
+      contentHtml = `
+        <h2 style="color:#d97706;margin-top:0;">Rappel de Scolarité en Retard</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Sauf erreur ou omission de notre part, l'échéance de scolarité suivante est arrivée à terme :</p>
+        <div style="background:#fffbeb;padding:16px;border-left:4px solid #f59e0b;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Élève concerné :</strong> Bamba Judith (Terminale A)</p>
+          <p style="margin:4px 0;"><strong>Échéance :</strong> 2ème Tranche Scolarité</p>
+          <p style="margin:4px 0;"><strong>Solde restant dû :</strong> <span style="font-size:18px;font-weight:bold;color:#b45309;">75 000 FCFA</span></p>
+        </div>
+        <p>Nous vous prions de bien vouloir régulariser ce règlement dans les plus brefs délais.</p>
+      `
+      break
+    case "report_card":
+      contentHtml = `
+        <h2 style="color:#3b82f6;margin-top:0;">Publication du Bulletin Trimestriel</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Le bulletin de notes du <strong>1er Trimestre 2025-2026</strong> de l'élève <strong>Bamba Judith</strong> est désormais disponible en ligne.</p>
+        <div style="background:#eff6ff;padding:16px;border-left:4px solid #3b82f6;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Moyenne Trimestrielle :</strong> <span style="font-size:18px;font-weight:bold;color:#2563eb;">15.42 / 20</span></p>
+          <p style="margin:4px 0;"><strong>Rang :</strong> 3ème / 42 élèves</p>
+          <p style="margin:4px 0;"><strong>Tableau d'Honneur :</strong> Accordé avec Félicitations du Conseil</p>
+        </div>
+        <p>Vous pouvez consulter et imprimer le bulletin sécurisé directement sur la plateforme MonÉcole+.</p>
+      `
+      break
+    case "admin_message":
+      contentHtml = `
+        <h2 style="color:#1e293b;margin-top:0;">Information Importante de l'Établissement</h2>
+        <p>Chers parents et élèves,</p>
+        <p>Nous vous informons de l'organisation des épreuves d'Examens Blancs qui se tiendront du 15 au 18 avril 2026.</p>
+        <div style="background:#f8fafc;padding:16px;border-left:4px solid #64748b;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Sujet :</strong> Horaires et convocations d'examens</p>
+          <p style="margin:4px 0;">Les élèves sont priés de se présenter munis de leur convocation officielle et pièce d'identité.</p>
+        </div>
+        <p>La Direction reste à votre entière disposition pour tout renseignement complémentaire.</p>
+      `
+      break
+    case "meeting":
+      contentHtml = `
+        <h2 style="color:#6366f1;margin-top:0;">Invitation : Réunion Parents-Professeurs</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Vous êtes cordialement invité(e) à la réunion bilan trimestrielle des parents d'élèves :</p>
+        <div style="background:#f5f3ff;padding:16px;border-left:4px solid #6366f1;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Date & Heure :</strong> Samedi 28 Février 2026 à 09h00</p>
+          <p style="margin:4px 0;"><strong>Lieu :</strong> Grande Salle de Conférence MonÉcole+</p>
+          <p style="margin:4px 0;"><strong>Ordre du jour :</strong> Bilan académique & orientation des élèves</p>
+        </div>
+        <p>Votre présence est vivement souhaitée.</p>
+      `
+      break
+    case "convocation":
+      contentHtml = `
+        <h2 style="color:#e11d48;margin-top:0;">Convocation Officielle à la Direction</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Vous êtes prié(e) de bien vouloir vous présenter au bureau de la Direction de l'établissement :</p>
+        <div style="background:#fff1f2;padding:16px;border-left:4px solid #e11d48;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Motif :</strong> Entretien de suivi pédagogique</p>
+          <p style="margin:4px 0;"><strong>Date :</strong> Mardi 24 Février à 10h30</p>
+          <p style="margin:4px 0;"><strong>Intervenant :</strong> Chef d'Établissement & Professeur Principal</p>
+        </div>
+        <p>En cas d'empêchement majeur, merci d'avertir le secrétariat par téléphone.</p>
+      `
+      break
+    case "new_enrollment":
+      contentHtml = `
+        <h2 style="color:#059669;margin-top:0;">Confirmation d'Inscription</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Nous avons le plaisir de vous confirmer l'affectation et l'inscription définitive de votre enfant :</p>
+        <div style="background:#ecfdf5;padding:16px;border-left:4px solid #059669;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Élève :</strong> Bamba Judith</p>
+          <p style="margin:4px 0;"><strong>Classe affectée :</strong> Terminale A1</p>
+          <p style="margin:4px 0;"><strong>Matricule :</strong> MAT-2026-0941</p>
+          <p style="margin:4px 0;"><strong>Année Scolaire :</strong> 2025-2026</p>
+        </div>
+        <p>Bienvenue au sein de notre communauté éducative !</p>
+      `
+      break
+    case "forgot_password":
+      contentHtml = `
+        <h2 style="color:#2563eb;margin-top:0;">Réinitialisation de votre Mot de Passe</h2>
+        <p>Bonjour,</p>
+        <p>Vous avez demandé la réinitialisation de votre mot de passe pour accéder au portail MonÉcole+.</p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="#" style="background:#2563eb;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Réinitialiser mon mot de passe</a>
+        </div>
+        <p style="font-size:12px;color:#64748b;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.</p>
+      `
+      break
+    case "welcome":
+      contentHtml = `
+        <h2 style="color:#3b82f6;margin-top:0;">Bienvenue sur MonÉcole+ !</h2>
+        <p>Bonjour M./Mme Bamba,</p>
+        <p>Votre compte utilisateur sur la plateforme MonÉcole+ a été créé avec succès.</p>
+        <div style="background:#eff6ff;padding:16px;border-left:4px solid #3b82f6;margin:16px 0;border-radius:8px;">
+          <p style="margin:4px 0;"><strong>Identifiant (Email) :</strong> parent.bamba@ecole.ci</p>
+          <p style="margin:4px 0;"><strong>Rôle :</strong> Espace Parent</p>
+          <p style="margin:4px 0;"><strong>Accès :</strong> Consultations des notes, absences, reçus et messages</p>
+        </div>
+        <p>Découvrez dès à présent vos services de suivi en ligne.</p>
+      `
+      break
+    case "verification":
+      contentHtml = `
+        <h2 style="color:#7c3aed;margin-top:0;">Vérification de votre Adresse Email</h2>
+        <p>Bonjour,</p>
+        <p>Veuillez utiliser le code de vérification ci-dessous pour valider la création de votre compte :</p>
+        <div style="background:#f5f3ff;padding:20px;text-align:center;border-radius:12px;margin:20px 0;">
+          <span style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#7c3aed;">849 - 206</span>
+        </div>
+        <p style="font-size:12px;color:#64748b;">Ce code expire dans 15 minutes.</p>
+      `
+      break
+    default:
+      contentHtml = `
+        <h2 style="color:#3b82f6;margin-top:0;">${templateName}</h2>
+        <p>Ceci est un aperçu officiel du modèle d'email <strong>${templateName}</strong>.</p>
+      `
+  }
+
+  return `
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8">
+      <title>${templateName}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px; color: #334155;">
+      <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <div style="background-color: #1e293b; padding: 20px 24px; text-align: left; border-bottom: 3px solid ${primaryColor};">
+          <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px;">MonÉcole<span style="color: ${primaryColor};">+</span></h1>
+          <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; font-weight: 600;">${schoolName}</p>
+        </div>
+        <div style="padding: 28px 24px; line-height: 1.6; font-size: 14px;">
+          ${contentHtml}
+        </div>
+        <div style="background-color: #f8fafc; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;">
+          <p style="margin: 0;">© 2026 MonÉcole+ Groupe Scolaire | Système de Notifications Automatisées</p>
+          <p style="margin: 4px 0 0 0;">Document certifié et horodaté le ${dateStr}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 export default function EmailsAdminPage() {
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -248,7 +444,7 @@ export default function EmailsAdminPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => setPreviewDoc(tpl)}
+                      onClick={() => setPreviewDoc({ ...tpl, html: getTemplatePreviewHtml(tpl.id, tpl.name) })}
                       className="h-8 w-8 text-primary hover:bg-primary/10 rounded-xl group-hover:scale-105 transition-transform"
                     >
                       <Eye className="h-4 w-4" />
@@ -351,7 +547,7 @@ export default function EmailsAdminPage() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-primary hover:bg-primary/10 rounded-xl"
-                            onClick={() => setPreviewDoc({ name: log.subject, html: log.body })}
+                            onClick={() => setPreviewDoc({ name: log.subject, html: log.body || getTemplatePreviewHtml(log.templateName, log.subject) })}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
