@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
 
 interface MessagesViewProps {
   currentUserId: number

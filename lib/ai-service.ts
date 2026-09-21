@@ -46,11 +46,6 @@ let cachedAnalysis: { timestamp: number; data: AIAnalysisResult } | null = null
 const CACHE_DURATION = 1000 * 60 * 10 // 10 minutes cache
 
 export async function generateSchoolAIAnalysis(): Promise<AIAnalysisResult> {
-  const now = Date.now()
-  if (cachedAnalysis && now - cachedAnalysis.timestamp < CACHE_DURATION) {
-    return cachedAnalysis.data
-  }
-
   const prisma = await getPrisma()
 
   // 1. Gather raw data from the database
