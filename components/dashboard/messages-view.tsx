@@ -126,6 +126,13 @@ export function MessagesView({ currentUserId, currentUserRole, initialContacts, 
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Voice Note states
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerIntervalRef = useRef<any>(null)
+
   // Ringtone synthesizer / Web Audio API player for call ringing
   const playRingtone = () => {
     try {
