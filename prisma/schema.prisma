@@ -367,6 +367,7 @@ model User {
   teacherAvailabilities TeacherAvailability[]
   classesAsProfPrincipal Class[]            @relation("ProfesseurPrincipal")
   classSubjectTeachers ClassSubjectTeacher[]
+  sessions            Session[]
   ecole               Ecole?                @relation(fields: [id_ecole], references: [id], onUpdate: Restrict)
 
   @@index([id_ecole])
@@ -680,6 +681,20 @@ model SchoolYear {
   @@index([status])
   @@unique([id_ecole, label])
   @@map("school_years")
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    Int
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("sessions")
 }
 
 
