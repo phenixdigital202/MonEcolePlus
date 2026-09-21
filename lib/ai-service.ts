@@ -41,36 +41,37 @@ export interface AIAnalysisResult {
   }
 }
 
-// Memory cache to avoid repeating expensive calculations / API calls
-let cachedAnalysis: { timestamp: number; data: AIAnalysisResult } | null = null
-const CACHE_DURATION = 1000 * 60 * 10 // 10 minutes cache
-
 export async function generateSchoolAIAnalysis(): Promise<AIAnalysisResult> {
   const prisma = await getPrisma()
 
-  // 1. Gather raw data from the database
-  const users = await prisma.user.findMany()
+  // 1. Gather raw data from the database with fallbacks for build time / DB offline
+  let users: any[] = []
+  let classes: any[] = []
+  let notes: any[] = []
+  let absences: any[] = []
+  let payments: any[] = []
+
+  try {
+    users = await prisma.user.findMany()
+    classes = await prisma.class.findMany({
+      include: {
+        inscriptions: { include: { user: true } },
+      }
+    })
+    notes = await prisma.note.findMany({
+      include: {
+        evaluation: true,
+        user: true,
+      }
+    })
+    absences = await prisma.absence.findMany()
+    payments = await prisma.paiement.findMany()
+  } catch (err) {
+    console.warn("[AI_SERVICE] Database connection warning during analysis generation, using empty fallbacks", err)
+  }
+
   const students = users.filter(u => u.role === "student")
   const teachers = users.filter(u => u.role === "teacher")
-  const classes = await prisma.class.findMany({
-    include: {
-      inscriptions: { include: { user: true } },
-    }
-  })
-
-  // Get notes to calculate school & student averages
-  const notes = await prisma.note.findMany({
-    include: {
-      evaluation: true,
-      user: true,
-    }
-  })
-
-  // Get absences
-  const absences = await prisma.absence.findMany()
-
-  // Get payments
-  const payments = await prisma.paiement.findMany()
 
   // 2. Perform advanced heuristics analysis (Local AI Engine)
   
@@ -248,12 +249,6 @@ export async function generateSchoolAIAnalysis(): Promise<AIAnalysisResult> {
     },
     predictions,
     recommendations
-  }
-
-  // Update memory cache
-  cachedAnalysis = {
-    timestamp: now,
-    data: result
   }
 
   return result

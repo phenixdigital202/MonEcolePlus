@@ -246,7 +246,7 @@ export default async function AIInsightsPage() {
                 </div>
                 <div className="space-y-2 pt-2 border-t">
                   {analysis.classAnalysis.comparison.map((c, i) => (
-                    <div key={i} className="flex justify-between items-center text-xs">
+                    <div key={c.name || i} className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-700">{c.name}</span>
                       <span className="text-slate-900 font-bold">Moy. {c.avgGrade}/20 ({c.attendanceRate}% assiduité)</span>
                     </div>
