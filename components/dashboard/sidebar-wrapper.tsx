@@ -32,7 +32,7 @@ function SidebarContent({
   const { isOpen: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr] print:block print:w-full print:min-h-0 print:bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 text-slate-800 lg:grid lg:grid-cols-[16rem_1fr] print:block print:w-full print:min-h-0 print:bg-white">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden print:hidden no-print">
