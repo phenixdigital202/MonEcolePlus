@@ -44,32 +44,41 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {teacherData.nextClass && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader><CardTitle className="text-lg">Prochain cours : Faire l&apos;appel</CardTitle></CardHeader>
-              <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <Card className="border-blue-200/80 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-white backdrop-blur-md shadow-md rounded-3xl overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                    <Sparkles className="h-4.5 w-4.5" />
+                  </div>
+                  Prochain cours : Faire l&apos;appel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
                 <div>
-                  <p className="font-semibold text-primary">{teacherData.nextClass.className} - {teacherData.nextClass.matiere}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {teacherData.nextClass.salle} • {teacherData.nextClass.minutesUntil > 0 
+                  <p className="font-bold text-lg text-blue-900">{teacherData.nextClass.className} • <span className="text-blue-600">{teacherData.nextClass.matiere}</span></p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    📍 {teacherData.nextClass.salle} • {teacherData.nextClass.minutesUntil > 0 
                       ? `Début dans ${teacherData.nextClass.minutesUntil} min` 
                       : `À ${teacherData.nextClass.startTimeFormatted}`}
                   </p>
                 </div>
-                <Button asChild className="w-full sm:w-auto" prefetch={true}><Link href="/dashboard/absences">Faire l&apos;appel</Link></Button>
+                <Button asChild className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 rounded-2xl px-6 font-bold text-xs" prefetch={true}>
+                  <Link href="/dashboard/absences">Faire l&apos;appel</Link>
+                </Button>
               </CardContent>
             </Card>
           )}
           {!teacherData.nextClass && (
-            <Card className="border-muted bg-muted/30">
+            <Card className="border-slate-200/80 bg-white/80 backdrop-blur-md shadow-sm rounded-3xl">
               <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground">Aucun cours à venir pour aujourd&apos;hui.</p>
+                <p className="text-slate-500 font-medium text-sm">Aucun cours à venir pour aujourd&apos;hui.</p>
               </CardContent>
             </Card>
           )}
           
           {teacherData.todaySchedule && teacherData.todaySchedule.length > 0 && (
-            <Card>
-              <CardHeader><CardTitle className="text-lg">Emploi du temps du jour</CardTitle></CardHeader>
+            <Card className="border-slate-200/80 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-md transition-all rounded-3xl">
+              <CardHeader><CardTitle className="text-base font-bold text-slate-900">Emploi du temps du jour</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {teacherData.todaySchedule.map((course: any, i: number) => {
                   const start = new Date(course.heure_debut)
@@ -77,12 +86,12 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
                   const startStr = `${String(start.getUTCHours()).padStart(2, '0')}:${String(start.getUTCMinutes()).padStart(2, '0')}`
                   const endStr = `${String(end.getUTCHours()).padStart(2, '0')}:${String(end.getUTCMinutes()).padStart(2, '0')}`
                   return (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                    <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="text-xs font-mono text-muted-foreground w-24">{startStr} - {endStr}</div>
+                        <div className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl">{startStr} - {endStr}</div>
                         <div>
-                          <p className="font-medium text-sm">{course.matiere}</p>
-                          <p className="text-xs text-muted-foreground">{course.className} • {course.salle}</p>
+                          <p className="font-bold text-sm text-slate-900">{course.matiere}</p>
+                          <p className="text-xs text-slate-500 font-medium">{course.className} • Salle {course.salle}</p>
                         </div>
                       </div>
                     </div>
@@ -94,21 +103,21 @@ async function TeacherDataFetcher({ teacherId, matiere }: { teacherId: number, m
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> Agenda</CardTitle></CardHeader>
+          <Card className="border-slate-200/80 bg-white/90 backdrop-blur-md shadow-sm hover:shadow-md transition-all rounded-3xl">
+            <CardHeader><CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-600" /> Agenda Académique</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {teacherData.upcomingAgenda && teacherData.upcomingAgenda.length > 0 ? (
                 teacherData.upcomingAgenda.map((e: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
+                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 transition-all">
+                    <div className="h-2.5 w-2.5 rounded-full bg-blue-600 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium">{e.matiere} - {e.className}</p>
-                      <p className="text-xs text-muted-foreground">{e.jour} à {e.heureFormatted} • {e.salle}</p>
+                      <p className="text-xs font-bold text-slate-900">{e.matiere} - {e.className}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">{e.jour} à {e.heureFormatted} • {e.salle}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">Aucun cours à venir.</p>
+                <p className="text-xs text-slate-400 font-medium">Aucun cours à venir dans l&apos;agenda.</p>
               )}
             </CardContent>
           </Card>

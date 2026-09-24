@@ -15,24 +15,8 @@ export async function getTeacherDashboardData(teacherId: number) {
   try {
     const prisma = await getPrisma()
 
-    // 1. Fetch local teacher user from Tenant DB using master email lookup if ID fails
-    let localTeacher = await prisma.user.findUnique({
-      where: { id: teacherId }
-    })
-
-    if (!localTeacher) {
-      const master = require("./prisma").default
-      const masterUser = await master.user.findUnique({
-        where: { id: teacherId },
-        select: { email: true }
-      }).catch(() => null)
-      if (masterUser?.email) {
-        localTeacher = await prisma.user.findUnique({
-          where: { email: masterUser.email }
-        })
-      }
-    }
-
+    const { getCachedUser } = require("@/lib/cached-queries")
+    const localTeacher = await getCachedUser(teacherId)
     const resolvedTeacherId = localTeacher ? localTeacher.id : teacherId
 
     // 2. Get all schedule entries for this teacher (with select projection)
@@ -70,12 +54,16 @@ export async function getTeacherDashboardData(teacherId: number) {
     const teacherClasses = Array.from(classMap.values())
     const classIds = teacherClasses.map(c => c.id)
 
-    // 3. Total students enrolled in those classes
-    const totalStudents = classIds.length > 0
-      ? await prisma.inscription.count({
-          where: { id_classe: { in: classIds } }
+    // 3. Inscriptions & Students in teacher's classes
+    const studentInscriptions = classIds.length > 0
+      ? await prisma.inscription.findMany({
+          where: { id_classe: { in: classIds } },
+          select: { id_eleve: true }
         })
-      : 0
+      : []
+    
+    const totalStudents = studentInscriptions.length
+    const studentIds = [...new Set(studentInscriptions.map(i => i.id_eleve))]
 
     // 4. Weekly hours calculation
     let totalWeeklyMinutes = 0
@@ -89,34 +77,24 @@ export async function getTeacherDashboardData(teacherId: number) {
 
     // 5. Attendance rate for students in teacher's classes
     let attendanceRate = 100
-    if (classIds.length > 0) {
-      // Get all student IDs in teacher's classes
-      const studentInscriptions = await prisma.inscription.findMany({
-        where: { id_classe: { in: classIds } },
-        select: { id_eleve: true }
-      })
-      const studentIds = [...new Set(studentInscriptions.map(i => i.id_eleve))]
+    if (studentIds.length > 0) {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-      if (studentIds.length > 0) {
-        // Count absences for these students in the last 30 days
-        const thirtyDaysAgo = new Date()
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-        const absenceCount = await prisma.absence.count({
-          where: {
-            id_eleve: { in: studentIds },
-            date_absence: { gte: thirtyDaysAgo }
-          }
-        })
-
-        // Calculate attendance: total possible days (students * ~22 school days) minus absences
-        const schoolDays = 22
-        const totalPossiblePresences = studentIds.length * schoolDays
-        if (totalPossiblePresences > 0) {
-          attendanceRate = Math.round(((totalPossiblePresences - absenceCount) / totalPossiblePresences) * 100)
-          if (attendanceRate < 0) attendanceRate = 0
-          if (attendanceRate > 100) attendanceRate = 100
+      const absenceCount = await prisma.absence.count({
+        where: {
+          id_eleve: { in: studentIds },
+          date_absence: { gte: thirtyDaysAgo }
         }
+      })
+
+      // Calculate attendance: total possible days (students * ~22 school days) minus absences
+      const schoolDays = 22
+      const totalPossiblePresences = studentIds.length * schoolDays
+      if (totalPossiblePresences > 0) {
+        attendanceRate = Math.round(((totalPossiblePresences - absenceCount) / totalPossiblePresences) * 100)
+        if (attendanceRate < 0) attendanceRate = 0
+        if (attendanceRate > 100) attendanceRate = 100
       }
     }
 

@@ -1,8 +1,31 @@
 import { cache } from 'react'
 import { getPrisma } from './tenant-context'
 
+declare global {
+  var userCacheByMasterId: Map<number, { user: any; timestamp: number }> | undefined
+}
+
+const userMapCache = globalThis.userCacheByMasterId || new Map<number, { user: any; timestamp: number }>()
+globalThis.userCacheByMasterId = userMapCache
+const USER_CACHE_TTL_MS = 60 * 1000 // 60 seconds
+
+export function invalidateUserCache(userId?: number) {
+  if (userId) {
+    userMapCache.delete(userId)
+  } else {
+    userMapCache.clear()
+  }
+}
+
 export const getCachedUser = cache(async (userId: number) => {
   try {
+    if (!userId) return null
+
+    const cached = userMapCache.get(userId)
+    if (cached && (Date.now() - cached.timestamp < USER_CACHE_TTL_MS)) {
+      return cached.user
+    }
+
     const prisma = await getPrisma()
     const master = require("./prisma").default
     
@@ -16,7 +39,10 @@ export const getCachedUser = cache(async (userId: number) => {
         where: { email: masterUser.email.toLowerCase().trim() },
         include: { ecole: true }
       })
-      if (user) return user
+      if (user) {
+        userMapCache.set(userId, { user, timestamp: Date.now() })
+        return user
+      }
     }
 
     console.warn(`[getCachedUser] User resolution failed for Master User ID ${userId}`)

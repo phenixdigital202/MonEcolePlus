@@ -151,31 +151,31 @@ export function DashboardSidebar({
   const navigation = navigationConfig[userRole] || navigationConfig.admin
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-slate-900 border-r border-slate-800/80 text-slate-300 h-full shadow-2xl">
+    <aside className="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-white/85 backdrop-blur-xl border-r border-slate-200/80 text-slate-700 h-full shadow-xl shadow-slate-200/40">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-800/80">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/30 transition-transform duration-300 hover:scale-110 hover:rotate-3">
+      <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-100/90">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/25 transition-transform duration-300 hover:scale-110 hover:rotate-3">
           <GraduationCap className="h-5 w-5 text-white" />
         </div>
-        <span className="text-lg font-black tracking-tight text-white">
-          MonÉcole<span className="text-primary font-black">+</span>
+        <span className="text-lg font-black tracking-tight text-slate-900">
+          MonÉcole<span className="text-blue-600 font-black">+</span>
         </span>
       </div>
 
       {/* User Info */}
-      <div className="px-4 py-5 border-b border-slate-800 bg-slate-950/20">
-        <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-slate-800/40 border border-slate-800/50 hover:bg-slate-800/80 transition-all duration-300">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-indigo-500/20 border border-primary/30 flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-primary">
+      <div className="px-4 py-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/60 to-white">
+        <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-300">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600/10 to-indigo-600/10 border border-blue-200 flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold text-blue-600">
               {userName?.split(" ").map(n => n[0]).join("")}
             </span>
           </div>
           <div className="flex-1 text-left min-w-0">
-            <p className="text-sm font-bold text-white truncate">{userName}</p>
+            <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] text-slate-400 truncate">{schoolName}</p>
+              <p className="text-[10px] font-medium text-slate-500 truncate">{schoolName}</p>
               {userRole === 'student' && (
-                <div className="flex items-center gap-1 bg-gradient-to-r from-primary to-indigo-500 px-1.5 py-0.5 rounded-md text-white text-[8px] font-black uppercase tracking-tighter">
+                <div className="flex items-center gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 px-1.5 py-0.5 rounded-md text-white text-[8px] font-black uppercase tracking-tighter shadow-sm">
                    <Zap className="h-2 w-2" />
                    Niv. {userLevel}
                 </div>
@@ -198,14 +198,14 @@ export function DashboardSidebar({
                   <CollapsibleTrigger asChild>
                     <button
                       className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-slate-400 hover:bg-slate-800/50 hover:text-white group"
+                        "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 group"
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className="h-4.5 w-4.5 group-hover:scale-110 transition-transform duration-200" />
+                        <item.icon className="h-4.5 w-4.5 group-hover:scale-110 transition-transform duration-200 text-slate-500 group-hover:text-blue-600" />
                         {item.name}
                       </div>
-                      <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1 ml-9">
@@ -214,10 +214,10 @@ export function DashboardSidebar({
                         key={sub.name}
                         href={sub.href}
                         className={cn(
-                          "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200",
+                          "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200 font-medium",
                           pathname === sub.href
-                            ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
-                            : "text-slate-400 hover:bg-slate-800/30 hover:text-white"
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20"
+                            : "text-slate-500 hover:bg-indigo-50/60 hover:text-indigo-700"
                         )}
                       >
                         {sub.name}
@@ -235,11 +235,11 @@ export function DashboardSidebar({
                 className={cn(
                   "flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200",
                   isActive 
-                    ? "bg-gradient-to-r from-primary to-indigo-600 text-white font-bold shadow-lg shadow-primary/10" 
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-white group"
+                    ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/25 scale-[1.02]" 
+                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 group"
                 )}
               >
-                <item.icon className={cn("h-4.5 w-4.5 transition-all duration-300 group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
+                <item.icon className={cn("h-4.5 w-4.5 transition-all duration-300 group-hover:scale-110", isActive ? "text-white" : "text-slate-500 group-hover:text-blue-600")} />
                 {item.name}
               </Link>
             )
@@ -249,7 +249,7 @@ export function DashboardSidebar({
         {/* AI Section - Only for Staff/Admin */}
         {(userRole === 'admin' || userRole === 'teacher') && (
           <div className="space-y-2">
-            <p className="px-3.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+            <p className="px-3.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
               Intelligence Artificielle
             </p>
             <Link
@@ -257,11 +257,11 @@ export function DashboardSidebar({
               className={cn(
                 "flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200",
                 pathname === "/dashboard/ai-insights"
-                  ? "bg-gradient-to-r from-primary to-indigo-600 text-white font-bold shadow-lg shadow-primary/10" 
-                  : "text-slate-400 hover:bg-slate-800/50 hover:text-white group"
+                  ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/25 scale-[1.02]" 
+                  : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 group"
               )}
             >
-              <Sparkles className={cn("h-4.5 w-4.5 transition-transform duration-200 group-hover:scale-110", pathname === "/dashboard/ai-insights" ? "text-white" : "text-slate-400 group-hover:text-white")} />
+              <Sparkles className={cn("h-4.5 w-4.5 transition-transform duration-200 group-hover:scale-110", pathname === "/dashboard/ai-insights" ? "text-white" : "text-amber-500 group-hover:text-amber-600")} />
               Insights IA
             </Link>
           </div>
@@ -269,7 +269,7 @@ export function DashboardSidebar({
 
         {/* Secondary Navigation */}
         <div className="space-y-2">
-          <p className="px-3.5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+          <p className="px-3.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
             Compte
           </p>
           {secondaryNavigation.map((item) => {
@@ -282,14 +282,14 @@ export function DashboardSidebar({
                   <CollapsibleTrigger asChild>
                     <button
                       className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-slate-400 hover:bg-slate-800/50 hover:text-white group"
+                        "w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200 text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 group"
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className="h-4.5 w-4.5 group-hover:scale-110 transition-transform duration-200" />
+                        <item.icon className="h-4.5 w-4.5 group-hover:scale-110 transition-transform duration-200 text-slate-500 group-hover:text-blue-600" />
                         {item.name}
                       </div>
-                      <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1 ml-9">
@@ -302,10 +302,10 @@ export function DashboardSidebar({
                           key={sub.name}
                           href={targetHref}
                           className={cn(
-                            "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200",
+                            "block px-3.5 py-2 text-xs rounded-lg transition-all duration-200 font-medium",
                             pathname === targetHref
-                              ? "bg-primary text-white font-bold shadow-md shadow-primary/20"
-                              : "text-slate-400 hover:bg-slate-800/30 hover:text-white"
+                              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/20"
+                              : "text-slate-500 hover:bg-indigo-50/60 hover:text-indigo-700"
                           )}
                         >
                           {sub.name}
@@ -324,11 +324,11 @@ export function DashboardSidebar({
                 className={cn(
                   "flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all duration-200",
                   isActive 
-                    ? "bg-gradient-to-r from-primary to-indigo-600 text-white font-bold shadow-lg shadow-primary/10" 
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-white group"
+                    ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/25 scale-[1.02]" 
+                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 group"
                 )}
               >
-                <item.icon className="h-4.5 w-4.5" />
+                <item.icon className="h-4.5 w-4.5 text-slate-500 group-hover:text-blue-600" />
                 {item.name}
               </Link>
             )
@@ -337,9 +337,9 @@ export function DashboardSidebar({
       </nav>
 
       {/* Logout */}
-      <div className="px-4 py-4 border-t border-slate-800">
+      <div className="px-4 py-4 border-t border-slate-100">
         <form action={logoutUser}>
-          <Button variant="ghost" className="w-full justify-start text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl" type="submit">
+          <Button variant="ghost" className="w-full justify-start text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-xl font-semibold text-xs" type="submit">
             <LogOut className="h-4.5 w-4.5 mr-3 transition-transform duration-200" />
             Déconnexion
           </Button>

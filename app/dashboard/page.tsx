@@ -54,7 +54,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50/30 min-w-0 custom-scrollbar">
+    <div className="flex flex-col min-h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 min-w-0 custom-scrollbar">
       {/* Shell renders instantly */}
       <DashboardHeader 
         title={displayTitle} 

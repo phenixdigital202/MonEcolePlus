@@ -6,30 +6,22 @@ import { getCachedSchoolStats } from "@/lib/cached-queries"
 
 async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId: number }) {
   try {
-    console.log("[AdminDataFetcher] STEP 1: Resolving Prisma & cached stats...")
     const prisma = await getPrisma()
 
-    // 1. Fetch real school stats
-    const stats = await getCachedSchoolStats(ecoleId)
-
-    const totalRevenue = stats.revenueData._sum.montant 
-      ? Number(stats.revenueData._sum.montant).toLocaleString("fr-FR") + " FCFA" 
-      : "0 FCFA"
-
-    console.log("[AdminDataFetcher] STEP 2: Executing parallel database queries...")
+    // Execute stats and queries in a single parallel batch without redundant queries
     const [
+      stats,
       allStudents, 
       dbClasses, 
       recentPayments, 
       dbInsights, 
-      shortcutClasses, 
       shortcutTeachers, 
-      shortcutStudents,
       activeYear
     ] = await Promise.all([
+      getCachedSchoolStats(ecoleId),
       prisma.user.findMany({
         where: { role: 'student' },
-        select: { created_at: true }
+        select: { id: true, nom: true, created_at: true }
       }),
       prisma.class.findMany({
         select: {
@@ -51,11 +43,17 @@ async function AdminDataFetcher({ adminId, ecoleId }: { adminId: number, ecoleId
         orderBy: { created_at: 'desc' },
         select: { id: true, type: true, message: true, score_confiance: true, created_at: true }
       }),
-      prisma.class.findMany({ select: { id: true, nom: true, niveau: true } }),
       prisma.user.findMany({ where: { role: 'teacher' }, select: { id: true, nom: true, matiere: true } }),
-      prisma.user.findMany({ where: { role: 'student' }, select: { id: true, nom: true } }),
       prisma.schoolYear.findFirst({ where: { status: "ACTIVE" } })
     ])
+
+    const totalRevenue = stats.revenueData._sum.montant 
+      ? Number(stats.revenueData._sum.montant).toLocaleString("fr-FR") + " FCFA" 
+      : "0 FCFA"
+
+    // Derive shortcuts without duplicate database calls
+    const shortcutClasses = dbClasses.map(c => ({ id: c.id, nom: c.nom, niveau: c.niveau }))
+    const shortcutStudents = allStudents.map(s => ({ id: s.id, nom: s.nom }))
 
     console.log("[AdminDataFetcher] STEP 3: Computing charts and statistics...")
     // 3. Compute REAL enrollment growth per month from DB

@@ -92,24 +92,24 @@ export function ParentDashboardView({ initialData }: ParentDashboardViewProps) {
   const unreadCount = notifications.filter(n => !n.read).length
 
   return (
-    <div className="p-4 md:p-8 space-y-6 w-full max-w-full overflow-hidden">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Espace Parent</h1>
-          <p className="text-muted-foreground">Suivez la scolarité de vos enfants</p>
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Espace Parent</h1>
+          <p className="text-xs text-slate-500 font-medium">Suivez la scolarité et les progrès de vos enfants en temps réel</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-initial gap-2" asChild>
+          <Button variant="outline" className="flex-1 sm:flex-initial gap-2 rounded-2xl border-slate-200/80 font-bold text-xs hover:bg-blue-50 hover:text-blue-600 shadow-sm" asChild>
             <Link href="/dashboard/messages">
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4 text-blue-600" />
               Messages
             </Link>
           </Button>
-          <Button className="flex-1 sm:flex-initial gap-2 relative">
+          <Button className="flex-1 sm:flex-initial gap-2 relative bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-blue-500/20">
             <Bell className="h-4 w-4" />
             Notifications
             {unreadCount > 0 && (
-              <Badge variant="secondary" className="ml-1 bg-white/20 text-white">
+              <Badge variant="secondary" className="ml-1 bg-white/20 text-white border-none text-[10px]">
                 {unreadCount}
               </Badge>
             )}
@@ -119,33 +119,33 @@ export function ParentDashboardView({ initialData }: ParentDashboardViewProps) {
 
       {/* Children Selector */}
       <div className="space-y-2">
-        <h2 className="text-sm font-semibold text-muted-foreground">Sélectionner un enfant :</h2>
+        <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Vos Enfants inscrits :</h2>
         <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
           {children.map((child) => (
             <Card 
               key={child.id}
-              className={`w-full max-w-[300px] sm:w-[280px] shrink-0 cursor-pointer transition-all hover:shadow-md ${
+              className={`w-full max-w-[300px] sm:w-[280px] shrink-0 cursor-pointer transition-all duration-300 rounded-3xl ${
                 selectedChild.id === child.id 
-                  ? 'border-primary ring-2 ring-primary/20' 
-                  : 'border-border/50'
+                  ? 'border-blue-500 ring-4 ring-blue-500/10 shadow-lg shadow-blue-500/10 bg-gradient-to-br from-blue-50/90 to-indigo-50/90' 
+                  : 'border-slate-200/80 bg-white/90 hover:border-blue-300 hover:bg-slate-50/80 shadow-sm'
               }`}
               onClick={() => setSelectedChildId(child.id)}
             >
               <CardContent className="flex items-center gap-4 p-4">
-                <Avatar className="h-14 w-14">
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                <Avatar className="h-14 w-14 border-2 border-white shadow-md">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-lg font-black">
                     {child.avatar}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{child.name}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{child.class}</p>
+                  <h3 className="font-bold text-slate-900 truncate text-sm">{child.name}</h3>
+                  <p className="text-xs text-slate-500 font-medium truncate">{child.class}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="text-lg font-bold text-primary">{child.averageGrade.toFixed(2)}/20</span>
+                    <span className="text-base font-black text-blue-600">{child.averageGrade.toFixed(2)}/20</span>
                     {child.averageGrade >= child.previousAverage ? (
-                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
                     ) : (
-                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <TrendingDown className="h-4 w-4 text-rose-500" />
                     )}
                   </div>
                 </div>
