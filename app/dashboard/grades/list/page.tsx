@@ -18,11 +18,68 @@ const DEFAULT_COEFFICIENTS: Record<string, number> = {
   "sciences physiques": 3,
 }
 
+import { cookies } from "next/headers"
+
 export default async function GradesListPage() {
   const prisma = await getPrisma()
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
+
+  let notesWhere: any = undefined
+
+  if (userId) {
+    const { getCachedUser } = require("@/lib/cached-queries")
+    const user = await getCachedUser(parseInt(userId))
+
+    if (user && user.role === 'teacher') {
+      const teacherClasses = await prisma.class.findMany({
+        where: {
+          OR: [
+            { id_professeur_principal: user.id },
+            { emploisDuTemps: { some: { id_enseignant: user.id } } },
+            { classSubjects: { some: { teachers: { some: { id_enseignant: user.id } } } } }
+          ]
+        },
+        select: { id: true }
+      })
+      const teacherClassIds = teacherClasses.map(c => c.id)
+
+      const [dbScheduleSubjs, classSubjectTeacherRows, teacherSubjects] = await Promise.all([
+        prisma.emploiDuTemps.findMany({
+          where: { id_enseignant: user.id },
+          select: { matiere: true },
+          distinct: ['matiere']
+        }),
+        prisma.classSubjectTeacher.findMany({
+          where: { id_enseignant: user.id },
+          select: { classSubject: { select: { matiere: true } } }
+        }),
+        prisma.teacherSubject.findMany({
+          where: { id_enseignant: user.id },
+          select: { matiere: true }
+        })
+      ])
+
+      const subjects = new Set<string>()
+      if (user.matiere) subjects.add(user.matiere.trim())
+      dbScheduleSubjs.forEach(s => { if (s.matiere) subjects.add(s.matiere.trim()) })
+      classSubjectTeacherRows.forEach(cst => { if (cst.classSubject?.matiere) subjects.add(cst.classSubject.matiere.trim()) })
+      teacherSubjects.forEach(ts => { if (ts.matiere) subjects.add(ts.matiere.trim()) })
+
+      const subjectArray = Array.from(subjects)
+
+      notesWhere = {
+        evaluation: {
+          id_classe: { in: teacherClassIds.length > 0 ? teacherClassIds : [-1] },
+          ...(subjectArray.length > 0 ? { matiere: { in: subjectArray } } : {})
+        }
+      }
+    }
+  }
 
   const [notes, classes] = await Promise.all([
     prisma.note.findMany({
+      where: notesWhere,
       include: {
         user: true,
         evaluation: {

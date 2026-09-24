@@ -95,18 +95,53 @@ export default async function GradesPage() {
   // Teacher/Admin View
   const classes = await getClasses()
   
-  const subjects = [
-    "Mathématiques",
-    "Français",
-    "Anglais",
-    "Physique-Chimie",
-    "SVT",
-    "Histoire-Géographie",
-    "EPS",
-    "Arts Plastiques",
-    "Musique",
-    "Informatique"
-  ]
+  let subjects: string[] = []
+
+  if (user.role === 'teacher') {
+    const [dbScheduleSubjs, classSubjectTeacherRows, teacherSubjects] = await Promise.all([
+      prisma.emploiDuTemps.findMany({
+        where: { id_enseignant: user.id },
+        select: { matiere: true },
+        distinct: ['matiere']
+      }),
+      prisma.classSubjectTeacher.findMany({
+        where: { id_enseignant: user.id },
+        select: { classSubject: { select: { matiere: true } } }
+      }),
+      prisma.teacherSubject.findMany({
+        where: { id_enseignant: user.id },
+        select: { matiere: true }
+      })
+    ])
+
+    const teacherSubjSet = new Set<string>()
+    if (user.matiere) teacherSubjSet.add(user.matiere.trim())
+    dbScheduleSubjs.forEach(s => { if (s.matiere) teacherSubjSet.add(s.matiere.trim()) })
+    classSubjectTeacherRows.forEach(cst => { if (cst.classSubject?.matiere) teacherSubjSet.add(cst.classSubject.matiere.trim()) })
+    teacherSubjects.forEach(ts => { if (ts.matiere) teacherSubjSet.add(ts.matiere.trim()) })
+
+    subjects = Array.from(teacherSubjSet).sort((a, b) => a.localeCompare(b, "fr"))
+
+    if (subjects.length === 0) {
+      subjects = [
+        "Mathématiques", "Français", "Anglais", "Physique-Chimie", "SVT",
+        "Histoire-Géographie", "EPS", "Arts Plastiques", "Musique", "Informatique"
+      ]
+    }
+  } else {
+    subjects = [
+      "Mathématiques",
+      "Français",
+      "Anglais",
+      "Physique-Chimie",
+      "SVT",
+      "Histoire-Géographie",
+      "EPS",
+      "Arts Plastiques",
+      "Musique",
+      "Informatique"
+    ]
+  }
 
   const totalNotes = await prisma.note.count()
   const classAverageResult = await prisma.note.aggregate({

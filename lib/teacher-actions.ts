@@ -40,8 +40,22 @@ export async function getTeacherDashboardData(teacherId: number) {
       ]
     })
 
-    // 2. Distinct classes taught by this teacher
+    // 2. Distinct classes taught by this teacher (via schedule, head teacher, or class subjects)
+    const dbClassesTaught = await prisma.class.findMany({
+      where: {
+        OR: [
+          { id_professeur_principal: resolvedTeacherId },
+          { emploisDuTemps: { some: { id_enseignant: resolvedTeacherId } } },
+          { classSubjects: { some: { teachers: { some: { id_enseignant: resolvedTeacherId } } } } }
+        ]
+      },
+      select: { id: true, nom: true, niveau: true }
+    })
+
     const classMap = new Map<number, { id: number; nom: string; niveau: string }>()
+    for (const c of dbClassesTaught) {
+      classMap.set(c.id, { id: c.id, nom: c.nom, niveau: c.niveau })
+    }
     for (const entry of allScheduleEntries) {
       if (!classMap.has(entry.id_classe)) {
         classMap.set(entry.id_classe, {

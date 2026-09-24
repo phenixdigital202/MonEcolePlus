@@ -212,16 +212,32 @@ export async function getEvaluationsByClass(classId: number, options?: { forEntr
   let baseWhere: any = { id_classe: classId }
 
   if (user.role === 'teacher') {
-    const dbSubjects = await prisma.emploiDuTemps.findMany({
-      where: { id_enseignant: user.id },
-      select: { matiere: true },
-      distinct: ['matiere']
-    })
-    
+    const [dbSubjects, classSubjectTeacherRows, teacherSubjects] = await Promise.all([
+      prisma.emploiDuTemps.findMany({
+        where: { id_enseignant: user.id },
+        select: { matiere: true },
+        distinct: ['matiere']
+      }),
+      prisma.classSubjectTeacher.findMany({
+        where: { id_enseignant: user.id },
+        select: { classSubject: { select: { matiere: true } } }
+      }),
+      prisma.teacherSubject.findMany({
+        where: { id_enseignant: user.id },
+        select: { matiere: true }
+      })
+    ])
+
     const subjects = new Set<string>()
-    if (user.matiere) subjects.add(user.matiere)
+    if (user.matiere) subjects.add(user.matiere.trim())
     dbSubjects.forEach(s => {
-      if (s.matiere) subjects.add(s.matiere)
+      if (s.matiere) subjects.add(s.matiere.trim())
+    })
+    classSubjectTeacherRows.forEach(cst => {
+      if (cst.classSubject?.matiere) subjects.add(cst.classSubject.matiere.trim())
+    })
+    teacherSubjects.forEach(ts => {
+      if (ts.matiere) subjects.add(ts.matiere.trim())
     })
 
     if (subjects.size > 0) {
@@ -272,7 +288,61 @@ export async function getEvaluationsByClass(classId: number, options?: { forEntr
 
 export async function getEnrichedEvaluationsAction() {
   const prisma = await getPrisma()
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
+
+  let whereClause: any = undefined
+
+  if (userId) {
+    const { getCachedUser } = require("@/lib/cached-queries")
+    const user = await getCachedUser(parseInt(userId))
+
+    if (user && user.role === 'teacher') {
+      const teacherClasses = await prisma.class.findMany({
+        where: {
+          OR: [
+            { id_professeur_principal: user.id },
+            { emploisDuTemps: { some: { id_enseignant: user.id } } },
+            { classSubjects: { some: { teachers: { some: { id_enseignant: user.id } } } } }
+          ]
+        },
+        select: { id: true }
+      })
+      const teacherClassIds = teacherClasses.map(c => c.id)
+
+      const [dbScheduleSubjs, classSubjectTeacherRows, teacherSubjects] = await Promise.all([
+        prisma.emploiDuTemps.findMany({
+          where: { id_enseignant: user.id },
+          select: { matiere: true },
+          distinct: ['matiere']
+        }),
+        prisma.classSubjectTeacher.findMany({
+          where: { id_enseignant: user.id },
+          select: { classSubject: { select: { matiere: true } } }
+        }),
+        prisma.teacherSubject.findMany({
+          where: { id_enseignant: user.id },
+          select: { matiere: true }
+        })
+      ])
+
+      const subjects = new Set<string>()
+      if (user.matiere) subjects.add(user.matiere.trim())
+      dbScheduleSubjs.forEach(s => { if (s.matiere) subjects.add(s.matiere.trim()) })
+      classSubjectTeacherRows.forEach(cst => { if (cst.classSubject?.matiere) subjects.add(cst.classSubject.matiere.trim()) })
+      teacherSubjects.forEach(ts => { if (ts.matiere) subjects.add(ts.matiere.trim()) })
+
+      const subjectArray = Array.from(subjects)
+
+      whereClause = {
+        id_classe: { in: teacherClassIds.length > 0 ? teacherClassIds : [-1] },
+        ...(subjectArray.length > 0 ? { matiere: { in: subjectArray } } : {})
+      }
+    }
+  }
+
   const evaluations = await prisma.evaluation.findMany({
+    where: whereClause,
     include: {
       classe: true,
       notes: { select: { id_eleve: true, valeur: true } }
@@ -389,8 +459,28 @@ export async function getStudentsByClass(classId: number) {
 
 export async function getClasses() {
   const prisma = await getPrisma()
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
   const { sortClasses } = require("@/lib/utils")
+
+  let whereClause: any = undefined
+
+  if (userId) {
+    const { getCachedUser } = require("@/lib/cached-queries")
+    const user = await getCachedUser(parseInt(userId))
+    if (user && user.role === 'teacher') {
+      whereClause = {
+        OR: [
+          { id_professeur_principal: user.id },
+          { emploisDuTemps: { some: { id_enseignant: user.id } } },
+          { classSubjects: { some: { teachers: { some: { id_enseignant: user.id } } } } }
+        ]
+      }
+    }
+  }
+
   const classes = await prisma.class.findMany({
+    where: whereClause,
     orderBy: { nom: 'asc' }
   })
   return sortClasses(classes)

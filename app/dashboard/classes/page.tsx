@@ -33,16 +33,18 @@ export default async function ClassesPage() {
 
   const isTeacher = user.role === 'teacher'
 
+  const teacherFilter = isTeacher ? {
+    OR: [
+      { id_professeur_principal: user.id },
+      { emploisDuTemps: { some: { id_enseignant: user.id } } },
+      { classSubjects: { some: { teachers: { some: { id_enseignant: user.id } } } } }
+    ]
+  } : undefined
+
   // Parallelize independent DB queries for maximum render performance
   const [classes, totalStudents, totalTeachers, allNotes, tenantTeachers] = await Promise.all([
     prisma.class.findMany({
-      where: isTeacher ? {
-        emploisDuTemps: {
-          some: {
-            id_enseignant: user.id
-          }
-        }
-      } : undefined,
+      where: teacherFilter,
       include: {
         professeurPrincipal: {
           select: { id: true, nom: true, email: true }
@@ -73,7 +75,11 @@ export default async function ClassesPage() {
       }
     }),
     isTeacher 
-      ? prisma.inscription.count({ where: { classe: { emploisDuTemps: { some: { id_enseignant: user.id } } } } })
+      ? prisma.inscription.count({ 
+          where: { 
+            classe: teacherFilter
+          } 
+        })
       : prisma.user.count({ where: { role: 'student' } }),
     prisma.user.count({ where: { role: 'teacher' } }),
     prisma.note.aggregate({

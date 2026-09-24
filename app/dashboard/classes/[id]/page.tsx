@@ -47,8 +47,15 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ i
   // Parallelize security check and class query for maximum speed
   const [isTeaching, classe] = await Promise.all([
     user.role === 'teacher'
-      ? prisma.emploiDuTemps.findFirst({
-          where: { id_classe: classId, id_enseignant: user.id },
+      ? prisma.class.findFirst({
+          where: { 
+            id: classId,
+            OR: [
+              { id_professeur_principal: user.id },
+              { emploisDuTemps: { some: { id_enseignant: user.id } } },
+              { classSubjects: { some: { teachers: { some: { id_enseignant: user.id } } } } }
+            ]
+          },
           select: { id: true }
         })
       : Promise.resolve(true),
