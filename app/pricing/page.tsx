@@ -83,91 +83,98 @@ const featuresList = [
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 text-slate-900 relative overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
+
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20 transition-transform duration-300 group-hover:scale-110">
+              <GraduationCap className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-semibold text-foreground">
-              MonÉcole<span className="text-primary">+</span>
+            <span className="text-xl font-black tracking-tight text-slate-900">
+              MonÉcole<span className="text-blue-600 font-black">+</span>
             </span>
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" className="font-bold text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl" asChild>
               <Link href="/login">Connexion</Link>
             </Button>
-            <Button asChild>
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20" asChild>
               <Link href="/signup">Commencer</Link>
             </Button>
           </div>
         </nav>
       </header>
 
-      <main className="py-16 lg:py-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <main className="py-16 lg:py-24 relative z-10">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 space-y-16">
           {/* Back link */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-blue-600 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Retour à l&apos;accueil
           </Link>
 
           {/* Header */}
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 mb-4">
-              <Sparkles className="h-4 w-4" />
-              <span>Tarifs transparents</span>
+          <div className="mx-auto max-w-3xl text-center space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/80 px-4 py-1.5 text-xs font-bold text-blue-700 shadow-sm uppercase tracking-wider">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <span>Tarification Transparente</span>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl text-balance">
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-6xl text-balance leading-tight">
               Choisissez le plan adapté à votre établissement
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Tous les plans incluent un essai gratuit de 14 jours. Aucune carte bancaire requise.
+            <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed">
+              Tous les plans incluent un essai gratuit de 14 jours. Aucune carte bancaire requise pour commencer.
             </p>
           </div>
 
           {/* Pricing Cards */}
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-3 items-stretch">
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative flex flex-col rounded-2xl border p-8 ${
+                className={`relative flex flex-col justify-between rounded-3xl p-8 sm:p-9 transition-all duration-300 ${
                   plan.highlighted
-                    ? "border-primary bg-primary/5 shadow-xl ring-2 ring-primary"
-                    : "border-border bg-card"
+                    ? "bg-white/95 border-2 border-blue-600 shadow-2xl shadow-blue-500/15 ring-4 ring-blue-500/10 scale-[1.02]"
+                    : "bg-white/80 backdrop-blur-xl border border-slate-200/80 hover:border-blue-300 shadow-xl hover:shadow-2xl"
                 }`}
               >
                 {plan.highlighted && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <div className="rounded-full bg-primary px-4 py-1 text-xs font-semibold text-primary-foreground">
+                    <div className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-1 text-[10px] font-black text-white uppercase tracking-widest shadow-md shadow-blue-500/25">
                       Le plus populaire
                     </div>
                   </div>
                 )}
 
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold text-foreground">{plan.name}</h3>
-                  <div className="mt-4 flex items-baseline">
+                <div className="mb-6 space-y-4">
+                  <h3 className="text-xl font-black text-slate-900">{plan.name}</h3>
+                  <div className="flex items-baseline">
                     {plan.price.monthly !== "Sur mesure" ? (
                       <>
-                        <span className="text-4xl font-bold text-foreground">{plan.price.monthly}€</span>
-                        <span className="text-muted-foreground ml-1">/mois</span>
+                        <span className="text-4xl font-black text-slate-900 tracking-tight">{plan.price.monthly}€</span>
+                        <span className="text-slate-500 text-xs font-bold ml-1.5">/mois</span>
                       </>
                     ) : (
-                      <span className="text-3xl font-bold text-foreground">{plan.price.monthly}</span>
+                      <span className="text-3xl font-black text-slate-900 tracking-tight">{plan.price.monthly}</span>
                     )}
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">{plan.description}</p>
                 </div>
 
                 <Button
-                  variant={plan.highlighted ? "default" : "outline"}
-                  className="w-full mb-8"
+                  className={`w-full mb-8 h-12 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                    plan.highlighted
+                      ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg shadow-blue-500/25 hover:scale-[1.02]"
+                      : "bg-slate-900 hover:bg-slate-800 text-white shadow-md"
+                  }`}
                   asChild
                 >
                   <Link href={plan.name === "Enterprise" ? "#contact" : "/signup"}>
@@ -175,23 +182,29 @@ export default function PricingPage() {
                   </Link>
                 </Button>
 
-                <ul className="flex-1 space-y-3">
+                <ul className="flex-1 space-y-3.5 border-t border-slate-100 pt-6">
                   {featuresList.map((feature) => {
                     const value = plan.features[feature.key as keyof typeof plan.features]
                     const isIncluded = feature.isBoolean ? value === true : true
 
                     return (
-                      <li key={feature.key} className="flex items-center gap-3 text-sm">
+                      <li key={feature.key} className="flex items-center gap-3 text-xs sm:text-sm font-medium">
                         {feature.isBoolean ? (
                           value ? (
-                            <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                            <div className="h-5 w-5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+                              <Check className="h-3.5 w-3.5" />
+                            </div>
                           ) : (
-                            <X className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                            <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-300">
+                              <X className="h-3.5 w-3.5" />
+                            </div>
                           )
                         ) : (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                          <div className="h-5 w-5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+                            <Check className="h-3.5 w-3.5" />
+                          </div>
                         )}
-                        <span className={!isIncluded && feature.isBoolean ? "text-muted-foreground/50" : "text-foreground"}>
+                        <span className={!isIncluded && feature.isBoolean ? "text-slate-400 line-through" : "text-slate-700"}>
                           {feature.isBoolean ? feature.label : `${feature.label}: ${value}`}
                         </span>
                       </li>
@@ -203,17 +216,17 @@ export default function PricingPage() {
           </div>
 
           {/* Comparison Table */}
-          <div className="mt-24">
-            <h2 className="text-2xl font-bold text-foreground text-center mb-12">
-              Comparaison détaillée des plans
+          <div className="mt-24 bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-8 shadow-xl">
+            <h2 className="text-2xl font-black text-slate-900 text-center mb-10 tracking-tight">
+              Comparaison détaillée des fonctionnalités
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-4 px-4 text-left text-sm font-semibold text-foreground">Fonctionnalité</th>
+                  <tr className="border-b border-slate-200/80">
+                    <th className="py-4 px-4 text-left text-xs font-black uppercase text-slate-500 tracking-wider">Fonctionnalité</th>
                     {plans.map((plan) => (
-                      <th key={plan.name} className="py-4 px-4 text-center text-sm font-semibold text-foreground">
+                      <th key={plan.name} className="py-4 px-4 text-center text-sm font-black text-slate-900">
                         {plan.name}
                       </th>
                     ))}
@@ -221,20 +234,20 @@ export default function PricingPage() {
                 </thead>
                 <tbody>
                   {featuresList.map((feature, idx) => (
-                    <tr key={feature.key} className={idx % 2 === 0 ? "bg-muted/30" : ""}>
-                      <td className="py-3 px-4 text-sm text-foreground">{feature.label}</td>
+                    <tr key={feature.key} className={idx % 2 === 0 ? "bg-slate-50/50" : ""}>
+                      <td className="py-3.5 px-4 text-xs sm:text-sm font-bold text-slate-800">{feature.label}</td>
                       {plans.map((plan) => {
                         const value = plan.features[feature.key as keyof typeof plan.features]
                         return (
-                          <td key={plan.name} className="py-3 px-4 text-center text-sm">
+                          <td key={plan.name} className="py-3.5 px-4 text-center text-xs sm:text-sm">
                             {feature.isBoolean ? (
                               value ? (
-                                <Check className="h-5 w-5 text-primary mx-auto" />
+                                <Check className="h-5 w-5 text-blue-600 mx-auto" />
                               ) : (
-                                <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />
+                                <X className="h-5 w-5 text-slate-300 mx-auto" />
                               )
                             ) : (
-                              <span className="text-foreground">{value as string}</span>
+                              <span className="font-bold text-slate-700">{value as string}</span>
                             )}
                           </td>
                         )
@@ -247,38 +260,32 @@ export default function PricingPage() {
           </div>
 
           {/* FAQ */}
-          <div className="mt-24 mx-auto max-w-3xl">
-            <h2 className="text-2xl font-bold text-foreground text-center mb-12">
+          <div className="mt-24 mx-auto max-w-3xl space-y-10">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight">
               Questions fréquentes
             </h2>
-            <div className="space-y-6">
-              <div className="rounded-lg border border-border p-6 bg-card">
-                <h3 className="font-semibold text-foreground">Puis-je changer de plan à tout moment ?</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Oui, vous pouvez passer à un plan supérieur à tout moment. Le changement est effectif immédiatement et la différence de prix est calculée au prorata.
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-6 bg-card">
-                <h3 className="font-semibold text-foreground">Y a-t-il un engagement de durée ?</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Non, tous nos plans sont sans engagement. Vous pouvez annuler votre abonnement à tout moment.
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-6 bg-card">
-                <h3 className="font-semibold text-foreground">Comment fonctionne l&apos;essai gratuit ?</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  L&apos;essai gratuit de 14 jours vous donne accès à toutes les fonctionnalités du plan Pro. Aucune carte bancaire n&apos;est requise pour commencer.
-                </p>
-              </div>
+            <div className="space-y-4">
+              {[
+                { q: "Puis-je changer de plan à tout moment ?", a: "Oui, vous pouvez passer à un plan supérieur ou modifier vos options à tout moment. La mise à jour est immédiate." },
+                { q: "Y a-t-il un engagement de durée ?", a: "Non, tous nos abonnements sont 100% sans engagement. Vous pouvez arrêter quand vous le désirez." },
+                { q: "Comment fonctionne l'essai gratuit ?", a: "L'essai gratuit de 14 jours débloque l'intégralité des fonctionnalités Pro. Aucune carte bancaire n'est demandée." }
+              ].map((faq, i) => (
+                <div key={i} className="rounded-3xl border border-slate-200/80 p-6 bg-white/80 backdrop-blur-xl shadow-sm hover:shadow-md transition-all">
+                  <h3 className="font-bold text-sm text-slate-900">{faq.q}</h3>
+                  <p className="mt-2 text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                    {faq.a}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8">
+      <footer className="border-t border-slate-200/80 bg-white/60 py-8 relative z-10">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-slate-500 font-medium">
             &copy; {new Date().getFullYear()} MonÉcole+. Tous droits réservés.
           </p>
         </div>

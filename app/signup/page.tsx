@@ -42,42 +42,44 @@ export default function SignupPage() {
   const isLoading = pending || isProvisioning
 
   return (
-    <div className="min-h-screen flex relative">
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 relative overflow-hidden">
       {/* Loading Overlay */}
       {isProvisioning && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/90 backdrop-blur-md animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="relative">
-            <div className="h-24 w-24 rounded-2xl bg-primary/20 flex items-center justify-center animate-pulse">
-              <GraduationCap className="h-12 w-12 text-primary" />
+            <div className="h-24 w-24 rounded-3xl bg-blue-600/10 flex items-center justify-center animate-pulse">
+              <GraduationCap className="h-12 w-12 text-blue-600" />
             </div>
-            <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-2xl animate-spin" />
+            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-3xl animate-spin" />
           </div>
-          <h2 className="mt-8 text-2xl font-bold text-foreground">Préparation de votre base de données...</h2>
-          <p className="mt-2 text-muted-foreground animate-pulse">Ceci peut prendre jusqu'à 30 secondes pour configurer votre environnement isolé.</p>
-          <div className="mt-8 w-64 h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary animate-[shimmer_2s_infinite_linear]" style={{ width: '100%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)', backgroundSize: '200% 100%' }} />
+          <h2 className="mt-8 text-2xl font-black text-slate-900 tracking-tight">Préparation de votre base de données...</h2>
+          <p className="mt-2 text-slate-500 font-medium animate-pulse text-sm">Ceci peut prendre jusqu'à 30 secondes pour configurer votre environnement isolé.</p>
+          <div className="mt-8 w-64 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 animate-[shimmer_2s_infinite_linear]" style={{ width: '100%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)', backgroundSize: '200% 100%' }} />
           </div>
         </div>
       )}
 
       {/* Left side - Image/Branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary via-primary to-accent items-center justify-center p-12">
-        <div className="max-w-lg">
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 items-center justify-center p-12 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-96 w-96 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-96 w-96 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="max-w-lg relative z-10">
           <div className="flex mb-8">
-            <div className="h-20 w-20 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center">
-              <GraduationCap className="h-10 w-10 text-white" />
+            <div className="h-24 w-24 rounded-3xl bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-xl">
+              <GraduationCap className="h-12 w-12 text-white" />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight leading-tight">
             Commencez votre essai gratuit
           </h2>
-          <p className="text-white/80 text-lg mb-8">
-            Découvrez comment MonÉcole+ peut transformer la gestion de votre établissement.
+          <p className="text-blue-100/90 text-base leading-relaxed mb-8 font-medium">
+            Découvrez comment MonÉcole+ peut transformer la gestion de votre établissement grâce aux fonctionnalités IA de pointe.
           </p>
           <ul className="space-y-4">
             {benefits.map((benefit) => (
-              <li key={benefit} className="flex items-center gap-3 text-white">
-                <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
+              <li key={benefit} className="flex items-center gap-3 text-white text-sm font-semibold">
+                <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                   <Check className="h-4 w-4" />
                 </div>
                 {benefit}
@@ -88,38 +90,38 @@ export default function SignupPage() {
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12 relative z-10">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+          <Link href="/" className="flex items-center justify-center gap-3 mb-8 group">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-semibold text-foreground">
-              MonÉcole<span className="text-primary">+</span>
+            <span className="text-2xl font-black tracking-tight text-slate-900">
+              MonÉcole<span className="text-blue-600 font-black">+</span>
             </span>
           </Link>
           
-          <h1 className="text-2xl font-bold text-center text-foreground">
+          <h1 className="text-2xl md:text-3xl font-black text-center text-slate-900 tracking-tight">
             Créez votre compte
           </h1>
-          <p className="mt-2 text-center text-muted-foreground">
+          <p className="mt-2 text-center text-slate-500 text-sm font-medium">
             Commencez votre essai gratuit de 14 jours
           </p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-card border border-border rounded-xl px-8 py-10 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl px-8 py-10 shadow-2xl shadow-blue-500/10">
             {error && (
-              <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-destructive text-sm">
-                <AlertCircle className="h-4 w-4" />
-                {error}
+              <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-100 flex items-center gap-3 text-rose-600 text-xs font-bold animate-in fade-in">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
             
-            <form className="space-y-6" action={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4">
+            <form className="space-y-4" action={handleSubmit}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
+                  <label htmlFor="firstName" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                     Prénom
                   </label>
                   <Input
@@ -128,10 +130,11 @@ export default function SignupPage() {
                     type="text"
                     required
                     placeholder="Jean"
+                    className="rounded-2xl border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all h-11"
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
+                  <label htmlFor="lastName" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                     Nom
                   </label>
                   <Input
@@ -140,12 +143,13 @@ export default function SignupPage() {
                     type="text"
                     required
                     placeholder="Dupont"
+                    className="rounded-2xl border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all h-11"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="school" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="school" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                   Nom de l&apos;établissement
                 </label>
                 <Input
@@ -154,11 +158,12 @@ export default function SignupPage() {
                   type="text"
                   required
                   placeholder="Lycée Victor Hugo"
+                  className="rounded-2xl border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all h-11"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="email" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                   Adresse email professionnelle
                 </label>
                 <Input
@@ -168,11 +173,12 @@ export default function SignupPage() {
                   autoComplete="email"
                   required
                   placeholder="vous@etablissement.fr"
+                  className="rounded-2xl border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all h-11"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="password" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                   Mot de passe
                 </label>
                 <Input
@@ -182,17 +188,18 @@ export default function SignupPage() {
                   autoComplete="new-password"
                   required
                   placeholder="Minimum 8 caractères"
+                  className="rounded-2xl border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all h-11"
                 />
               </div>
 
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="role" className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-1.5">
                   Votre rôle
                 </label>
                 <select
                   id="role"
                   name="role"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-full h-11 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-slate-900 text-sm font-medium transition-all px-3.5"
                   defaultValue="admin"
                 >
                   <option value="admin">Administrateur / Directeur</option>
@@ -200,27 +207,27 @@ export default function SignupPage() {
                 </select>
               </div>
 
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="terms"
                   name="terms"
                   required
-                  className="mt-1 h-4 w-4 rounded border-input"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label htmlFor="terms" className="text-sm text-muted-foreground">
+                <label htmlFor="terms" className="text-xs text-slate-500 font-medium">
                   J&apos;accepte les{" "}
-                  <Link href="#" className="text-primary hover:underline">
+                  <Link href="#" className="font-bold text-blue-600 hover:underline">
                     conditions d&apos;utilisation
                   </Link>{" "}
                   et la{" "}
-                  <Link href="#" className="text-primary hover:underline">
+                  <Link href="#" className="font-bold text-blue-600 hover:underline">
                     politique de confidentialité
                   </Link>
                 </label>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full h-12 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.01] mt-2" disabled={isLoading}>
                 {isLoading ? "Veuillez patienter..." : "Créer mon compte"}
               </Button>
             </form>
@@ -228,16 +235,21 @@ export default function SignupPage() {
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
+                  <div className="w-full border-t border-slate-200/80" />
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-3 text-slate-400 font-bold uppercase tracking-wider">ou</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <Button variant="outline" className="w-full" type="button">
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 border-slate-200/90 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 rounded-2xl shadow-sm hover:shadow transition-all" 
+                  type="button"
+                  onClick={() => window.location.href = '/api/auth/google'}
+                >
+                  <svg className="h-5 w-5 mr-2 shrink-0" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                       fill="#4285F4"
@@ -261,9 +273,9 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-xs text-slate-500 font-medium">
             Déjà un compte ?{" "}
-            <Link href="/login" className="font-medium text-primary hover:text-primary/80">
+            <Link href="/login" className="font-bold text-blue-600 hover:text-blue-700">
               Se connecter
             </Link>
           </p>
