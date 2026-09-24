@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import prismaMaster from "@/lib/prisma"
+import { getTenantClient } from "@/lib/prisma-tenant"
+import { provisionTenantDatabase } from "@/lib/db-provisioner"
+import { createSessionToken } from "@/lib/session"
 import bcrypt from "bcryptjs"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
   const errorParam = searchParams.get("error")
+  const state = searchParams.get("state") || "login"
+  const fromPage = state === "signup" ? "signup" : "login"
   
   const urlObj = new URL(request.url)
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || urlObj.host
@@ -19,11 +24,11 @@ export async function GET(request: Request) {
   const redirect_uri = `${nextauth_url}/api/auth/google/callback`
 
   if (errorParam) {
-    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Connexion Google annulée.")}`)
+    return NextResponse.redirect(`${nextauth_url}/${fromPage}?error=${encodeURIComponent("Connexion Google annulée.")}`)
   }
 
   if (!code || !client_id || !client_secret) {
-    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Échec Google OAuth : configuration serveur manquante.")}`)
+    return NextResponse.redirect(`${nextauth_url}/${fromPage}?error=${encodeURIComponent("Échec Google OAuth : configuration serveur manquante (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).")}`)
   }
 
   try {
@@ -68,18 +73,71 @@ export async function GET(request: Request) {
 
     // 4. Auto-creation / onboarding if user doesn't exist
     if (!user) {
-      console.log(`[Google OAuth] Auto-creating user for: ${email}`)
+      console.log(`[Google OAuth] Auto-creating user & school for: ${email}`)
+      const schoolName = `Établissement ${name}`
+      const slug = name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || `ecole-${Date.now().toString().slice(-4)}`
+      
+      const dbName = `monecole_${slug.replace(/-/g, '_')}_${Date.now().toString().slice(-4)}`
+
+      // Provision tenant DB
+      const provisionStatus = await provisionTenantDatabase(dbName)
+      if (!provisionStatus.success) {
+        throw new Error(`Erreur lors de la création de l'établissement: ${provisionStatus.error}`)
+      }
+
+      // Create school in Master DB
+      const newSchool = await prismaMaster.ecole.create({
+        data: {
+          nom: schoolName,
+          subdomain: slug,
+          database_url: provisionStatus.url
+        }
+      })
+      const schoolId = newSchool.id
+
+      // Initialize stub in tenant DB
+      const tenantPrisma = getTenantClient(newSchool.database_url!)
+      try {
+        await tenantPrisma.ecole.create({
+          data: {
+            id: schoolId,
+            nom: schoolName,
+            subdomain: slug
+          }
+        })
+      } catch (e: any) {}
+
       const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
-      
+
+      // Create user in Tenant DB
+      await tenantPrisma.user.create({
+        data: {
+          nom: name,
+          email,
+          password: hashedPassword,
+          role: "admin",
+          avatar_url: picture,
+          id_ecole: schoolId
+        }
+      })
+
+      // Create user in Master DB
       user = await prismaMaster.user.create({
         data: {
           nom: name,
           email,
           password: hashedPassword,
-          role: "admin", // Default role for Google signup
+          role: "admin",
           avatar_url: picture,
-          id_ecole: null
+          id_ecole: schoolId
         }
       })
     } else if (picture && !user.avatar_url) {
@@ -89,12 +147,26 @@ export async function GET(request: Request) {
       })
     }
 
-    // 5. Establish session cookies (Exactly matches existing session format)
+    // 5. Establish session cookies & signed token
     const cookieStore = await cookies()
+    const sessionToken = createSessionToken({
+      userId: user.id,
+      role: user.role,
+      schoolId: user.id_ecole || undefined
+    })
+
+    cookieStore.set("session_token", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "lax",
+      path: "/"
+    })
+
     cookieStore.set("user_id", user.id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7,
       path: "/"
     })
 
@@ -127,7 +199,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${nextauth_url}${redirectPath}`)
   } catch (error: any) {
     console.error("[Google Callback Error] OAuth flow failed:", error)
-    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent(error.message || "Échec de la connexion via Google.")}`)
+    return NextResponse.redirect(`${nextauth_url}/${fromPage}?error=${encodeURIComponent(error.message || "Échec de la connexion via Google.")}`)
   }
 }
 

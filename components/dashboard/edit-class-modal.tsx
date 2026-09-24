@@ -15,21 +15,32 @@ import { updateClass } from "@/lib/classes-actions"
 import { toast } from "sonner"
 import { Loader2, Settings2 } from "lucide-react"
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 interface EditClassModalProps {
   isOpen: boolean
   onClose: () => void
-  classData: { id: number; name: string; level: string } | null
+  classData: { id: number; name: string; level: string; teacherId?: number | null } | null
+  teachersList?: { id: number; nom: string }[]
 }
 
-export function EditClassModal({ isOpen, onClose, classData }: EditClassModalProps) {
+export function EditClassModal({ isOpen, onClose, classData, teachersList = [] }: EditClassModalProps) {
   const [isPending, startTransition] = useTransition()
   const [nom, setNom] = useState("")
   const [niveau, setNiveau] = useState("")
+  const [teacherId, setTeacherId] = useState<string>("none")
 
   useEffect(() => {
     if (classData) {
       setNom(classData.name)
       setNiveau(classData.level)
+      setTeacherId(classData.teacherId ? classData.teacherId.toString() : "none")
     }
   }, [classData])
 
@@ -42,6 +53,7 @@ export function EditClassModal({ isOpen, onClose, classData }: EditClassModalPro
     const formData = new FormData()
     formData.append("nom", nom)
     formData.append("niveau", niveau)
+    formData.append("id_professeur_principal", teacherId)
 
     startTransition(async () => {
       const result = await updateClass(classData.id, formData)
@@ -89,6 +101,24 @@ export function EditClassModal({ isOpen, onClose, classData }: EditClassModalPro
                 required
               />
             </div>
+            {teachersList.length > 0 && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-teacher" className="text-sm font-semibold">Professeur principal</Label>
+                <Select value={teacherId} onValueChange={setTeacherId}>
+                  <SelectTrigger id="edit-teacher" className="h-12 border-primary/20 focus-visible:ring-primary">
+                    <SelectValue placeholder="Sélectionnez un professeur" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[250px]">
+                    <SelectItem value="none">Aucun (Non assigné)</SelectItem>
+                    {teachersList.map((t) => (
+                      <SelectItem key={t.id} value={t.id.toString()}>
+                        {t.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="sm:justify-end gap-3 pt-4">
             <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>

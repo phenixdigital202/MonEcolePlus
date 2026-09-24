@@ -165,7 +165,7 @@ function LoginFormContent() {
                   variant="outline" 
                   className="w-full h-12 border-slate-200/90 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 rounded-2xl shadow-sm hover:shadow transition-all" 
                   type="button" 
-                  onClick={() => window.location.href = '/api/auth/google'}
+                  onClick={() => window.location.href = '/api/auth/google?from=login'}
                 >
                   <svg className="h-5 w-5 mr-2 shrink-0" viewBox="0 0 24 24">
                     <path

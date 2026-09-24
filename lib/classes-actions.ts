@@ -38,13 +38,28 @@ export async function updateClass(id: number, formData: FormData) {
   const prisma = await getPrisma()
   const nom = formData.get("nom") as string
   const niveau = formData.get("niveau") as string
+  const teacherIdRaw = formData.get("id_professeur_principal") as string
+
+  let id_professeur_principal: number | null = null
+  if (teacherIdRaw && teacherIdRaw !== "none") {
+    const parsed = parseInt(teacherIdRaw)
+    if (!isNaN(parsed)) {
+      id_professeur_principal = parsed
+    }
+  }
 
   try {
     await prisma.class.update({
       where: { id },
-      data: { nom, niveau }
+      data: { 
+        nom, 
+        niveau,
+        id_professeur_principal
+      }
     })
+    revalidatePath("/dashboard")
     revalidatePath("/dashboard/classes")
+    revalidatePath(`/dashboard/classes/${id}`)
     return { success: true }
   } catch (error) {
     console.error("Error updating class:", error)

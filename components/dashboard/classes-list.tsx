@@ -40,13 +40,15 @@ interface ClassesListProps {
     level: string
     students: number
     teacher: string
+    teacherId?: number | null
     subjects: number
     average: number
   }[]
+  teachersList?: { id: number; nom: string }[]
   userRole?: string
 }
 
-export function ClassesList({ initialClasses, userRole = "admin" }: ClassesListProps) {
+export function ClassesList({ initialClasses, teachersList = [], userRole = "admin" }: ClassesListProps) {
   const [isPending, startTransition] = useTransition()
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [editClass, setEditClass] = useState<any | null>(null)
@@ -169,6 +171,7 @@ export function ClassesList({ initialClasses, userRole = "admin" }: ClassesListP
         isOpen={!!editClass} 
         onClose={() => setEditClass(null)} 
         classData={editClass} 
+        teachersList={teachersList}
       />
     </div>
   )

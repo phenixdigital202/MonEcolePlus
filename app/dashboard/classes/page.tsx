@@ -34,7 +34,7 @@ export default async function ClassesPage() {
   const isTeacher = user.role === 'teacher'
 
   // Parallelize independent DB queries for maximum render performance
-  const [classes, totalStudents, totalTeachers, allNotes] = await Promise.all([
+  const [classes, totalStudents, totalTeachers, allNotes, tenantTeachers] = await Promise.all([
     prisma.class.findMany({
       where: isTeacher ? {
         emploisDuTemps: {
@@ -44,10 +44,17 @@ export default async function ClassesPage() {
         }
       } : undefined,
       include: {
+        professeurPrincipal: {
+          select: { id: true, nom: true, email: true }
+        },
+        classSubjects: {
+          select: { id: true, matiere: true }
+        },
         _count: {
           select: { 
             inscriptions: true,
-            emploisDuTemps: true 
+            emploisDuTemps: true,
+            classSubjects: true
           }
         },
         emploisDuTemps: {
@@ -71,6 +78,11 @@ export default async function ClassesPage() {
     prisma.user.count({ where: { role: 'teacher' } }),
     prisma.note.aggregate({
       _avg: { valeur: true }
+    }),
+    prisma.user.findMany({
+      where: { role: 'teacher' },
+      select: { id: true, nom: true },
+      orderBy: { nom: 'asc' }
     })
   ])
 
@@ -81,8 +93,27 @@ export default async function ClassesPage() {
   const globalAverage = allNotes._avg.valeur ? Number(allNotes._avg.valeur).toFixed(1) : "N/A"
 
   const formattedClasses = classes.map(c => {
-    // Unique subjects count
-    const uniqueSubjects = new Set(c.emploisDuTemps.map(e => e.matiere)).size
+    // Unique subjects count from classSubjects AND emploisDuTemps
+    const subjectSet = new Set<string>()
+    if (c.classSubjects) {
+      c.classSubjects.forEach(cs => {
+        if (cs.matiere && cs.matiere.trim()) {
+          subjectSet.add(cs.matiere.trim())
+        }
+      })
+    }
+    if (c.emploisDuTemps) {
+      c.emploisDuTemps.forEach(e => {
+        if (e.matiere && e.matiere.trim()) {
+          subjectSet.add(e.matiere.trim())
+        }
+      })
+    }
+    const uniqueSubjects = subjectSet.size
+
+    // Determine Head Teacher (Professeur principal)
+    // Priority: 1. Assigned professeurPrincipal, 2. First schedule teacher, 3. "Non assigné"
+    const headTeacherName = c.professeurPrincipal?.nom || c.emploisDuTemps[0]?.user?.nom || "Non assigné"
     
     // Calculate class average
     const classNotes = c.evaluations.flatMap(e => e.notes.map(n => Number(n.valeur)))
@@ -95,7 +126,8 @@ export default async function ClassesPage() {
       name: c.nom,
       level: c.niveau,
       students: c._count.inscriptions,
-      teacher: c.emploisDuTemps[0]?.user.nom || "Non assigné",
+      teacher: headTeacherName,
+      teacherId: c.professeurPrincipal?.id || null,
       subjects: uniqueSubjects,
       average: Number(classAvg)
     }
@@ -171,7 +203,7 @@ export default async function ClassesPage() {
         </div>
 
         {/* Classes List */}
-        <ClassesList initialClasses={sortedClasses} userRole={user.role} />
+        <ClassesList initialClasses={sortedClasses} teachersList={tenantTeachers} userRole={user.role} />
       </main>
     </>
   )

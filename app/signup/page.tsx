@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { GraduationCap, Check, AlertCircle } from "lucide-react"
+import { GraduationCap, Check, AlertCircle, Loader2 } from "lucide-react"
 import { registerUser } from "@/lib/auth-actions"
 
 const benefits = [
@@ -16,10 +16,30 @@ const benefits = [
 ]
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    }>
+      <SignupFormContent />
+    </Suspense>
+  )
+}
+
+function SignupFormContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [isProvisioning, setIsProvisioning] = useState(false)
+
+  useEffect(() => {
+    const urlError = searchParams.get("error")
+    if (urlError) {
+      setError(urlError)
+    }
+  }, [searchParams])
 
   async function handleSubmit(formData: FormData) {
     setPending(true)
@@ -247,7 +267,7 @@ export default function SignupPage() {
                   variant="outline" 
                   className="w-full h-12 border-slate-200/90 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 rounded-2xl shadow-sm hover:shadow transition-all" 
                   type="button"
-                  onClick={() => window.location.href = '/api/auth/google'}
+                  onClick={() => window.location.href = '/api/auth/google?from=signup'}
                 >
                   <svg className="h-5 w-5 mr-2 shrink-0" viewBox="0 0 24 24">
                     <path
