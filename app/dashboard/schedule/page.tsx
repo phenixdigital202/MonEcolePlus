@@ -38,10 +38,11 @@ export default async function SchedulePage({
   let schedule = []
   let activeTeacher: any = null
 
-  if (user.role === 'student' && user.inscriptions[0]) {
-    classId = user.inscriptions[0].id_classe
+  if (user.role === 'student') {
     isReadOnly = true
-    schedule = await getScheduleData(classId)
+    const activeInscription = user.inscriptions?.find((i: any) => i.statut === 'active') || user.inscriptions?.[0]
+    classId = activeInscription?.id_classe || 0
+    schedule = classId ? await getScheduleData(classId) : []
   } else if (user.role === 'teacher') {
     isReadOnly = true
     classId = 0
@@ -69,9 +70,13 @@ export default async function SchedulePage({
     schedule = await getScheduleData(classId)
   }
 
+  const displayedClasses = user.role === 'student'
+    ? classes.filter(c => c.id === classId)
+    : classes
+
   return (
     <ScheduleView 
-      initialClasses={classes.map(c => ({ id: c.id, nom: c.nom }))}
+      initialClasses={displayedClasses.map(c => ({ id: c.id, nom: c.nom }))}
       initialTeachers={teachers.map(t => ({ id: t.id, nom: t.nom }))}
       initialSchedule={JSON.parse(JSON.stringify(schedule))}
       initialClassId={classId.toString()}

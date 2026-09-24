@@ -2,23 +2,28 @@
 
 import { getPrisma } from "@/lib/tenant-context"
 import { cookies } from "next/headers"
+import { getAuthenticatedUser } from "@/lib/session"
 
 export async function getCertificateStudentsAction(search?: string) {
   try {
     const prisma = await getPrisma()
     const cookieStore = await cookies()
     const schoolId = cookieStore.get("school_id")?.value
+    const user = await getAuthenticatedUser()
 
     const whereClause: any = { role: 'student' }
-    if (schoolId) {
-      whereClause.OR = [
-        { id_ecole: parseInt(schoolId) },
-        { id_ecole: null }
-      ]
-    }
-
-    if (search && search.trim() !== "") {
-      whereClause.nom = { contains: search, mode: 'insensitive' }
+    if (user && user.role === 'student') {
+      whereClause.id = user.id
+    } else {
+      if (schoolId) {
+        whereClause.OR = [
+          { id_ecole: parseInt(schoolId) },
+          { id_ecole: null }
+        ]
+      }
+      if (search && search.trim() !== "") {
+        whereClause.nom = { contains: search, mode: 'insensitive' }
+      }
     }
 
     const students = await prisma.user.findMany({
@@ -398,8 +403,77 @@ export async function getBulletinFullClassDataAction(classId: number, semester: 
 export async function getDocumentsPortalDataAction() {
   try {
     const prisma = await getPrisma()
+    const user = await getAuthenticatedUser()
+
+    if (user && user.role === 'student') {
+      const studentData = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          inscriptions: {
+            include: {
+              classe: true
+            }
+          }
+        }
+      })
+
+      const studentName = studentData?.nom || user.nom || "Élève"
+      const formattedName = studentName.replace(/\s+/g, '_')
+      const classId = studentData?.inscriptions?.[0]?.id_classe
+      const className = studentData?.inscriptions?.[0]?.classe?.nom || "Classe"
+      const dateStr = studentData?.created_at ? new Date(studentData.created_at).toLocaleDateString("fr-FR") : "Récent"
+
+      const studentDocs = [
+        {
+          id: `cert-${user.id}`,
+          name: `Certificat_Scolarite_${formattedName}.pdf`,
+          type: "Certificat de scolarité",
+          date: dateStr,
+          size: "142 Ko",
+          status: "Signé",
+          studentId: user.id,
+          classId: classId,
+          href: "/dashboard/documents/cert"
+        },
+        {
+          id: `bulletin-${user.id}`,
+          name: `Bulletin_Scolaire_${className.replace(/\s+/g, '_')}_${formattedName}.pdf`,
+          type: "Bulletin scolaire",
+          date: dateStr,
+          size: "265 Ko",
+          status: "Signé",
+          studentId: user.id,
+          classId: classId,
+          href: `/dashboard/documents/bulletin${classId ? `?classId=${classId}` : ''}`
+        },
+        {
+          id: `attest-${user.id}`,
+          name: `Attestation_Reussite_${formattedName}.pdf`,
+          type: "Attestation de réussite",
+          date: dateStr,
+          size: "185 Ko",
+          status: "Signé",
+          studentId: user.id,
+          classId: classId,
+          href: "/dashboard/documents/cert"
+        }
+      ]
+
+      return {
+        success: true,
+        data: {
+          documentCounts: {
+            certificates: 1,
+            reports: 1,
+            transcripts: 1,
+            attestations: 1
+          },
+          recentDocuments: studentDocs
+        }
+      }
+    }
     
-    // Real DB Counts
+    // Real DB Counts (Admin / Teacher View)
     const [totalStudents, totalInscriptions, totalClasses, totalEvaluations, totalNotes] = await Promise.all([
       prisma.user.count({ where: { role: 'student' } }),
       prisma.inscription.count(),

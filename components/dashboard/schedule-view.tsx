@@ -124,6 +124,10 @@ export function ScheduleView({ initialClasses, initialTeachers, initialSchedule,
               <div className="text-sm font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl">
                 Mon Emploi du Temps
               </div>
+            ) : userRole === "student" ? (
+              <div className="text-sm font-bold text-primary bg-primary/10 px-4 py-2 rounded-xl flex items-center gap-2">
+                Mon Emploi du Temps {initialClasses[0]?.nom ? `(Classe : ${initialClasses[0].nom})` : ""}
+              </div>
             ) : (
               <Select value={selectedClassId} onValueChange={handleClassChange} disabled={isReadOnly}>
                 <SelectTrigger className="w-full sm:w-[180px]">

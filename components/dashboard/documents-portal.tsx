@@ -72,7 +72,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts, recentD
       name: "Attestation de réussite",
       description: "Certificat de passage ou d'examen",
       icon: Award,
-      href: "/dashboard/admin/examens",
+      href: isAdmin ? "/dashboard/admin/examens" : "/dashboard/documents/cert",
       count: documentCounts?.attestations ?? 0,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
@@ -82,7 +82,7 @@ export function DocumentsPortal({ userRole, studentName, documentCounts, recentD
   const docs = recentDocuments && recentDocuments.length > 0 ? recentDocuments : [
     { id: 1, name: `Certificat_Scolarite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Certificat de scolarité", date: "Aujourd'hui", size: "142 Ko", status: "Signé", href: "/dashboard/documents/cert" },
     { id: 2, name: `Bulletin_Notes_T1_2026.pdf`, type: "Bulletin scolaire", date: "Récent", size: "240 Ko", status: "Signé", href: "/dashboard/documents/bulletin" },
-    { id: 3, name: `Attestation_Reussite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Attestation de réussite", date: "Récent", size: "185 Ko", status: "Signé", href: "/dashboard/admin/examens" }
+    { id: 3, name: `Attestation_Reussite_${studentName?.replace(/\s+/g, '_') || 'Eleve'}.pdf`, type: "Attestation de réussite", date: "Récent", size: "185 Ko", status: "Signé", href: isAdmin ? "/dashboard/admin/examens" : "/dashboard/documents/cert" }
   ]
 
   const filteredDocuments = docs.filter(d => 
