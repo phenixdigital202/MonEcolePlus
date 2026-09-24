@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 import { 
   User, 
   Bell, 
@@ -14,7 +15,11 @@ import {
   CheckCircle2, 
   School,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon,
+  Monitor,
+  Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,6 +48,12 @@ interface SettingsViewProps {
 export function SettingsView({ user }: SettingsViewProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // User details state
@@ -164,25 +175,39 @@ export function SettingsView({ user }: SettingsViewProps) {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6 w-full">
-        <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
-          <TabsList className="bg-muted/50 w-full justify-start md:justify-center flex h-auto p-1 flex-wrap md:flex-nowrap gap-1">
-            <TabsTrigger value="profile" className="gap-2 flex-1 md:flex-initial shrink-0">
-              <User className="h-4 w-4" />
-              Profil
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2 flex-1 md:flex-initial shrink-0">
-              <Bell className="h-4 w-4" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 flex-1 md:flex-initial shrink-0">
-              <Shield className="h-4 w-4" />
-              Sécurité
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2 flex-1 md:flex-initial shrink-0">
-              <Palette className="h-4 w-4" />
-              Apparence
-            </TabsTrigger>
-          </TabsList>
+        <div className="w-full flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none flex-1">
+            <TabsList className="bg-muted/50 w-full justify-start flex h-auto p-1 flex-wrap md:flex-nowrap gap-1">
+              <TabsTrigger value="profile" className="gap-2 flex-1 md:flex-initial shrink-0">
+                <User className="h-4 w-4" />
+                Profil
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2 flex-1 md:flex-initial shrink-0">
+                <Bell className="h-4 w-4" />
+                Notifications
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2 flex-1 md:flex-initial shrink-0">
+                <Shield className="h-4 w-4" />
+                Sécurité
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="gap-2 flex-1 md:flex-initial shrink-0">
+                <Palette className="h-4 w-4" />
+                Apparence
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {(user.role?.toLowerCase() === "admin" || user.role?.toLowerCase() === "super_admin") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/dashboard/settings/school")}
+              className="gap-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/40 font-bold rounded-xl shrink-0"
+            >
+              <School className="h-4 w-4" />
+              Mon Établissement (Cachet &amp; Signature)
+            </Button>
+          )}
         </div>
 
         {/* TAB 1: MON PROFIL */}
@@ -457,20 +482,143 @@ export function SettingsView({ user }: SettingsViewProps) {
         <TabsContent value="appearance" className="space-y-6">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle>Thème</CardTitle>
-              <CardDescription>Personnalisez l&apos;apparence de l&apos;application</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" />
+                Thème & Apparence
+              </CardTitle>
+              <CardDescription>
+                Personnalisez le mode d&apos;affichage de l&apos;application MonÉcole+ selon vos préférences.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Mode d&apos;affichage</Label>
-                <Select value={theme || "system"} onValueChange={(val) => setTheme(val)}>
-                  <SelectTrigger className="w-full md:w-64">
+            <CardContent className="space-y-6">
+              {/* Theme visual options */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Mode d&apos;affichage</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Clair */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTheme("light")
+                      toast.success("Mode Clair activé")
+                    }}
+                    className={`relative flex flex-col items-center justify-between rounded-xl border-2 p-4 text-left transition-all hover:border-primary/80 ${
+                      mounted && theme === "light"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border/60 bg-card hover:bg-accent/50"
+                    }`}
+                  >
+                    {mounted && theme === "light" && (
+                      <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+                    <div className="w-full flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500">
+                        <Sun className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <div className="w-full">
+                      <div className="font-semibold text-foreground">Clair</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Thème lumineux classique</div>
+                    </div>
+                  </button>
+
+                  {/* Sombre */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTheme("dark")
+                      toast.success("Mode Sombre activé")
+                    }}
+                    className={`relative flex flex-col items-center justify-between rounded-xl border-2 p-4 text-left transition-all hover:border-primary/80 ${
+                      mounted && theme === "dark"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border/60 bg-card hover:bg-accent/50"
+                    }`}
+                  >
+                    {mounted && theme === "dark" && (
+                      <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+                    <div className="w-full flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+                        <Moon className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <div className="w-full">
+                      <div className="font-semibold text-foreground">Sombre</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Confort visuel en faible éclairage</div>
+                    </div>
+                  </button>
+
+                  {/* Système */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTheme("system")
+                      toast.success("Mode Système activé")
+                    }}
+                    className={`relative flex flex-col items-center justify-between rounded-xl border-2 p-4 text-left transition-all hover:border-primary/80 ${
+                      mounted && (theme === "system" || !theme)
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border/60 bg-card hover:bg-accent/50"
+                    }`}
+                  >
+                    {mounted && (theme === "system" || !theme) && (
+                      <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+                    <div className="w-full flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-500">
+                        <Monitor className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <div className="w-full">
+                      <div className="font-semibold text-foreground">Système</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">S'adapte à votre appareil</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Dropdown fallback/quick select */}
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="theme-select">Sélection rapide</Label>
+                <Select
+                  value={mounted ? (theme || "system") : "system"}
+                  onValueChange={(val) => {
+                    setTheme(val)
+                    const label = val === "light" ? "Clair" : val === "dark" ? "Sombre" : "Système"
+                    toast.success(`Mode ${label} activé`)
+                  }}
+                >
+                  <SelectTrigger id="theme-select" className="w-full">
                     <SelectValue placeholder="Choisir un thème" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Clair</SelectItem>
-                    <SelectItem value="dark">Sombre</SelectItem>
-                    <SelectItem value="system">Système</SelectItem>
+                    <SelectItem value="light">
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4 text-amber-500" />
+                        <span>Clair</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dark">
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-4 w-4 text-indigo-500" />
+                        <span>Sombre</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4 text-blue-500" />
+                        <span>Système</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

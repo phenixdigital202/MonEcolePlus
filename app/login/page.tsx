@@ -1,25 +1,42 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { GraduationCap, AlertCircle } from "lucide-react"
+import { GraduationCap, AlertCircle, Loader2 } from "lucide-react"
 import { loginUser } from "@/lib/auth-actions"
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    }>
+      <LoginFormContent />
+    </Suspense>
+  )
+}
+
+function LoginFormContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  // Force empty fields on mount to prevent browser password manager autofill
+  // Force empty fields on mount and read URL errors
   useEffect(() => {
     setEmail("")
     setPassword("")
-  }, [])
+    const urlError = searchParams.get("error")
+    if (urlError) {
+      setError(urlError)
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -71,9 +88,9 @@ export default function LoginPage() {
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-card border border-border rounded-xl px-8 py-10 shadow-sm">
             {error && (
-              <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-destructive text-sm">
-                <AlertCircle className="h-4 w-4" />
-                {error}
+              <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-destructive text-sm font-medium">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
             
@@ -99,7 +116,7 @@ export default function LoginPage() {
                   <label htmlFor="password" className="block text-sm font-medium text-foreground">
                     Mot de passe
                   </label>
-                  <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80">
+                  <Link href="/forgot-password" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
                     Mot de passe oublié ?
                   </Link>
                 </div>
@@ -115,7 +132,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={pending}>
+              <Button type="submit" className="w-full font-bold" disabled={pending}>
                 {pending ? "Connexion..." : "Se connecter"}
               </Button>
             </form>
@@ -131,8 +148,13 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-6">
-                <Button variant="outline" className="w-full" type="button" onClick={() => window.location.href = '/api/auth/google'}>
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
+                <Button 
+                  variant="outline" 
+                  className="w-full font-medium" 
+                  type="button" 
+                  onClick={() => window.location.href = '/api/auth/google'}
+                >
+                  <svg className="h-5 w-5 mr-2 shrink-0" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                       fill="#4285F4"
@@ -184,3 +206,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

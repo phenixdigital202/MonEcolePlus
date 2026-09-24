@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function GET(request: Request) {
   const client_id = process.env.GOOGLE_CLIENT_ID
-  const nextauth_url = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const urlObj = new URL(request.url)
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || urlObj.host
+  const proto = request.headers.get("x-forwarded-proto") || urlObj.protocol.replace(":", "") || "http"
+  
+  const currentOrigin = `${proto}://${host}`
+  const nextauth_url = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : currentOrigin)
   const redirect_uri = `${nextauth_url}/api/auth/google/callback`
 
   if (!client_id) {
-    console.error("GOOGLE_CLIENT_ID missing in env.")
-    return NextResponse.json({ error: "Configuration OAuth manquante sur le serveur." }, { status: 500 })
+    console.error("GOOGLE_CLIENT_ID missing in environment variables.")
+    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Configuration OAuth Google non configurée sur le serveur (GOOGLE_CLIENT_ID manquant).")}`)
   }
 
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=${encodeURIComponent(
@@ -16,3 +21,4 @@ export async function GET() {
 
   return NextResponse.redirect(googleAuthUrl)
 }
+

@@ -1,21 +1,29 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { PrismaClient } from "@prisma/client"
+import prismaMaster from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-
-const prismaMaster = new PrismaClient()
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
+  const errorParam = searchParams.get("error")
+  
+  const urlObj = new URL(request.url)
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || urlObj.host
+  const proto = request.headers.get("x-forwarded-proto") || urlObj.protocol.replace(":", "") || "http"
+  const currentOrigin = `${proto}://${host}`
   
   const client_id = process.env.GOOGLE_CLIENT_ID
   const client_secret = process.env.GOOGLE_CLIENT_SECRET
-  const nextauth_url = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const nextauth_url = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : currentOrigin)
   const redirect_uri = `${nextauth_url}/api/auth/google/callback`
 
+  if (errorParam) {
+    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Connexion Google annulée.")}`)
+  }
+
   if (!code || !client_id || !client_secret) {
-    return NextResponse.json({ error: "Code d'autorisation ou configuration manquante." }, { status: 400 })
+    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Échec Google OAuth : configuration serveur manquante.")}`)
   }
 
   try {
@@ -34,7 +42,8 @@ export async function GET(request: Request) {
 
     const tokenData = await tokenRes.json()
     if (!tokenRes.ok) {
-      throw new Error(`Google token exchange failed: ${JSON.stringify(tokenData)}`)
+      console.error("[Google OAuth] Token exchange error:", tokenData)
+      throw new Error("Erreur lors de la validation des identifiants Google.")
     }
 
     // 2. Fetch user profile from Google
@@ -44,11 +53,13 @@ export async function GET(request: Request) {
 
     const userData = await userRes.json()
     if (!userRes.ok) {
-      throw new Error(`Google userinfo fetch failed: ${JSON.stringify(userData)}`)
+      console.error("[Google OAuth] Userinfo fetch error:", userData)
+      throw new Error("Erreur d'accès aux informations du profil Google.")
     }
 
     const email = userData.email.toLowerCase().trim()
     const name = userData.name || "Utilisateur Google"
+    const picture = userData.picture || null
 
     // 3. Search user in Master DB
     let user = await prismaMaster.user.findUnique({
@@ -57,8 +68,8 @@ export async function GET(request: Request) {
 
     // 4. Auto-creation / onboarding if user doesn't exist
     if (!user) {
-      console.log(`[Google OAuth] Creating new user for: ${email}`)
-      const randomPassword = Math.random().toString(36).substring(2, 15)
+      console.log(`[Google OAuth] Auto-creating user for: ${email}`)
+      const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
       const hashedPassword = await bcrypt.hash(randomPassword, 10)
       
       user = await prismaMaster.user.create({
@@ -66,9 +77,15 @@ export async function GET(request: Request) {
           nom: name,
           email,
           password: hashedPassword,
-          role: "admin", // Default role for new signups
+          role: "admin", // Default role for Google signup
+          avatar_url: picture,
           id_ecole: null
         }
+      })
+    } else if (picture && !user.avatar_url) {
+      await prismaMaster.user.update({
+        where: { id: user.id },
+        data: { avatar_url: picture }
       })
     }
 
@@ -110,6 +127,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${nextauth_url}${redirectPath}`)
   } catch (error: any) {
     console.error("[Google Callback Error] OAuth flow failed:", error)
-    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent("Échec de la connexion via Google.")}`)
+    return NextResponse.redirect(`${nextauth_url}/login?error=${encodeURIComponent(error.message || "Échec de la connexion via Google.")}`)
   }
 }
+

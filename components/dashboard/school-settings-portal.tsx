@@ -360,15 +360,15 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
               </CardContent>
             </Card>
 
-            {/* Cachet Officiel de l'Établissement */}
+            {/* Cachet & Signature Officielle de l'Établissement */}
             <Card className="border-emerald-500/20 shadow-xl overflow-hidden">
               <CardHeader className="bg-emerald-500/5 border-b">
                 <CardTitle className="text-lg flex items-center gap-2 text-emerald-700">
                   <FileCheck className="h-5 w-5" />
-                  Cachet Officiel de l'Établissement
+                  Cachet &amp; Signature Officielle
                 </CardTitle>
                 <CardDescription>
-                  Ce cachet officiel sera apposé sur les bulletins, certificats et documents administratifs générés.
+                  Importez le tampon officiel et/ou la signature numérique de l&apos;établissement. Ce visuel sera automatiquement apposé sur tous les certificats de scolarité, bulletins de notes, reçus de paiement et documents officiels.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
@@ -380,23 +380,25 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                   onChange={handleCachetSelect}
                 />
 
-                <div className="flex flex-col sm:flex-row items-center gap-6 p-4 border rounded-2xl bg-slate-50/50">
-                  <div className="h-32 w-32 rounded-2xl border-2 border-dashed border-emerald-500/30 flex items-center justify-center relative bg-white overflow-hidden p-2 shrink-0 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-center gap-6 p-5 border-2 border-emerald-500/10 rounded-2xl bg-emerald-50/20">
+                  <div className="h-36 w-52 rounded-2xl border-2 border-dashed border-emerald-500/30 flex items-center justify-center relative bg-white overflow-hidden p-3 shrink-0 shadow-sm">
                     {cachetUrl ? (
-                      <img src={cachetUrl} alt="Cachet Officiel" className="w-full h-full object-contain" />
+                      <img src={cachetUrl} alt="Cachet &amp; Signature Officielle" className="w-full h-full object-contain" />
                     ) : (
                       <div className="text-center p-2 text-muted-foreground">
-                        <FileCheck className="h-8 w-8 mx-auto opacity-30 text-emerald-600 mb-1" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider block">Aucun cachet</span>
+                        <FileCheck className="h-10 w-10 mx-auto opacity-30 text-emerald-600 mb-1" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-500">Aucun Cachet / Signature</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 space-y-2 text-center sm:text-left">
-                    <h4 className="font-bold text-sm text-slate-800">Cachet Numérique de l'École</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Format recommandé : PNG à fond transparent (ex: 600x600 px).
-                    </p>
+                  <div className="flex-1 space-y-3 text-center sm:text-left">
+                    <div>
+                      <h4 className="font-bold text-base text-slate-900">Visuel Officiel pour les Documents</h4>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Format recommandé : Image PNG haute définition avec fond transparent (tampon + signature scannée).
+                      </p>
+                    </div>
 
                     {cachetMsg && (
                       <div className={`text-xs flex items-center justify-center sm:justify-start gap-1 font-medium ${cachetMsg.type === "success" ? "text-emerald-600" : "text-destructive"}`}>
@@ -406,16 +408,16 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                     )}
 
                     {isAdmin && (
-                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-2">
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start pt-1">
                         <Button 
                           type="button" 
                           size="sm" 
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold gap-1.5 shadow-md shadow-emerald-600/20"
                           onClick={() => cachetInputRef.current?.click()}
                           disabled={isUploadingCachet}
                         >
-                          {isUploadingCachet ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
-                          {cachetUrl ? "Remplacer le cachet" : "Téléverser le cachet"}
+                          {isUploadingCachet ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          {cachetUrl ? "Remplacer Cachet & Signature" : "Importer Cachet & Signature Officielle"}
                         </Button>
 
                         {cachetUrl && (
@@ -423,11 +425,11 @@ export function SchoolSettingsPortal({ userRole, schoolData }: SchoolSettingsPor
                             type="button" 
                             variant="outline" 
                             size="sm" 
-                            className="text-destructive border-destructive/20 hover:bg-destructive/10 rounded-xl text-xs font-bold"
+                            className="text-destructive border-destructive/20 hover:bg-destructive/10 rounded-xl text-xs font-bold gap-1.5"
                             onClick={handleDeleteCachet}
                             disabled={isUploadingCachet}
                           >
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Supprimer
+                            <Trash2 className="h-3.5 w-3.5" /> Supprimer
                           </Button>
                         )}
                       </div>
