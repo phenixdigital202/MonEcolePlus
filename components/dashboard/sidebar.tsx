@@ -109,6 +109,7 @@ const navigationConfig = {
     { name: "Absences", href: "/dashboard/absences", icon: Clock },
     { name: "Documents", href: "/dashboard/documents", icon: Folder },
     { name: "Bibliothèque", href: "/dashboard/bibliotheque", icon: BookOpen },
+    { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     { name: "Performance", href: "/dashboard/performance", icon: Trophy },
   ],
   parent: [
