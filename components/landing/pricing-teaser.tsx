@@ -2,55 +2,8 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Check, ArrowRight, Sparkles, Zap } from "lucide-react"
-
-const plans = [
-  {
-    name: "Découverte",
-    price: "0 FCFA",
-    period: "/ 14 jours",
-    description: "Idéal pour tester toutes les fonctionnalités de MonÉcole+.",
-    features: [
-      "Jusqu'à 150 élèves",
-      "Calcul des moyennes &amp; rangs",
-      "Impression Bulletins &amp; Reçus",
-      "Fiche Établissement",
-      "Support par email"
-    ],
-    cta: "Essai gratuit 14 jours",
-    highlighted: false,
-  },
-  {
-    name: "Pro Établissement",
-    price: "49 000 FCFA",
-    period: "/ mois",
-    description: "Pour les écoles exigeantes voulant l'isolation DB &amp; WhatsApp.",
-    features: [
-      "Élèves &amp; Classes illimités",
-      "Database physique dédiée par École",
-      "Assistant IA MonÉcole+ inclus",
-      "WhatsApp Cloud API &amp; SMS",
-      "Certificats de scolarité QR Code",
-      "Support prioritaire 24/7"
-    ],
-    cta: "Créer mon école Pro",
-    highlighted: true,
-  },
-  {
-    name: "Réseaux &amp; Groupe",
-    price: "Sur Mesure",
-    description: "Solutions sur mesure pour les groupes scolaires multi-sites.",
-    features: [
-      "Gestion Multi-Établissements",
-      "Master DB Centralisée + API Dedicated",
-      "Sauvegardes automatiques quotidiennes",
-      "Formation du personnel sur site",
-      "Directeur de compte dédié"
-    ],
-    cta: "Contacter l'équipe",
-    highlighted: false,
-  },
-]
+import { Check, ArrowRight, Sparkles } from "lucide-react"
+import { PRICING_PLANS } from "@/lib/pricing-config"
 
 export function PricingTeaser() {
   return (
@@ -74,19 +27,19 @@ export function PricingTeaser() {
         </div>
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {PRICING_PLANS.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.id}
               className={`relative flex flex-col justify-between rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 ${
                 plan.highlighted
                   ? "border-2 border-primary bg-white shadow-2xl shadow-primary/10 ring-2 ring-primary/20"
                   : "border border-slate-200 bg-white hover:border-slate-300 shadow-sm"
               }`}
             >
-              {plan.highlighted && (
+              {plan.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <div className="rounded-full bg-gradient-to-r from-primary to-indigo-600 px-4 py-1 text-xs font-extrabold text-white uppercase tracking-wider shadow-md">
-                    Recommandé pour les Écoles
+                  <div className="rounded-full bg-gradient-to-r from-primary to-indigo-600 px-4 py-1 text-[10px] font-black text-white uppercase tracking-wider shadow-md">
+                    {plan.badge}
                   </div>
                 </div>
               )}
@@ -109,7 +62,7 @@ export function PricingTeaser() {
                       <div className="h-5 w-5 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
                         <Check className="h-3 w-3 text-emerald-700" />
                       </div>
-                      <span dangerouslySetInnerHTML={{ __html: feature }} />
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>

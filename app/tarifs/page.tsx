@@ -1,61 +1,11 @@
 import { LandingHeader } from "@/components/landing/header"
 import { Footer } from "@/components/landing/footer"
 import { Button } from "@/components/ui/button"
-import { Check, Sparkles, ArrowRight } from "lucide-react"
+import { Check, Sparkles, ArrowRight, X } from "lucide-react"
 import Link from "next/link"
+import { PRICING_PLANS, DETAILED_COMPARISON_FEATURES } from "@/lib/pricing-config"
 
 export default function TarifsPage() {
-  const plans = [
-    {
-      name: "Starter",
-      price: "25 000 FCFA",
-      period: "/ mois",
-      description: "Idéal pour débuter la numérisation des notes et de l'administration scolaire.",
-      features: [
-        "Jusqu'à 150 élèves",
-        "Gestion administrative & Inscriptions",
-        "Saisie des notes & bulletins PDF",
-        "Fiche Établissement dédiée",
-        "Support réactif par email"
-      ],
-      cta: "Démarrer l'essai gratuit",
-      popular: false
-    },
-    {
-      name: "Pro Établissement",
-      price: "75 000 FCFA",
-      period: "/ mois",
-      description: "Le plan recommandé pour les écoles exigeantes voulant l'isolation DB & WhatsApp.",
-      features: [
-        "Nombre d'élèves & classes illimités",
-        "Base de données dédiée par École",
-        "Assistant IA MonÉcole+ inclus",
-        "WhatsApp Cloud API & SMS auto",
-        "Certificats de scolarité QR Code",
-        "Paiements Mobile Money intégrés",
-        "Support prioritaire 24/7"
-      ],
-      cta: "Créer mon école Pro",
-      popular: true
-    },
-    {
-      name: "Réseaux & Groupe",
-      price: "Sur Mesure",
-      period: "",
-      description: "Pour les grands groupes scolaires multi-sites nécessitant un accompagnement dédié.",
-      features: [
-        "Gestion Multi-Établissements centralisée",
-        "Master DB Centralisée + API Dedicated",
-        "Sauvegardes automatiques quotidiennes",
-        "Accompagnement & formation sur site",
-        "SLA de disponibilité 99.9%",
-        "Directeur de compte dédié"
-      ],
-      cta: "Contacter notre équipe",
-      popular: false
-    }
-  ]
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 text-slate-900 relative overflow-hidden">
       {/* Background Ambient Orbs */}
@@ -80,19 +30,19 @@ export default function TarifsPage() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-3 items-stretch">
-          {plans.map((p, i) => (
+          {PRICING_PLANS.map((p) => (
             <div 
-              key={i} 
+              key={p.id} 
               className={`p-8 sm:p-9 rounded-3xl transition-all duration-300 flex flex-col justify-between relative ${
-                p.popular 
+                p.highlighted 
                   ? "bg-white/95 border-2 border-blue-600 shadow-2xl shadow-blue-500/15 ring-4 ring-blue-500/10 md:-translate-y-2 scale-[1.02]" 
                   : "bg-white/80 backdrop-blur-xl border border-slate-200/80 hover:border-blue-300 shadow-xl hover:shadow-2xl"
               }`}
             >
-              {p.popular && (
+              {p.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <span className="text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
-                    Recommandé pour les Écoles
+                    {p.badge}
                   </span>
                 </div>
               )}
@@ -128,7 +78,7 @@ export default function TarifsPage() {
               <Button 
                 asChild
                 className={`w-full mt-8 h-12 rounded-2xl font-bold text-sm transition-all duration-300 ${
-                  p.popular 
+                  p.highlighted 
                     ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg shadow-blue-500/25 hover:scale-[1.02]" 
                     : "bg-slate-900 hover:bg-slate-800 text-white shadow-md"
                 }`}
@@ -140,9 +90,57 @@ export default function TarifsPage() {
             </div>
           ))}
         </div>
+
+        {/* Detailed Feature Comparison */}
+        <div className="mt-20 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-8 shadow-xl space-y-8">
+          <h2 className="text-2xl font-black text-slate-900 text-center tracking-tight">
+            Comparaison détaillée des fonctionnalités
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b-2 border-slate-200">
+                  <th className="py-4 px-4 text-left font-black uppercase text-slate-500 tracking-wider">Fonctionnalité</th>
+                  {PRICING_PLANS.map((p) => (
+                    <th key={p.id} className="py-4 px-4 text-center font-black text-slate-900">
+                      {p.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {DETAILED_COMPARISON_FEATURES.map((cat, catIdx) => (
+                  <React.Fragment key={catIdx}>
+                    <tr className="bg-slate-100/70">
+                      <td colSpan={4} className="py-2.5 px-4 font-black uppercase text-[10px] tracking-widest text-blue-700">
+                        {cat.category}
+                      </td>
+                    </tr>
+                    {cat.items.map((item, itemIdx) => (
+                      <tr key={itemIdx} className="hover:bg-slate-50/80">
+                        <td className="py-3.5 px-4 font-bold text-slate-800">{item.name}</td>
+                        <td className="py-3.5 px-4 text-center font-semibold text-slate-700">
+                          {item.decouverte === "Oui" ? <Check className="h-5 w-5 text-emerald-600 mx-auto" /> : item.decouverte === "Non" ? <X className="h-5 w-5 text-slate-300 mx-auto" /> : item.decouverte}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-semibold text-blue-700 bg-blue-50/30">
+                          {item.pro === "Oui" ? <Check className="h-5 w-5 text-emerald-600 mx-auto" /> : item.pro === "Non" ? <X className="h-5 w-5 text-slate-300 mx-auto" /> : item.pro}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-semibold text-slate-700">
+                          {item.entreprise === "Oui" ? <Check className="h-5 w-5 text-emerald-600 mx-auto" /> : item.entreprise === "Non" ? <X className="h-5 w-5 text-slate-300 mx-auto" /> : item.entreprise}
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
 
       <Footer />
     </div>
   )
 }
+import React from "react"
