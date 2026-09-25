@@ -40,8 +40,8 @@ export default function TarifsPage() {
               }`}
             >
               {p.badge && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
+                  <span className="inline-flex items-center text-[10px] sm:text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 border border-white/30">
                     {p.badge}
                   </span>
                 </div>

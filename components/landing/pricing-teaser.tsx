@@ -37,8 +37,8 @@ export function PricingTeaser() {
               }`}
             >
               {plan.badge && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <div className="rounded-full bg-gradient-to-r from-primary to-indigo-600 px-4 py-1 text-[10px] font-black text-white uppercase tracking-wider shadow-md">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
+                  <div className="inline-flex items-center rounded-full bg-gradient-to-r from-primary to-indigo-600 px-4 py-1.5 text-[10px] sm:text-xs font-black text-white uppercase tracking-wider shadow-lg shadow-primary/30 border border-white/30">
                     {plan.badge}
                   </div>
                 </div>
