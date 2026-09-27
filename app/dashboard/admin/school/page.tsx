@@ -31,16 +31,15 @@ export default async function AdminSchoolPage() {
   let schoolYears: any[] = []
 
   try {
-    schoolData = await prisma.ecole.findFirst()
-
-    // 3. Fetch real statistics from database
-    const [studentsCount, teachersCount, parentsCount, classesCount, years] = await Promise.all([
+    const [schoolDataResult, studentsCount, teachersCount, parentsCount, classesCount, years] = await Promise.all([
+      prisma.ecole.findFirst(),
       prisma.user.count({ where: { role: "student" } }),
       prisma.user.count({ where: { role: "teacher" } }),
       prisma.user.count({ where: { role: "parent" } }),
       prisma.class.count(),
       prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } })
     ])
+    schoolData = schoolDataResult
 
     stats = {
       students: studentsCount,
