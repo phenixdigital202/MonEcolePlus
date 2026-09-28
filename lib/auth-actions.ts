@@ -241,7 +241,7 @@ export async function loginUser(formData: FormData) {
     const { createSessionToken } = require("./session")
     const cookieStore = await cookies()
     const token = createSessionToken({
-      userId: tenantUserId,
+      userId: user.id,
       role: user.role,
       schoolId: user.id_ecole,
       databaseUrl
@@ -255,7 +255,7 @@ export async function loginUser(formData: FormData) {
       path: "/",
     })
 
-    cookieStore.set("user_id", tenantUserId.toString(), {
+    cookieStore.set("user_id", user.id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7,
