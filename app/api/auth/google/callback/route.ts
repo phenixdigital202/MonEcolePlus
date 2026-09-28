@@ -147,12 +147,24 @@ export async function GET(request: Request) {
       })
     }
 
+    let googleUserDbUrl: string | undefined = undefined
+    if (user.id_ecole) {
+      const ecoleObj = await prismaMaster.ecole.findUnique({
+        where: { id: user.id_ecole },
+        select: { database_url: true }
+      })
+      if (ecoleObj?.database_url) {
+        googleUserDbUrl = ecoleObj.database_url
+      }
+    }
+
     // 5. Establish session cookies & signed token
     const cookieStore = await cookies()
     const sessionToken = createSessionToken({
       userId: user.id,
       role: user.role,
-      schoolId: user.id_ecole || undefined
+      schoolId: user.id_ecole || undefined,
+      databaseUrl: googleUserDbUrl
     })
 
     cookieStore.set("session_token", sessionToken, {

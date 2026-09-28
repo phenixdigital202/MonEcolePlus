@@ -8,6 +8,7 @@ export interface SessionPayload {
   userId: number
   role: string
   schoolId: number | null
+  databaseUrl?: string
   expiresAt: number
 }
 
@@ -72,8 +73,7 @@ export function invalidateAuthenticatedUserCache(userId?: number) {
 
 /**
  * Fonction centrale pour obtenir l'utilisateur authentifié de confiance côté serveur.
- * Résout le Master User depuis la Master DB en vérifiant le jeton cryptographique de session,
- * avec un cache en mémoire haute performance.
+ * Résout le Master User depuis le jeton cryptographique de session, avec cache en mémoire.
  */
 export async function getAuthenticatedUser() {
   try {
@@ -85,37 +85,44 @@ export async function getAuthenticatedUser() {
     }
 
     const sessionToken = cookieStore.get("session_token")?.value
-    let userId: number | null = null
 
     if (sessionToken) {
       const verified = verifySessionToken(sessionToken)
       if (verified) {
-        userId = verified.userId
+        // Fast path: Token HMAC valide et données utilisateur intégrées
+        const cached = authUserCache.get(verified.userId)
+        if (cached && (Date.now() - cached.timestamp < AUTH_CACHE_TTL_MS)) {
+          return cached.user
+        }
+
+        const userObj = {
+          id: verified.userId,
+          role: verified.role,
+          schoolId: verified.schoolId,
+          databaseUrl: verified.databaseUrl,
+          nom: cached?.user?.nom || "",
+          email: cached?.user?.email || ""
+        }
+        authUserCache.set(verified.userId, { user: userObj, timestamp: Date.now() })
+        return userObj
       } else {
         console.warn("[getAuthenticatedUser] Rejet d'un session_token invalide ou altéré.")
         return null
       }
-    } else {
-      // Transition sécurisée: Si session_token est absent mais user_id brut présent,
-      // on extrait user_id ET on vérifie en Master DB que le compte existe réellement
-      const legacyUserId = cookieStore.get("user_id")?.value
-      if (legacyUserId) {
-        const parsed = parseInt(legacyUserId)
-        if (!isNaN(parsed)) userId = parsed
-      }
     }
 
-    if (!userId) {
-      return null
-    }
+    // Transition de secours si pas de session_token mais user_id présent
+    const legacyUserId = cookieStore.get("user_id")?.value
+    if (!legacyUserId) return null
+    
+    const userId = parseInt(legacyUserId)
+    if (isNaN(userId)) return null
 
-    // Check fast in-memory cache first (< 0.01ms response time)
     const cached = authUserCache.get(userId)
     if (cached && (Date.now() - cached.timestamp < AUTH_CACHE_TTL_MS)) {
       return cached.user
     }
 
-    // Interrogation de la Master DB si pas en cache
     const masterUser = await prismaMaster.user.findUnique({
       where: { id: userId },
       select: {
@@ -124,7 +131,8 @@ export async function getAuthenticatedUser() {
         email: true,
         role: true,
         id_ecole: true,
-        avatar_url: true
+        avatar_url: true,
+        ecole: { select: { database_url: true } }
       }
     })
 
@@ -139,12 +147,11 @@ export async function getAuthenticatedUser() {
       email: masterUser.email,
       role: masterUser.role,
       schoolId: masterUser.id_ecole,
+      databaseUrl: masterUser.ecole?.database_url,
       avatarUrl: masterUser.avatar_url
     }
 
-    // Store in global in-memory cache
     authUserCache.set(userId, { user: result, timestamp: Date.now() })
-
     return result
   } catch (error: any) {
     console.error("[getAuthenticatedUser] Erreur serveur:", error)

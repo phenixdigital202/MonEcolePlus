@@ -137,7 +137,8 @@ export async function registerUser(formData: FormData) {
     const token = createSessionToken({
       userId: sessionUserId,
       role: userRole,
-      schoolId: schoolId
+      schoolId: schoolId,
+      databaseUrl: newSchool.database_url || undefined
     })
 
     cookieStore.set("session_token", token, {
@@ -225,7 +226,16 @@ export async function loginUser(formData: FormData) {
       return { error: "Identifiants invalides." }
     }
 
-    let tenantUserId = user.id;
+    let databaseUrl: string | undefined = undefined
+    if (user.id_ecole) {
+      const ecole = await prismaMaster.ecole.findUnique({
+        where: { id: user.id_ecole },
+        select: { database_url: true }
+      })
+      if (ecole?.database_url) {
+        databaseUrl = ecole.database_url
+      }
+    }
 
     // Set signed session_token cookie
     const { createSessionToken } = require("./session")
@@ -233,7 +243,8 @@ export async function loginUser(formData: FormData) {
     const token = createSessionToken({
       userId: tenantUserId,
       role: user.role,
-      schoolId: user.id_ecole
+      schoolId: user.id_ecole,
+      databaseUrl
     })
 
     cookieStore.set("session_token", token, {

@@ -25,9 +25,16 @@ export async function getCurrentTenant() {
 
     if (authUser) {
       if (authUser.role === "super_admin") {
-        console.log("[getCurrentTenant] Super Admin user -> returning null tenant.")
         return null
       }
+
+      // Fast Path 1: URL de base déjà présente dans le token vérifié (0 appel Master DB)
+      if (authUser.schoolId && authUser.databaseUrl) {
+        const tenantObj = { id: authUser.schoolId, database_url: authUser.databaseUrl }
+        cacheById.set(authUser.schoolId, { school: tenantObj, timestamp: Date.now() })
+        return tenantObj
+      }
+
       if (authUser.schoolId) {
         const parsedId = authUser.schoolId
         const cached = cacheById.get(parsedId)
@@ -38,7 +45,6 @@ export async function getCurrentTenant() {
         const school = await masterPrisma.ecole.findUnique({
           where: { id: parsedId }
         })
-        console.log(`[getCurrentTenant] Resolved school by authenticated user schoolId: ID=${school?.id}, Name=${school?.nom}`)
         if (school && school.database_url) {
           cacheById.set(parsedId, { school, timestamp: Date.now() })
           return school
