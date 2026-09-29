@@ -3,9 +3,9 @@ import { GraduationCap, ShieldCheck, CheckCircle2 } from "lucide-react"
 
 const navigation = {
   product: [
-    { name: "Fonctionnalités", href: "#features" },
-    { name: "Avantages", href: "#benefits" },
-    { name: "Témoignages", href: "#testimonials" },
+    { name: "Fonctionnalités", href: "/#features" },
+    { name: "Avantages", href: "/#benefits" },
+    { name: "Témoignages", href: "/#testimonials" },
     { name: "Tarifs", href: "/pricing" },
   ],
   company: [

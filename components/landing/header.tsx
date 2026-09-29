@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { GraduationCap, Menu, X, ArrowRight, Sparkles } from "lucide-react"
 
 const navigation = [
-  { name: "Fonctionnalités", href: "#features" },
-  { name: "Avantages IA", href: "#benefits" },
-  { name: "Témoignages", href: "#testimonials" },
+  { name: "Fonctionnalités", href: "/#features" },
+  { name: "Avantages IA", href: "/#benefits" },
+  { name: "Témoignages", href: "/#testimonials" },
   { name: "Tarifs", href: "/pricing" },
 ]
 
