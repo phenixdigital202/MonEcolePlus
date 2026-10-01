@@ -26,17 +26,24 @@ export const getCachedUser = cache(async (userId: number) => {
       return cached.user
     }
 
+    const { getAuthenticatedUser } = require("./session")
+    const authUser = await getAuthenticatedUser()
     const prisma = await getPrisma()
-    const master = require("./prisma").default
     
-    const masterUser = await master.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, role: true }
-    })
+    let targetEmail = authUser?.email
 
-    if (masterUser && masterUser.email) {
+    if (!targetEmail) {
+      const master = require("./prisma").default
+      const masterUser = await master.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, role: true }
+      })
+      targetEmail = masterUser?.email
+    }
+
+    if (targetEmail) {
       const user = await prisma.user.findUnique({
-        where: { email: masterUser.email.toLowerCase().trim() },
+        where: { email: targetEmail.toLowerCase().trim() },
         include: { ecole: true }
       })
       if (user) {

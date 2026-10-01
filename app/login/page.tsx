@@ -52,14 +52,13 @@ function LoginFormContent() {
       setError(result.error)
       setPending(false)
     } else if (result?.success) {
+      let targetUrl = "/dashboard"
       if (result.role === "super_admin") {
-        router.push("/super-admin")
+        targetUrl = "/super-admin"
       } else if (result.role === "parent") {
-        router.push("/dashboard/parent")
-      } else {
-        router.push("/dashboard")
+        targetUrl = "/dashboard/parent"
       }
-      router.refresh()
+      window.location.href = targetUrl
     }
   }
 

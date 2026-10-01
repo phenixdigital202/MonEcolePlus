@@ -194,7 +194,8 @@ export async function loginUser(formData: FormData) {
     // ALWAYS search in Master DB for unified login
     console.log(`[Login] Attempting login for: ${cleanEmail}`)
     let user = await prismaMaster.user.findUnique({
-      where: { email: cleanEmail }
+      where: { email: cleanEmail },
+      include: { ecole: { select: { database_url: true } } }
     })
 
     // Auto-guerison : Si absent (notamment sur la base de production Vercel), on le cree a la volee
@@ -208,7 +209,8 @@ export async function loginUser(formData: FormData) {
           password: hashedPassword,
           role: "super_admin",
           id_ecole: null
-        }
+        },
+        include: { ecole: { select: { database_url: true } } }
       })
     }
 
@@ -237,16 +239,7 @@ export async function loginUser(formData: FormData) {
       return { error: "Identifiants invalides." }
     }
 
-    let databaseUrl: string | undefined = undefined
-    if (user.id_ecole) {
-      const ecole = await prismaMaster.ecole.findUnique({
-        where: { id: user.id_ecole },
-        select: { database_url: true }
-      })
-      if (ecole?.database_url) {
-        databaseUrl = ecole.database_url
-      }
-    }
+    const databaseUrl = user.ecole?.database_url || undefined
 
     // Set signed session_token cookie
     const { createSessionToken } = require("./session")
