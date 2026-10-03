@@ -54,7 +54,7 @@ export function PricingTeaser() {
               >
                 <span>Annuel</span>
                 <span className="bg-emerald-400 text-slate-950 font-black text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
-                  2 mois offerts
+                  3 mois offerts (9 mois / an)
                 </span>
               </button>
             </div>
