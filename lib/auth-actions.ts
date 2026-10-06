@@ -190,32 +190,107 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
-    const cleanEmail = email.toLowerCase().trim()
-    // ALWAYS search in Master DB for unified login
-    console.log(`[Login] Attempting login for: ${cleanEmail}`)
-    let user = await prismaMaster.user.findUnique({
-      where: { email: cleanEmail },
-      include: { ecole: { select: { database_url: true } } }
-    })
+    let user: any = null;
 
-    // Auto-guerison : Si absent (notamment sur la base de production Vercel), on le cree a la volee
+    try {
+      user = await prismaMaster.user.findUnique({
+        where: { email: cleanEmail },
+        include: { ecole: { select: { database_url: true } } }
+      })
+    } catch (dbErr: any) {
+      console.warn(`[Login] Master DB query error (possible missing columns or schema drift):`, dbErr.message)
+      // Auto-heal schema on Master DB
+      try {
+        const { ensureDatabaseColumnsExist } = require("./migration-manager")
+        await ensureDatabaseColumnsExist(prismaMaster)
+        user = await prismaMaster.user.findUnique({
+          where: { email: cleanEmail },
+          include: { ecole: { select: { database_url: true } } }
+        })
+      } catch (retryErr: any) {
+        console.error(`[Login] Master DB retry failed:`, retryErr.message)
+      }
+    }
+
+    // Auto-guérison Super Admin si absent de la Master DB
     if (!user && cleanEmail === "admin@phenixdigital.ci") {
       console.log(`[Login] Auto-provisioning Super Admin pour: ${cleanEmail}`)
       const hashedPassword = await bcrypt.hash("supersecuresaas123", 10)
-      user = await prismaMaster.user.create({
-        data: {
-          nom: "Phénix Digital CI",
-          email: cleanEmail,
-          password: hashedPassword,
-          role: "super_admin",
-          id_ecole: null
-        },
-        include: { ecole: { select: { database_url: true } } }
-      })
+      try {
+        user = await prismaMaster.user.create({
+          data: {
+            nom: "Phénix Digital CI",
+            email: cleanEmail,
+            password: hashedPassword,
+            role: "super_admin",
+            id_ecole: null
+          },
+          include: { ecole: { select: { database_url: true } } }
+        })
+      } catch (e: any) {
+        console.error(`[Login] Super Admin creation fallback:`, e.message)
+      }
+    }
+
+    // Fallback: Si l'utilisateur n'est pas dans la Master DB, rechercher dans les bases de données des établissements (Tenants)
+    if (!user) {
+      console.log(`[Login] User missing from Master DB. Searching across tenant databases for ${cleanEmail}...`)
+      try {
+        const ecoles = await prismaMaster.ecole.findMany({
+          where: { database_url: { not: null } },
+          select: { id: true, nom: true, database_url: true }
+        })
+
+        for (const ecole of ecoles) {
+          if (!ecole.database_url) continue
+          try {
+            const tenantPrisma = getTenantClient(ecole.database_url)
+            const tenantUser = await tenantPrisma.user.findUnique({
+              where: { email: cleanEmail }
+            })
+
+            if (tenantUser) {
+              console.log(`[Login] Found user in Tenant DB "${ecole.nom}" (School ID ${ecole.id}). Auto-syncing to Master DB...`)
+              
+              // Sync user to Master DB to prevent future lookups
+              try {
+                user = await prismaMaster.user.create({
+                  data: {
+                    id: tenantUser.id,
+                    nom: tenantUser.nom,
+                    email: tenantUser.email,
+                    password: tenantUser.password,
+                    role: tenantUser.role,
+                    id_ecole: ecole.id
+                  },
+                  include: { ecole: { select: { database_url: true } } }
+                })
+              } catch (masterSyncErr: any) {
+                // If ID collision occurs, create without specifying ID
+                user = await prismaMaster.user.create({
+                  data: {
+                    nom: tenantUser.nom,
+                    email: tenantUser.email,
+                    password: tenantUser.password,
+                    role: tenantUser.role,
+                    id_ecole: ecole.id
+                  },
+                  include: { ecole: { select: { database_url: true } } }
+                })
+              }
+              break
+            }
+          } catch (tenantErr: any) {
+            // Ignore individual tenant connection issues during search
+          }
+        }
+      } catch (searchErr: any) {
+        console.error(`[Login] Tenant search error:`, searchErr.message)
+      }
     }
 
     if (!user) {
-      console.log(`[Login] User not found in database.`)
+      console.log(`[Login] User not found in any database.`)
       return { error: "Identifiants invalides." }
     }
     
