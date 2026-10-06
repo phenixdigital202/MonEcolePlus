@@ -40,6 +40,7 @@ const navigationConfig = {
   admin: [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
     { name: "Classes", href: "/dashboard/classes", icon: Users },
+    { name: "Inscriptions 📝", href: "/dashboard/inscriptions", icon: FileSpreadsheet },
     { name: "Élèves", href: "/dashboard/admin/students", icon: GraduationCap },
     { name: "Enseignants", href: "/dashboard/admin/teachers", icon: BookOpen },
     { name: "Parents", href: "/dashboard/admin/parents", icon: UserCheck },

@@ -234,6 +234,8 @@ model Inscription {
   id_classe         Int
   annee_scolaire    String
   statut            InscriptionStatut @default(active)
+  type_inscription  String?           @default("Inscription")
+  montant_scolarite Decimal?
   startDate         DateTime          @default(now())
   endDate           DateTime?
   reason            String?
@@ -339,17 +341,36 @@ model Setting {
 }
 
 model User {
-  id                  Int                   @id @default(autoincrement())
-  id_ecole            Int?
-  nom                 String
-  email               String                @unique
-  password            String
-  role                Role
-  matiere             String?
-  points              Int                   @default(0)
-  niveau              Int                   @default(1)
-  created_at          DateTime              @default(now())
-  avatar_url          String?
+  id                    Int                   @id @default(autoincrement())
+  id_ecole              Int?
+  nom                   String
+  email                 String                @unique
+  password              String
+  role                  Role
+  matricule             String?               @unique
+  date_naissance        DateTime?
+  lieu_naissance        String?
+  nationalite           String?               @default("Ivoirienne")
+  sexe                  String?
+  etablissement_origine String?
+  statut_affectation    String?               @default("Non Affecté")
+  statut_redoublement   String?               @default("Non Redoublant")
+  cantine               Boolean?              @default(false)
+  transport             Boolean?              @default(false)
+  lv2                   String?
+  tuteur_type           String?               @default("Père")
+  tuteur_nom            String?
+  tuteur_profession     String?
+  tuteur_tel_domicile   String?
+  tuteur_tel_bureau     String?
+  tuteur_tel_mobile     String?
+  tuteur_adresse        String?
+  tuteur_email          String?
+  matiere               String?
+  points                Int                   @default(0)
+  niveau                Int                   @default(1)
+  created_at            DateTime              @default(now())
+  avatar_url            String?
   absences            Absence[]
   aiInsights          AIInsight[]
   annonces            Annonce[]
