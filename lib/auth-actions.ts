@@ -190,6 +190,7 @@ export async function loginUser(formData: FormData) {
   }
 
   try {
+    const cleanEmail = email.toLowerCase().trim()
     let user: any = null;
 
     try {
