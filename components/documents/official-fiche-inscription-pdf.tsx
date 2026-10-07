@@ -362,7 +362,6 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
           </div>
         </div>
       </div>
-    </div>
   )
 
   return (
