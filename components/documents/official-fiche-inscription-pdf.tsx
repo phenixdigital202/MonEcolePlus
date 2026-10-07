@@ -1,20 +1,34 @@
 "use client"
 
-import React, { useRef } from "react"
-import { Printer, Download, GraduationCap, Building, UserCheck, Calendar, FileText } from "lucide-react"
+import React, { useRef, useState } from "react"
+import { Printer, Download, GraduationCap, FileText, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DocumentPrintContainer } from "@/components/documents/document-print-container"
+import { downloadDocumentAsPdf } from "@/lib/pdf-export-utils"
+import { toast } from "sonner"
 
 interface OfficialFicheInscriptionProps {
   inscriptionData: any
   schoolData?: any
+  onClose?: () => void
 }
 
-export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: OfficialFicheInscriptionProps) {
+export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClose }: OfficialFicheInscriptionProps) {
   const printRef = useRef<HTMLDivElement>(null)
+  const [docFormat, setDocFormat] = useState<"A4" | "A5">("A4")
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleDownloadPdf = async () => {
+    toast.info("Génération du fichier PDF en cours...")
+    const studentName = (user.nom || "Eleve").replace(/[^a-zA-Z0-9]/g, "_")
+    await downloadDocumentAsPdf({
+      elementId: "printable-fiche-document",
+      filename: `Fiche_Inscription_${studentName}`,
+      format: docFormat.toLowerCase() as "a4" | "a5"
+    })
   }
 
   const user = inscriptionData?.user || {}
@@ -35,8 +49,11 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
 
   const formSheetContent = (
     <div 
+      id="printable-fiche-document"
       ref={printRef}
-      className="bg-white text-slate-900 p-6 sm:p-8 border border-slate-300 shadow-2xl rounded-xl max-w-[850px] mx-auto text-xs font-sans print:shadow-none print:border-none print:p-6 print:m-0 print:max-w-none font-medium leading-normal print:text-[11px] print:h-[285mm] print:flex print:flex-col print:justify-between"
+      className={`bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-xl mx-auto text-xs font-sans print:shadow-none print:border-none print:p-6 print:m-0 print:max-w-none font-medium leading-normal print:text-[11px] print:h-[285mm] print:flex print:flex-col print:justify-between transition-all ${
+        docFormat === "A5" ? "p-4 max-w-[620px] text-[10px]" : "p-6 sm:p-8 max-w-[850px]"
+      }`}
     >
       {/* Header Block */}
       <div className="border-b-2 border-slate-900 pb-3 mb-4">
@@ -366,36 +383,74 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
 
   return (
     <div className="space-y-6">
-      {/* Printable Controls Bar (Hidden on Print) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 text-white rounded-2xl shadow-xl no-print print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-bold">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-extrabold text-sm text-white">Fiche Officielle d&apos;Inscription ou Réinscription</h3>
-            <p className="text-xs text-slate-400">Élève: {user.nom || "N/A"} — Matricule: {user.matricule || "Non attribué"}</p>
+      {/* Screen Document Preview */}
+      <div className="max-h-[68vh] overflow-y-auto p-2 bg-slate-200/60 rounded-2xl border border-slate-300 shadow-inner">
+        {formSheetContent}
+      </div>
+
+      {/* Action Footer Toolbar — Styled like Payment Receipt Modal */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 no-print print:hidden">
+        {/* Format Toggle A4 / A5 */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+          <span>Format :</span>
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setDocFormat("A4")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                docFormat === "A4"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              A4 Pleine Page
+            </button>
+            <button
+              type="button"
+              onClick={() => setDocFormat("A5")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                docFormat === "A5"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              A5 Demie Page
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={handlePrint}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/25"
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {onClose && (
+            <Button variant="outline" className="rounded-xl font-bold text-slate-700 border-slate-300" onClick={onClose}>
+              Fermer
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            className="rounded-xl border-slate-300 font-bold gap-2 text-slate-700 hover:bg-slate-50"
+            onClick={handleDownloadPdf}
           >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimer / Télécharger PDF
+            <Download className="h-4 w-4 text-slate-600" />
+            Télécharger PDF
+          </Button>
+
+          <Button
+            onClick={handlePrint}
+            className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold border-none gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-transform"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimer
           </Button>
         </div>
       </div>
 
-      {/* Screen View Inside Modal */}
-      {formSheetContent}
-
       {/* Print Portal Container Outside Modal DOM Tree */}
-      <DocumentPrintContainer pageSize="a4" orientation="portrait">
+      <DocumentPrintContainer pageSize={docFormat.toLowerCase() as any} orientation="portrait">
         {formSheetContent}
       </DocumentPrintContainer>
     </div>
   )
 }
+

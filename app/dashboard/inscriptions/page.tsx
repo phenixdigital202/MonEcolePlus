@@ -356,6 +356,7 @@ export default function InscriptionsPage() {
             <OfficialFicheInscriptionPdf 
               inscriptionData={selectedInscription}
               schoolData={selectedSchool}
+              onClose={() => setIsPdfModalOpen(false)}
             />
           )}
         </DialogContent>
