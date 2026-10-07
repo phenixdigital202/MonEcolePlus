@@ -88,7 +88,7 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
 
           <div className="mt-6 text-center">
             <h1 className="text-lg sm:text-xl font-black uppercase tracking-wider text-slate-900 underline decoration-2 underline-offset-4">
-              FICHE D&apos;INSCRIPTION ET DE RÉINSCRIPTION
+              FICHE D&apos;INSCRIPTION OU DE RÉINSCRIPTION
             </h1>
           </div>
         </div>
