@@ -3,6 +3,7 @@
 import React, { useRef } from "react"
 import { Printer, Download, GraduationCap, Building, UserCheck, Calendar, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DocumentPrintContainer } from "@/components/documents/document-print-container"
 
 interface OfficialFicheInscriptionProps {
   inscriptionData: any
@@ -32,37 +33,12 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
   const isCollege = levelName.includes("6") || levelName.includes("5") || levelName.includes("4") || levelName.includes("3") || levelName.includes("collège")
   const isLycee = levelName.includes("2") || levelName.includes("1") || levelName.includes("t") || levelName.includes("lycée")
 
-  return (
-    <div className="space-y-6">
-      {/* Printable Controls Bar (Hidden on Print) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 text-white rounded-2xl shadow-xl no-print print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-bold">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-extrabold text-sm text-white">Fiche Officielle d&apos;Inscription</h3>
-            <p className="text-xs text-slate-400">Élève: {user.nom || "N/A"} — Matricule: {user.matricule || "Non attribué"}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={handlePrint}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/25"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimer / Télécharger PDF
-          </Button>
-        </div>
-      </div>
-
-      {/* Official Form Sheet (A4 Printable Layout) */}
-      <div 
-        ref={printRef}
-        className="bg-white text-slate-900 p-8 sm:p-12 border border-slate-300 shadow-2xl rounded-xl max-w-[850px] mx-auto text-xs font-sans print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none font-medium"
-      >
-        {/* Header Block */}
+  const formSheetContent = (
+    <div 
+      ref={printRef}
+      className="bg-white text-slate-900 p-8 sm:p-12 border border-slate-300 shadow-2xl rounded-xl max-w-[850px] mx-auto text-xs font-sans print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none font-medium"
+    >
+      {/* Header Block */}
         <div className="border-b-2 border-slate-900 pb-4 mb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -386,6 +362,41 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData }: Off
           </div>
         </div>
       </div>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* Printable Controls Bar (Hidden on Print) */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 text-white rounded-2xl shadow-xl no-print print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-bold">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-white">Fiche Officielle d&apos;Inscription ou Réinscription</h3>
+            <p className="text-xs text-slate-400">Élève: {user.nom || "N/A"} — Matricule: {user.matricule || "Non attribué"}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={handlePrint}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/25"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer / Télécharger PDF
+          </Button>
+        </div>
+      </div>
+
+      {/* Screen View Inside Modal */}
+      {formSheetContent}
+
+      {/* Print Portal Container Outside Modal DOM Tree */}
+      <DocumentPrintContainer pageSize="a4" orientation="portrait">
+        {formSheetContent}
+      </DocumentPrintContainer>
     </div>
   )
 }
