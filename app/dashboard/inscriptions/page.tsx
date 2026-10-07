@@ -345,13 +345,7 @@ export default function InscriptionsPage() {
 
       {/* Modal 1: PDF Viewer & Print Modal */}
       <Dialog open={isPdfModalOpen} onOpenChange={setIsPdfModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 rounded-3xl bg-slate-100">
-          <DialogHeader className="flex flex-row items-center justify-between border-b pb-4 mb-4">
-            <DialogTitle className="text-lg font-black text-slate-900">
-              Fiche Officielle d&apos;Inscription ou Réinscription
-            </DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="sm:max-w-4xl rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
           {selectedInscription && (
             <OfficialFicheInscriptionPdf 
               inscriptionData={selectedInscription}

@@ -382,14 +382,14 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClo
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Screen Document Preview */}
-      <div className="max-h-[68vh] overflow-y-auto p-2 bg-slate-200/60 rounded-2xl border border-slate-300 shadow-inner">
+      <div className="max-h-[70vh] overflow-y-auto p-2 sm:p-4 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
         {formSheetContent}
       </div>
 
-      {/* Action Footer Toolbar — Styled like Payment Receipt Modal */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 no-print print:hidden">
+      {/* Action Footer Toolbar — Identical layout to Payment Receipt Modal */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200 no-print print:hidden">
         {/* Format Toggle A4 / A5 */}
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
           <span>Format :</span>
@@ -399,7 +399,7 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClo
               onClick={() => setDocFormat("A4")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                 docFormat === "A4"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-primary text-white shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -410,7 +410,7 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClo
               onClick={() => setDocFormat("A5")}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                 docFormat === "A5"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-primary text-white shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -422,7 +422,7 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClo
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           {onClose && (
-            <Button variant="outline" className="rounded-xl font-bold text-slate-700 border-slate-300" onClick={onClose}>
+            <Button variant="outline" className="rounded-xl font-bold border-slate-300" onClick={onClose}>
               Fermer
             </Button>
           )}
@@ -432,13 +432,13 @@ export function OfficialFicheInscriptionPdf({ inscriptionData, schoolData, onClo
             className="rounded-xl border-slate-300 font-bold gap-2 text-slate-700 hover:bg-slate-50"
             onClick={handleDownloadPdf}
           >
-            <Download className="h-4 w-4 text-slate-600" />
+            <Download className="h-4 w-4" />
             Télécharger PDF
           </Button>
 
           <Button
             onClick={handlePrint}
-            className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold border-none gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-transform"
+            className="rounded-xl bg-primary text-white font-bold border-none gap-2 shadow-lg shadow-primary/20"
           >
             <Printer className="h-4 w-4" />
             Imprimer
