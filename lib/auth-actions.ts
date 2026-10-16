@@ -191,7 +191,11 @@ export async function loginUser(formData: FormData) {
 
   try {
     const cleanEmail = email.toLowerCase().trim()
-    let user: any = null;
+    const hasDbEnv = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DATABASE_URL || process.env.DIRECT_URL
+    if (!hasDbEnv) {
+      console.error("[Login] Variable DATABASE_URL manquante dans l'environnement !")
+      return { error: "Erreur de configuration serveur : la variable DATABASE_URL est manquante dans les Variables d'environnement Hostinger." }
+    }
 
     try {
       user = await prismaMaster.user.findUnique({
@@ -200,6 +204,10 @@ export async function loginUser(formData: FormData) {
       })
     } catch (dbErr: any) {
       console.warn(`[Login] Master DB query error (possible missing columns or schema drift):`, dbErr.message)
+      if (dbErr.code === 'P1001' || dbErr.message?.includes("Can't reach database") || dbErr.message?.includes("ECONNREFUSED")) {
+        console.error("[Login] Impossible de joindre la base de données Supabase:", dbErr.message)
+        return { error: "Impossible de joindre la base de données. Vérifiez la connexion Supabase / DATABASE_URL sur Hostinger." }
+      }
       // Auto-heal schema on Master DB
       try {
         const { ensureDatabaseColumnsExist } = require("./migration-manager")
