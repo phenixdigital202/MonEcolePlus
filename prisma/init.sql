@@ -218,6 +218,8 @@ CREATE TABLE "inscriptions" (
     "id_classe" INTEGER NOT NULL,
     "annee_scolaire" TEXT NOT NULL,
     "statut" "inscriptions_statut" NOT NULL DEFAULT 'active',
+    "type_inscription" TEXT DEFAULT 'Inscription',
+    "montant_scolarite" DECIMAL(65,30),
     "startDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "endDate" TIMESTAMP(3),
     "reason" TEXT,
@@ -311,6 +313,25 @@ CREATE TABLE "users" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "users_role" NOT NULL,
+    "matricule" TEXT,
+    "date_naissance" TIMESTAMP(3),
+    "lieu_naissance" TEXT,
+    "nationalite" TEXT DEFAULT 'Ivoirienne',
+    "sexe" TEXT,
+    "etablissement_origine" TEXT,
+    "statut_affectation" TEXT DEFAULT 'Non Affecté',
+    "statut_redoublement" TEXT DEFAULT 'Non Redoublant',
+    "cantine" BOOLEAN DEFAULT false,
+    "transport" BOOLEAN DEFAULT false,
+    "lv2" TEXT,
+    "tuteur_type" TEXT DEFAULT 'Père',
+    "tuteur_nom" TEXT,
+    "tuteur_profession" TEXT,
+    "tuteur_tel_domicile" TEXT,
+    "tuteur_tel_bureau" TEXT,
+    "tuteur_tel_mobile" TEXT,
+    "tuteur_adresse" TEXT,
+    "tuteur_email" TEXT,
     "matiere" TEXT,
     "points" INTEGER NOT NULL DEFAULT 0,
     "niveau" INTEGER NOT NULL DEFAULT 1,
@@ -532,6 +553,18 @@ CREATE TABLE "school_years" (
     CONSTRAINT "school_years_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "sessions" (
+    "id" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "abonnements_id_ecole_idx" ON "abonnements"("id_ecole");
 
@@ -659,6 +692,9 @@ CREATE UNIQUE INDEX "settings_key_name_key" ON "settings"("key_name");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_matricule_key" ON "users"("matricule");
+
+-- CreateIndex
 CREATE INDEX "users_id_ecole_idx" ON "users"("id_ecole");
 
 -- CreateIndex
@@ -705,6 +741,15 @@ CREATE INDEX "school_years_status_idx" ON "school_years"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "school_years_id_ecole_label_key" ON "school_years"("id_ecole", "label");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sessions_tokenHash_key" ON "sessions"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "sessions_userId_idx" ON "sessions"("userId");
+
+-- CreateIndex
+CREATE INDEX "sessions_tokenHash_idx" ON "sessions"("tokenHash");
 
 -- AddForeignKey
 ALTER TABLE "abonnements" ADD CONSTRAINT "abonnements_id_ecole_fkey" FOREIGN KEY ("id_ecole") REFERENCES "ecoles"("id") ON DELETE CASCADE ON UPDATE RESTRICT;
@@ -801,4 +846,7 @@ ALTER TABLE "pedagogical_settings" ADD CONSTRAINT "pedagogical_settings_id_ecole
 
 -- AddForeignKey
 ALTER TABLE "school_years" ADD CONSTRAINT "school_years_id_ecole_fkey" FOREIGN KEY ("id_ecole") REFERENCES "ecoles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
