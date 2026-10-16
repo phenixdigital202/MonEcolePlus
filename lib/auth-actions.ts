@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import prismaMaster from "@/lib/prisma"
 import { getTenantClient } from "@/lib/prisma-tenant"
 import { provisionTenantDatabase } from "./db-provisioner"
+import { createSessionToken } from "./session"
 import bcrypt from "bcryptjs"
 
 export async function registerUser(formData: FormData) {
@@ -130,7 +131,6 @@ export async function registerUser(formData: FormData) {
     }
 
     // ─── STEP 8: Set session cookies ───
-    const { createSessionToken } = require("./session")
     const cookieStore = await cookies()
     const sessionUserId = masterUser?.id || tenantUser.id
 
@@ -191,6 +191,7 @@ export async function loginUser(formData: FormData) {
 
   try {
     const cleanEmail = email.toLowerCase().trim()
+    let user: any = null
     const hasDbEnv = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DATABASE_URL || process.env.DIRECT_URL
     if (!hasDbEnv) {
       console.error("[Login] Variable DATABASE_URL manquante dans l'environnement !")
@@ -326,7 +327,6 @@ export async function loginUser(formData: FormData) {
     const databaseUrl = user.ecole?.database_url || undefined
 
     // Set signed session_token cookie
-    const { createSessionToken } = require("./session")
     const cookieStore = await cookies()
     const token = createSessionToken({
       userId: user.id,
@@ -376,7 +376,7 @@ export async function loginUser(formData: FormData) {
   } catch (error: any) {
     if (error.message?.includes("NEXT_REDIRECT")) throw error;
     console.error("Login error:", error)
-    return { error: "Une erreur est survenue lors de la connexion." }
+    return { error: error.message || "Une erreur est survenue lors de la connexion." }
   }
 }
 
