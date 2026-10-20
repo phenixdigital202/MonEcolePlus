@@ -70,12 +70,12 @@ export function HeroSection() {
 
         {/* Hero Title */}
         <h1 className="max-w-4xl mx-auto text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-slate-900">
-          La plateforme <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">intelligente</span> qui métamorphose les écoles.
+          MonÉcole+ — La plateforme <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">intelligente</span> de gestion scolaire.
         </h1>
 
         {/* Subtitle */}
         <p className="max-w-3xl mx-auto text-base sm:text-xl text-slate-600 font-normal leading-relaxed">
-          Gérez votre établissement scolaire avec une précision absolue : <strong className="text-slate-900">Bulletins automatisés</strong>, <strong className="text-slate-900">Alertes WhatsApp &amp; SMS</strong>, <strong className="text-slate-900">Certificats QR infalsifiables</strong> et <strong className="text-slate-900">Bases de données multi-tenant isolées</strong>.
+          Avec <strong className="text-slate-900">Mon École Plus</strong>, propulsez votre établissement scolaire avec une précision absolue : <strong className="text-slate-900">Bulletins automatisés</strong>, <strong className="text-slate-900">Alertes WhatsApp &amp; SMS</strong>, <strong className="text-slate-900">Certificats QR infalsifiables</strong> et <strong className="text-slate-900">Bases de données dédiées</strong>.
         </p>
 
         {/* CTA Buttons */}

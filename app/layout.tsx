@@ -8,11 +8,75 @@ import './globals.css'
 const inter = { variable: 'font-sans' };
 const geistMono = { variable: 'font-mono' };
 
+const siteUrl = 'https://monecoleplus.ci'
+
 export const metadata: Metadata = {
-  title: 'MonÉcole+ | Plateforme de Gestion Scolaire Intelligente',
-  description: 'MonÉcole+ est une plateforme SaaS moderne de gestion scolaire propulsée par l\'IA. Connectez administrateurs, enseignants, élèves et parents.',
-  generator: 'v0.app',
-  keywords: ['école', 'gestion scolaire', 'IA', 'éducation', 'SaaS', 'plateforme éducative'],
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'MonÉcole+ (Mon Ecole Plus) — Plateforme de Gestion Scolaire Intelligente',
+    template: '%s | MonÉcole+ (Mon Ecole Plus)'
+  },
+  description: 'MonÉcole+ (Mon Ecole Plus) est le logiciel SaaS tout-en-un de gestion scolaire en Côte d\'Ivoire : bulletins de notes automatiques, certificats QR infalsifiables, notifications WhatsApp & SMS aux parents, emplois du temps et suivi des moyennes.',
+  applicationName: 'MonÉcole+',
+  authors: [{ name: 'MonÉcole+', url: siteUrl }],
+  generator: 'Next.js',
+  keywords: [
+    'Mon ecole plus',
+    'Mon école plus',
+    'MonEcolePlus',
+    'monecoleplus.ci',
+    'monecole plus',
+    'ecole plus',
+    'ecole plus ci',
+    'gestion scolaire',
+    'gestion scolaire cote d\'ivoire',
+    'logiciel de gestion scolaire',
+    'bulletin scolaire cote d\'ivoire',
+    'logiciel scolaire abidjan',
+    'plateforme éducative ivoirienne',
+    'bulletin de notes automatisé',
+    'suivi des absences et moyennes',
+    'certificat de scolarité qr code',
+    'sms whatsapp parents ecole',
+    'saas gestion ecole afrique'
+  ],
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    title: 'MonÉcole+ (Mon Ecole Plus) — Gestion Scolaire Intelligente',
+    description: 'La solution SaaS tout-en-un pour les collèges, lycées et groupes scolaires : bulletins de notes, WhatsApp/SMS, notes et absences en temps réel.',
+    url: siteUrl,
+    siteName: 'MonÉcole+ (Mon Ecole Plus)',
+    locale: 'fr_CI',
+    type: 'website',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 675,
+        alt: 'MonÉcole+ (Mon Ecole Plus) — Plateforme de gestion scolaire tout-en-un',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MonÉcole+ (Mon Ecole Plus) — Gestion Scolaire Intelligente',
+    description: 'Logiciel SaaS tout-en-un pour les écoles, collèges et lycées en Côte d\'Ivoire : bulletins scolaires, notes, SMS et WhatsApp.',
+    images: ['/og-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  category: 'education',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -42,6 +106,49 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://monecoleplus.ci/#organization',
+      name: 'MonÉcole+',
+      alternateName: ['Mon ecole plus', 'Mon école plus', 'MonEcolePlus', 'Mon Ecole Plus CI'],
+      url: 'https://monecoleplus.ci',
+      logo: 'https://monecoleplus.ci/icon.svg',
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'CI',
+        addressLocality: 'Abidjan'
+      }
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://monecoleplus.ci/#website',
+      url: 'https://monecoleplus.ci',
+      name: 'MonÉcole+ (Mon Ecole Plus)',
+      alternateName: ['Mon ecole plus', 'Mon école plus', 'MonEcolePlus'],
+      publisher: { '@id': 'https://monecoleplus.ci/#organization' }
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://monecoleplus.ci/#software',
+      name: 'MonÉcole+',
+      alternateName: ['Mon ecole plus', 'Mon école plus', 'MonEcolePlus'],
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web, iOS, Android',
+      url: 'https://monecoleplus.ci',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'XOF',
+        description: 'Essai gratuit 14 jours sans engagement'
+      },
+      description: 'Plateforme SaaS tout-en-un de gestion des établissements scolaires en Côte d\'Ivoire : bulletins scolaires, notes, relevés, WhatsApp et SMS.'
+    }
+  ]
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,6 +157,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${geistMono.variable}`}>
       <body className="font-sans antialiased bg-background text-foreground transition-colors duration-200">
+        {/* Schema.org JSON-LD Structured Data for Google Rich Snippets */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
