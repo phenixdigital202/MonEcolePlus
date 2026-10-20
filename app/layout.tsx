@@ -65,6 +65,9 @@ export const metadata: Metadata = {
     description: 'Logiciel SaaS tout-en-un pour les écoles, collèges et lycées en Côte d\'Ivoire : bulletins scolaires, notes, SMS et WhatsApp.',
     images: ['/og-image.jpg'],
   },
+  verification: {
+    google: 'googleb13b6812e3c35cc3',
+  },
   robots: {
     index: true,
     follow: true,
