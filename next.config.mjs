@@ -1,3 +1,5 @@
+process.env.NEXT_EXPERIMENTAL_WORKER_THREADS = 'false'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -5,6 +7,10 @@ const nextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
+  },
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
   },
 }
 
