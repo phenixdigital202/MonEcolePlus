@@ -1,8 +1,11 @@
 "use server"
 
 import { getPrisma } from "@/lib/tenant-context"
+import prismaMaster from "@/lib/prisma"
+import { getTenantClient } from "@/lib/prisma-tenant"
+import { provisionTenantDatabase } from "@/lib/db-provisioner"
 import { EcolePlan } from "@prisma/client"
-import { MigrationManager } from "./migration-manager"
+import bcrypt from "bcryptjs"
 import { cookies } from "next/headers"
 
 async function verifySuperAdmin() {
@@ -17,7 +20,7 @@ async function verifySuperAdmin() {
 // ── Statistiques globales SaaS ──────────────────────────────────────────────
 export async function getSaasStats() {
   await verifySuperAdmin()
-  const prisma = await getPrisma()
+  const prisma = prismaMaster
   
   const totalEcoles = await prisma.ecole.count()
   const totalUsers = await prisma.user.count()
@@ -56,33 +59,168 @@ export async function getSaasStats() {
 // ── Gestion des écoles (CRUD) ────────────────────────────────────────────────
 export async function getEcoles() {
   await verifySuperAdmin()
-  const prisma = await getPrisma()
-  const ecoles = await prisma.ecole.findMany({
-    orderBy: { created_at: "desc" }
+  const ecoles = await prismaMaster.ecole.findMany({
+    orderBy: { created_at: "desc" },
+    include: {
+      users: {
+        where: { role: "admin" },
+        select: { id: true, nom: true, email: true }
+      }
+    }
   })
   return { success: true, data: ecoles }
 }
 
-export async function createEcole(nom: string, subdomain: string, plan: EcolePlan) {
+export async function createEcole(
+  nom: string,
+  subdomain: string,
+  plan: EcolePlan = "gratuit",
+  adminEmail?: string,
+  adminNom?: string,
+  adminPassword?: string
+) {
   await verifySuperAdmin()
-  const prisma = await getPrisma()
   try {
-    const newEcole = await prisma.ecole.create({
+    const cleanNom = nom.trim()
+    const cleanSlug = subdomain
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    if (!cleanNom || !cleanSlug) {
+      return { success: false, error: "Le nom et le sous-domaine sont requis." }
+    }
+
+    const existing = await prismaMaster.ecole.findUnique({
+      where: { subdomain: cleanSlug }
+    })
+    if (existing) {
+      return { success: false, error: `Le sous-domaine "${cleanSlug}" est déjà utilisé.` }
+    }
+
+    // 1. Provisionner la base de données physique PostgreSQL
+    const dbName = `monecole_${cleanSlug.replace(/-/g, '_')}_${Date.now().toString().slice(-4)}`
+    console.log(`[createEcole] Provisioning tenant database: ${dbName}`)
+    const provisionStatus = await provisionTenantDatabase(dbName)
+    if (!provisionStatus.success || !provisionStatus.url) {
+      return { success: false, error: `Erreur lors de la création de la base de données : ${provisionStatus.error}` }
+    }
+
+    // 2. Créer l'école dans Master DB
+    const newEcole = await prismaMaster.ecole.create({
       data: {
-        nom,
-        subdomain,
-        plan,
-        database_url: `postgresql://postgres.nfrripylvuzxpuipdrpy:MonEcolePlus@aws-0-eu-west-3.pooler.supabase.com:6543/tenant_${subdomain}?pgbouncer=true`,
+        nom: cleanNom,
+        subdomain: cleanSlug,
+        plan: plan || "gratuit",
+        database_url: provisionStatus.url,
         db_status: "ready"
       }
     })
-    
-    // Auto-migrate schema on the newly created tenant DB
-    if (newEcole.database_url) {
-      await MigrationManager.checkAndAutoMigrate(newEcole.id, newEcole.database_url)
+
+    // 3. Stub d'école dans Tenant DB
+    const tenantPrisma = getTenantClient(provisionStatus.url)
+    try {
+      await tenantPrisma.ecole.create({
+        data: {
+          id: newEcole.id,
+          nom: cleanNom,
+          subdomain: cleanSlug
+        }
+      })
+      try {
+        await tenantPrisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('ecoles', 'id'), (SELECT MAX(id) FROM ecoles));`)
+      } catch (seqErr: any) {}
+    } catch (stubErr: any) {
+      console.warn(`[createEcole] Tenant school stub fallback:`, stubErr.message)
     }
 
-    return { success: true, data: newEcole }
+    // 4. Création compte Administrateur d'école (Tenant + Master)
+    const finalAdminEmail = (adminEmail?.trim() || `admin@${cleanSlug}.ci`).toLowerCase()
+    const finalAdminNom = adminNom?.trim() || `Admin ${cleanNom}`
+    const rawPassword = adminPassword?.trim() || "MonEcole2026!"
+    const hashedPassword = await bcrypt.hash(rawPassword, 10)
+
+    try {
+      await tenantPrisma.user.create({
+        data: {
+          nom: finalAdminNom,
+          email: finalAdminEmail,
+          password: hashedPassword,
+          role: "admin",
+          id_ecole: newEcole.id
+        }
+      })
+    } catch (tuErr: any) {
+      console.warn(`[createEcole] Tenant user create error:`, tuErr.message)
+    }
+
+    try {
+      await prismaMaster.user.create({
+        data: {
+          nom: finalAdminNom,
+          email: finalAdminEmail,
+          password: hashedPassword,
+          role: "admin",
+          id_ecole: newEcole.id
+        }
+      })
+    } catch (muErr: any) {
+      console.warn(`[createEcole] Master user create error:`, muErr.message)
+    }
+
+    return { 
+      success: true, 
+      data: newEcole,
+      adminCredentials: {
+        email: finalAdminEmail,
+        password: rawPassword
+      }
+    }
+  } catch (error: any) {
+    console.error(`[createEcole] Error:`, error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function resetEcoleAdminPassword(ecoleId: number, newPassword?: string) {
+  await verifySuperAdmin()
+  try {
+    const ecole = await prismaMaster.ecole.findUnique({
+      where: { id: ecoleId },
+      include: { users: { where: { role: "admin" } } }
+    })
+    if (!ecole) return { success: false, error: "Établissement introuvable." }
+    
+    const adminUser = ecole.users[0]
+    if (!adminUser) return { success: false, error: "Aucun administrateur trouvé pour cet établissement." }
+
+    const pwd = newPassword?.trim() || "MonEcole2026!"
+    const hashed = await bcrypt.hash(pwd, 10)
+
+    // Update Master DB
+    await prismaMaster.user.update({
+      where: { id: adminUser.id },
+      data: { password: hashed }
+    })
+
+    // Update Tenant DB
+    if (ecole.database_url) {
+      try {
+        const tenantPrisma = getTenantClient(ecole.database_url)
+        await tenantPrisma.user.updateMany({
+          where: { email: adminUser.email },
+          data: { password: hashed }
+        })
+      } catch (e: any) {
+        console.warn(`[resetEcoleAdminPassword] Tenant DB update warning:`, e.message)
+      }
+    }
+
+    return { success: true, email: adminUser.email, password: pwd }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
@@ -90,9 +228,8 @@ export async function createEcole(nom: string, subdomain: string, plan: EcolePla
 
 export async function updateEcolePlan(id: number, plan: EcolePlan) {
   await verifySuperAdmin()
-  const prisma = await getPrisma()
   try {
-    const updated = await prisma.ecole.update({
+    const updated = await prismaMaster.ecole.update({
       where: { id },
       data: { plan }
     })
@@ -104,9 +241,8 @@ export async function updateEcolePlan(id: number, plan: EcolePlan) {
 
 export async function deleteEcole(id: number) {
   await verifySuperAdmin()
-  const prisma = await getPrisma()
   try {
-    await prisma.ecole.delete({
+    await prismaMaster.ecole.delete({
       where: { id }
     })
     return { success: true }
