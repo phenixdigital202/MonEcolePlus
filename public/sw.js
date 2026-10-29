@@ -7,8 +7,10 @@ const PRECACHE_URLS = [
   "/",
   "/login",
   "/dashboard",
+  "/favicon.ico",
+  "/favicon-32x32.png",
+  "/apple-touch-icon.png",
   "/icon.svg",
-  "/apple-icon.png",
   "/manifest.json",
 ]
 
@@ -74,8 +76,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "MonÉcole+"
   const options = {
     body: data.body || "Vous avez une nouvelle notification",
-    icon: "/apple-icon.png",
-    badge: "/icon-light-32x32.png",
+    icon: "/apple-touch-icon.png",
+    badge: "/favicon-32x32.png",
     vibrate: [100, 50, 100],
     data: {
       url: data.url || "/dashboard",
